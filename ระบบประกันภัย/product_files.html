@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>ไฟล์เอกสารทั้งหมด</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Kanit&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css">
+
+
+<style>
+
+.document-list{
+    width:100%;
+    max-width:700px;
+}
+
+.document-box{
+
+    background:white;
+    padding:25px;
+    margin-bottom:20px;
+
+    border-radius:20px;
+
+    box-shadow:0 8px 20px rgba(0,0,0,.12);
+
+}
+
+
+.document-box h3{
+
+    color:#002d72;
+    margin-bottom:15px;
+
+}
+
+
+
+.file-item{
+
+    width:100%;
+    height:55px;
+
+    margin-top:12px;
+
+    border:none;
+    border-radius:12px;
+
+    background:#0d6efd;
+    color:white;
+
+    font-size:20px;
+    font-family:"Kanit",sans-serif;
+    font-weight:bold;
+
+    cursor:pointer;
+
+}
+
+
+.file-item:hover{
+
+    background:#0b5ed7;
+
+}
+
+
+</style>
+
+
+</head>
+
+
+
+<body>
+
+
+<!-- TOPBAR -->
+<div class="topbar">
+
+<button id="menuBtn">
+☰
+</button>
+
+<img src="logo.png" class="toplogo">
+
+<div class="apptitle">
+ระบบประกันสินค้า
+</div>
+
+</div>
+
+
+
+
+<main class="main">
+
+
+<h2 class="title">
+📄 ไฟล์เอกสารทั้งหมด
+</h2>
+
+
+<div class="document-list" id="documentList">
+
+</div>
+
+
+
+
+<button class="bottom-btn back-btn"
+onclick="window.location.href='documents.html'">
+
+⬅️ กลับ
+
+</button>
+
+
+
+</main>
+
+
+
+
+
+<script>
+
+
+const pdfData = JSON.parse(
+    localStorage.getItem("pdfData")
+);
+
+
+const documentList = document.getElementById("documentList");
+
+
+
+if(!pdfData || !pdfData.company){
+
+
+    documentList.innerHTML = `
+
+    <div class="document-box">
+
+        <h3>
+        ไม่พบข้อมูลบริษัท
+        </h3>
+
+        <p>
+        กรุณากรอกจากฟอร์มก่อน
+        </p>
+
+    </div>
+
+    `;
+
+
+
+}else{
+
+
+    const company = pdfData.company;
+
+
+
+    // =========================
+    // วิริยะ
+    // =========================
+
+    if(company === "วิริยะ"){
+
+
+        documentList.innerHTML = `
+
+
+        <div class="document-box">
+
+
+        <h3>
+        บริษัท วิริยะประกันภัย จำกัด (มหาชน)
+        </h3>
+
+
+
+        <button class="file-item"
+        onclick="openDocument(
+        'viriyah_main',
+        'ใบคำขอวิริยะ'
+        )">
+
+        📄 ใบคำขอวิริยะ
+
+        </button>
+
+
+
+
+        <button class="file-item"
+        onclick="openDocument(
+        'viriyah_contract',
+        'สัญญาวิริยะ'
+        )">
+
+        📄 สัญญาวิริยะ
+
+        </button>
+
+
+
+
+        <button class="file-item"
+        onclick="openDocument(
+        'viriyah_cancel',
+        'ยกเลิกวิริยะ'
+        )">
+
+        📄 ยกเลิกวิริยะ
+
+        </button>
+
+
+
+
+        <button class="file-item"
+        onclick="openDocument(
+        'viriyah_receipt',
+        'ใบรับเงินวิริยะ'
+        )">
+
+        📄 ใบรับเงินวิริยะ
+
+        </button>
+
+
+
+        </div>
+
+
+        `;
+
+
+
+    }else{
+
+
+
+        // =========================
+        // บริษัทอื่น
+        // =========================
+
+
+        documentList.innerHTML = `
+
+
+        <div class="document-box">
+
+
+        <h3>
+        บริษัท ${company}
+        </h3>
+
+
+
+        <button class="file-item"
+        onclick="openDocument(
+        'generic_receipt',
+        'ใบรับเงิน'
+        )">
+
+
+        📄 ใบรับเงิน
+
+
+        </button>
+
+
+
+        </div>
+
+
+
+        `;
+
+
+    }
+
+
+
+}
+
+
+
+
+// =========================
+// ส่งชื่อไฟล์ไป contract_print
+// =========================
+
+function openDocument(key,name){
+
+
+
+    let data = JSON.parse(
+        localStorage.getItem("pdfData")
+    );
+
+
+
+    data.docKey = key;
+
+
+
+    localStorage.setItem(
+        "pdfData",
+        JSON.stringify(data)
+    );
+
+
+
+    localStorage.setItem(
+        "selectDocument",
+        name
+    );
+
+
+
+    window.location.href =
+    "contract_print.html";
+
+
+}
+
+
+
+</script>
+
+
+
+</body>
+
+</html>

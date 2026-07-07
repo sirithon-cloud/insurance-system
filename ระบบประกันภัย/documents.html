@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>เลือกเอกสารประกันสินค้า</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Kanit&display=swap" rel="stylesheet">
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:"Kanit",sans-serif;
+}
+
+body{
+    background:#f4f6fb;
+    padding:20px;
+}
+
+.container{
+    max-width:900px;
+    margin:auto;
+}
+
+h2{
+    text-align:center;
+    color:#002d72;
+    margin:20px 0 30px;
+    font-size:32px;
+}
+
+.menu-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:20px;
+}
+
+.menu-btn{
+    border:none;
+    border-radius:20px;
+    background:#0b4db8;
+    color:#fff;
+    cursor:pointer;
+
+    height:220px;
+
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+
+    font-size:26px;
+    transition:.25s;
+    box-shadow:0 10px 20px rgba(0,0,0,.15);
+}
+
+.menu-btn span{
+    font-size:70px;
+    margin-bottom:15px;
+}
+
+.menu-btn:hover{
+    transform:translateY(-5px);
+    background:#003d99;
+}
+
+.bottom-btn{
+    width:100%;
+    height:70px;
+    margin-top:15px;
+
+    border:none;
+    border-radius:15px;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    font-size:26px;
+    font-weight:bold;
+
+    cursor:pointer;
+}
+
+.file-btn{
+    background:#ffc000;
+    color:#002d72;
+}
+
+.file-btn:hover{
+    background:#ffcf33;
+}
+
+.back-btn{
+    background:#0b4db8;
+    color:white;
+}
+
+.back-btn:hover{
+    background:#002d72;
+}
+
+/* มือถือ */
+@media(max-width:768px){
+
+h2{
+    font-size:28px;
+}
+
+.menu-grid{
+    grid-template-columns:repeat(2,1fr);
+    gap:15px;
+}
+
+.menu-btn{
+
+    height:180px;
+    font-size:20px;
+
+}
+
+.menu-btn span{
+
+    font-size:55px;
+
+}
+
+.bottom-btn{
+
+    height:65px;
+    font-size:22px;
+
+}
+
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>📄 เลือกประเภทเอกสาร</h2>
+
+<div class="menu-grid">
+
+<button class="menu-btn"
+onclick="window.location.href='form_product.html'">
+
+<span>📄</span>
+
+ใบต่อ พ.ร.บ.
+
+</button>
+
+
+<button class="menu-btn"
+onclick="window.location.href='form_product.html'">
+
+<span>🧾</span>
+
+ใบรับเงิน
+
+</button>
+
+
+<button class="menu-btn"
+onclick="window.location.href='form_product.html'">
+
+<span>📑</span>
+
+ใบ 1
+
+</button>
+
+
+<button class="menu-btn"
+onclick="window.location.href='form_product.html'">
+
+<span>📁</span>
+
+ใบ 2
+
+</button>
+
+</div>
+
+
+<button class="bottom-btn file-btn"
+onclick="window.location.href='product_files.html'">
+
+👁 ดูไฟล์ทั้งหมด
+
+</button>
+
+<button class="bottom-btn back-btn"
+onclick="window.location.href='index.html'">
+⬅️ กลับหน้าหลัก
+</button>
+
+</div>
+
+</body>
+</html>
