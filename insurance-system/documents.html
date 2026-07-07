@@ -1,13 +1,21 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>เลือกเอกสารประกันสินค้า</title>
+
+<title>ประกันสินค้า</title>
+
 
 <link href="https://fonts.googleapis.com/css2?family=Kanit&display=swap" rel="stylesheet">
 
+<link rel="stylesheet" href="style.css">
+
+
 <style>
+
 *{
     margin:0;
     padding:0;
@@ -15,193 +23,346 @@
     font-family:"Kanit",sans-serif;
 }
 
+
 body{
+
     background:#f4f6fb;
-    padding:20px;
+
 }
 
-.container{
-    max-width:900px;
-    margin:auto;
+
+
+/* MAIN */
+
+.main{
+
+    padding:100px 20px 40px;
+
 }
 
-h2{
+
+
+.title{
+
     text-align:center;
+
     color:#002d72;
-    margin:20px 0 30px;
+
     font-size:32px;
+
+    margin-bottom:35px;
+
 }
+
+
+
+/* MENU */
 
 .menu-grid{
+
+    width:100%;
+
+    max-width:900px;
+
+    margin:auto;
+
     display:grid;
+
     grid-template-columns:repeat(2,1fr);
-    gap:20px;
+
+    gap:15px;
+
+    justify-items:center;
+
 }
+
+
 
 .menu-btn{
+
+    width:350px;
+
+    height:260px;
+
     border:none;
-    border-radius:20px;
+
+    border-radius:30px;
+
     background:#0b4db8;
-    color:#fff;
+
+    color:white;
+
     cursor:pointer;
 
-    height:220px;
+    font-size:32px;
 
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
-
-    font-size:26px;
-    transition:.25s;
-    box-shadow:0 10px 20px rgba(0,0,0,.15);
-}
-
-.menu-btn span{
-    font-size:70px;
-    margin-bottom:15px;
-}
-
-.menu-btn:hover{
-    transform:translateY(-5px);
-    background:#003d99;
-}
-
-.bottom-btn{
-    width:100%;
-    height:70px;
-    margin-top:15px;
-
-    border:none;
-    border-radius:15px;
-
-    display:flex;
-    justify-content:center;
-    align-items:center;
-
-    font-size:26px;
     font-weight:bold;
 
-    cursor:pointer;
+    display:flex;
+
+    flex-direction:column;
+
+    justify-content:center;
+
+    align-items:center;
+
+    box-shadow:0 10px 20px rgba(0,0,0,.15);
+
+    transition:.25s;
+
 }
 
-.file-btn{
-    background:#ffc000;
-    color:#002d72;
+
+.menu-btn span{
+
+    font-size:90px;
+
+    margin-bottom:20px;
+
 }
 
-.file-btn:hover{
-    background:#ffcf33;
+
+
+.menu-btn:hover{
+
+
+    transform:translateY(-5px);
+
+    background:#003d99;
+
+
 }
+
+
+
+/* BACK */
 
 .back-btn{
-    background:#0b4db8;
+    width:100%;
+    max-width:700px;
+    height:70px;
+    margin:25px auto 0;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    border:none;
+    border-radius:15px;
+    background:#002d72;
     color:white;
+    font-size:26px;
+    font-weight:bold;
+    cursor:pointer;
+
 }
+
 
 .back-btn:hover{
-    background:#002d72;
+
+    background:#001d4d;
+
 }
 
-/* มือถือ */
+
+/* MOBILE */
+
 @media(max-width:768px){
 
-h2{
+
+.title{
+
     font-size:28px;
+
 }
 
+
 .menu-grid{
-    grid-template-columns:repeat(2,1fr);
-    gap:15px;
+
+    grid-template-columns:1fr;
+
 }
 
 .menu-btn{
 
-    height:180px;
-    font-size:20px;
+    height:230px;
+
+    font-size:28px;
 
 }
+
 
 .menu-btn span{
-
-    font-size:55px;
+    font-size:80px;
 
 }
 
-.bottom-btn{
 
+.back-btn{
     height:65px;
     font-size:22px;
+}
+
 
 }
 
-}
+
+
 </style>
+
+
 </head>
+
+
 
 <body>
 
-<div class="container">
 
-<h2>📄 เลือกประเภทเอกสาร</h2>
+
+<!-- TOPBAR -->
+
+<div class="topbar">
+
+
+<button id="menuBtn">
+
+☰
+
+</button>
+
+
+
+<img src="logo.png" class="toplogo">
+
+
+
+<span class="apptitle">
+
+ระบบประกันสินค้า
+
+</span>
+
+
+</div>
+
+
+
+
+
+<!-- SIDEBAR -->
+
+<aside class="sidebar" id="sidebar">
+
+
+<img src="logo.png" class="logo">
+
+
+<ul class="menu">
+
+
+<li>
+
+<a href="index.html" class="menu-link">
+
+🏠 หน้าหลัก
+
+</a>
+
+</li>
+
+
+</ul>
+
+
+</aside>
+
+
+
+
+
+
+<main class="main">
+
+
+
+<h2 class="title">
+
+📦 ประกันสินค้า
+
+</h2>
+
+
+
 
 <div class="menu-grid">
 
+
+
+
+
 <button class="menu-btn"
+
 onclick="window.location.href='form_product.html'">
 
-<span>📄</span>
 
-ใบต่อ พ.ร.บ.
+<span>
+
+📄
+
+</span>
+
+
+ฟอร์มงาน
+
 
 </button>
 
 
+
+
+
+
 <button class="menu-btn"
-onclick="window.location.href='form_product.html'">
 
-<span>🧾</span>
+onclick="window.location.href='product_account.html'">
 
-ใบรับเงิน
+
+<span>
+
+📊
+
+</span>
+
+
+บัญชี
+
 
 </button>
 
 
-<button class="menu-btn"
-onclick="window.location.href='form_product.html'">
-
-<span>📑</span>
-
-ใบ 1
-
-</button>
-
-
-<button class="menu-btn"
-onclick="window.location.href='form_product.html'">
-
-<span>📁</span>
-
-ใบ 2
-
-</button>
 
 </div>
 
 
-<button class="bottom-btn file-btn"
-onclick="window.location.href='product_files.html'">
 
-👁 ดูไฟล์ทั้งหมด
+<button class="back-btn"
 
-</button>
-
-<button class="bottom-btn back-btn"
 onclick="window.location.href='index.html'">
+
+
 ⬅️ กลับหน้าหลัก
+
+
 </button>
 
-</div>
+
+</main>
+
+
+
+
+<script src="script.js"></script>
+
 
 </body>
+
+
 </html>

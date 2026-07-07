@@ -102,17 +102,24 @@
 
             <div class="button-group">
 
-            <button type="submit" class="save-btn">
-                💾 บันทึกข้อมูล
-            </button>
+                <button class="back-btn"
+                onclick="window.location.href='product.html'">
+                    ⬅️ กลับ
+                </button>
 
-            <button type="button"
-                    class="back-btn"
-                    onclick="location.href='documents.html'">
-                ⬅ กลับ
-            </button>
 
-        </div>
+                <button class="save-btn"
+                onclick="saveData()">
+                    💾 บันทึกข้อมูล
+                </button>
+
+
+                <button class="edit-btn"
+                onclick="editData()">
+                    ✏️ แก้ไขข้อมูลเดิม
+                </button>
+
+            </div>
 
         <button type="button"
                 class="document-btn"

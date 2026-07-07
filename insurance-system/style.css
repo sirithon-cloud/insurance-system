@@ -567,7 +567,30 @@ textarea{
 }
 
 
+.edit-btn{
 
+    min-width:220px;
+    height:60px;
+
+    border:none;
+    border-radius:14px;
+
+    background:#ffc000;
+    color:#002d72;
+
+    font-size:20px;
+    font-weight:bold;
+
+    cursor:pointer;
+
+}
+
+
+.edit-btn:hover{
+
+    background:#d6ac21;
+
+}
 
 
 
