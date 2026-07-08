@@ -1,368 +1,127 @@
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ประกันสินค้า</title>
 
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>ประกันสินค้า</title>
-
-
-<link href="https://fonts.googleapis.com/css2?family=Kanit&display=swap" rel="stylesheet">
-
-<link rel="stylesheet" href="style.css">
-
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
 
 <style>
-
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-    font-family:"Kanit",sans-serif;
-}
-
-
-body{
-
-    background:#f4f6fb;
-
-}
-
-
-
-/* MAIN */
-
-.main{
-
-    padding:100px 20px 40px;
-
-}
-
-
-
-.title{
-
-    text-align:center;
-
-    color:#002d72;
-
-    font-size:32px;
-
-    margin-bottom:35px;
-
-}
-
-
-
-/* MENU */
-
-.menu-grid{
-
-    width:100%;
-
-    max-width:900px;
-
-    margin:auto;
-
-    display:grid;
-
-    grid-template-columns:repeat(2,1fr);
-
-    gap:15px;
-
-    justify-items:center;
-
-}
-
-
-
-.menu-btn{
-
-    width:350px;
-
-    height:260px;
-
-    border:none;
-
-    border-radius:30px;
-
-    background:#0b4db8;
-
-    color:white;
-
-    cursor:pointer;
-
-    font-size:32px;
-
-    font-weight:bold;
-
-    display:flex;
-
-    flex-direction:column;
-
-    justify-content:center;
-
-    align-items:center;
-
-    box-shadow:0 10px 20px rgba(0,0,0,.15);
-
-    transition:.25s;
-
-}
-
-
-.menu-btn span{
-
-    font-size:90px;
-
-    margin-bottom:20px;
-
-}
-
-
-
-.menu-btn:hover{
-
-
-    transform:translateY(-5px);
-
-    background:#003d99;
-
-
-}
-
-
-
-/* BACK */
-
-.back-btn{
-    width:100%;
-    max-width:700px;
-    height:70px;
-    margin:25px auto 0;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    border:none;
-    border-radius:15px;
-    background:#002d72;
-    color:white;
-    font-size:26px;
-    font-weight:bold;
-    cursor:pointer;
-
-}
-
-
-.back-btn:hover{
-
-    background:#001d4d;
-
-}
-
-
-/* MOBILE */
-
-@media(max-width:768px){
-
-
-.title{
-
-    font-size:28px;
-
-}
-
-
-.menu-grid{
-
-    grid-template-columns:1fr;
-
-}
-
-.menu-btn{
-
-    height:230px;
-
-    font-size:28px;
-
-}
-
-
-.menu-btn span{
-    font-size:80px;
-
-}
-
-
-.back-btn{
-    height:65px;
-    font-size:22px;
-}
-
-
-}
-
-
-
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Kanit", sans-serif;
+    }
+
+    body {
+        background: #f4f6fb;
+    }
+
+    /* .main คือกล่องใหญ่ที่คุมทุกอย่าง: ปรับเลขตัวแรกให้เล็กลง ยิ่งน้อยยิ่งชิดบน */
+    .main {
+        padding: 10px 20px 40px; 
+    }
+
+    .title {
+        text-align: center;
+        color: #002d72;
+        font-size: 32px;
+        margin-bottom: 20px; /* ลดระยะห่างใต้หัวข้อด้วย */
+    }
+
+    .menu-grid {
+        width: 100%;
+        max-width: 900px;
+        margin: auto;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+        justify-items: center;
+    }
+
+    .menu-btn {
+        width: 280px;
+        height: 220px;
+        border: none;
+        border-radius: 30px;
+        background: #0b4db8;
+        color: white;
+        cursor: pointer;
+        font-size: 28px;
+        font-weight: bold;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, .15);
+        transition: .25s;
+    }
+
+    .menu-btn span {
+        font-size: 70px;
+        margin-bottom: 15px;
+    }
+
+    .menu-btn:hover {
+        transform: translateY(-5px);
+        background: #003d99;
+    }
+
+    /* ปุ่มกลับหน้าหลัก: ปรับ margin-top ให้เล็กลงเพื่อให้ปุ่มลอยขึ้นไปหาเมนู */
+    .back-btn {
+        width: 100%;
+        max-width: 700px;
+        height: 70px;
+        margin: 10px auto 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border: none;
+        border-radius: 15px;
+        background: #002d72;
+        color: white;
+        font-size: 26px;
+        font-weight: bold;
+        cursor: pointer;
+        grid-column: span 2;
+    }
 </style>
-
-
 </head>
 
-
-
 <body>
-
-
-
-<!-- TOPBAR -->
-
-<div class="topbar">
-
-
-<button id="menuBtn">
-
-☰
-
-</button>
-
-
-
-<img src="logo.png" class="toplogo">
-
-
-
-<span class="apptitle">
-
-ระบบประกันสินค้า
-
-</span>
-
-
-</div>
-
-
-
-
-
-<!-- SIDEBAR -->
-
-<aside class="sidebar" id="sidebar">
-
-
-<img src="logo.png" class="logo">
-
-
-<ul class="menu">
-
-
-<li>
-
-<a href="index.html" class="menu-link">
-
-🏠 หน้าหลัก
-
-</a>
-
-</li>
-
-
-</ul>
-
-
-</aside>
-
-
-
-
-
-
-<main class="main">
-
-
-
-<h2 class="title">
-
-📦 ประกันสินค้า
-
-</h2>
-
-
-
-
-<div class="menu-grid">
-
-
-
-
-
-<button class="menu-btn"
-
-onclick="window.location.href='form_product.html'">
-
-
-<span>
-
-📄
-
-</span>
-
-
-ฟอร์มงาน
-
-
-</button>
-
-
-
-
-
-
-<button class="menu-btn"
-
-onclick="window.location.href='product_account.html'">
-
-
-<span>
-
-📊
-
-</span>
-
-
-บัญชี
-
-
-</button>
-
-
-
-</div>
-
-
-
-<button class="back-btn"
-
-onclick="window.location.href='index.html'">
-
-
-⬅️ กลับหน้าหลัก
-
-
-</button>
-
-
-</main>
-
-
-
-
-<script src="script.js"></script>
-
-
+    <div class="topbar">
+        <button id="menuBtn">☰</button>
+        <img src="logo.png" class="toplogo">
+        <span class="apptitle">ระบบประกันสินค้า</span>
+    </div>
+
+    <aside class="sidebar" id="sidebar">
+        <img src="logo.png" class="logo">
+        <ul class="menu">
+            <li><a href="index.html" class="menu-link">🏠 หน้าหลัก</a></li>
+        </ul>
+    </aside>
+
+    <main class="main">
+        <h2 class="title">📦 ประกันสินค้า</h2>
+        
+        <div class="menu-grid">
+            <button class="menu-btn" onclick="window.location.href='form_product.html'">
+                <span>📄</span> ฟอร์มงาน
+            </button>
+            <button class="menu-btn" onclick="window.location.href='account_menu.html'">
+                <span>📒</span> บัญชี
+            </button>
+            
+            <button class="back-btn" onclick="window.location.href='index.html'">
+                ⬅️ กลับหน้าหลัก
+            </button>
+        </div> </main>
+
+    <script src="script.js"></script>
 </body>
-
-
 </html>

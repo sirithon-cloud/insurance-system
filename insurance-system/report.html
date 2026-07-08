@@ -14,16 +14,18 @@ body{
     font-family:"Kanit",sans-serif;
     background:#f4f6f9;
     margin:0;
-    padding:15px;
+    padding:0;
 }
 
 .report-card{
-    max-width:1400px;
-    margin:auto;
+    width:100%;
+    max-width:none;
+    min-height:100vh;
+    margin:0;
     background:#fff;
-    padding:15px;
-    border-radius:12px;
-    box-shadow:0 5px 20px rgba(0,0,0,0.08);
+    padding:20px;
+    border-radius:0;
+    box-shadow:none;
     overflow-x:auto;
 }
 
@@ -53,12 +55,55 @@ td{
 
 tr:hover{
     background:#f2f2f2;
+
+    
 }
 
 @media(max-width:768px){
     table{
         font-size:10px;
     }
+}
+
+    /* =========================
+   ปุ่มจัดการในรายงาน
+========================= */
+
+.action-buttons{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:4px;
+}
+
+.action-buttons button{
+    width:28px !important;
+    height:28px !important;
+    min-width:28px !important;
+    padding:0 !important;
+    border:none;
+    border-radius:6px;
+    font-size:13px;
+    cursor:pointer;
+}
+
+.edit-btn{
+    background:#ffc000;
+    color:#002d72;
+}
+
+.doc-btn{
+    background:#0d6efd;
+    color:white;
+}
+
+.delete-btn{
+    background:#dc3545;
+    color:white;
+}
+
+.action-buttons button:hover{
+    transform:scale(1.1);
 }
 </style>
 
@@ -81,7 +126,9 @@ tr:hover{
     <th>ชื่อผู้แจ้ง</th>
     <th>วันที่แจ้งงาน</th>
     <th>บริษัท</th>
+    <th>ประเภทประกัน</th>
     <th>ชื่อผู้เอาประกัน</th>
+    <th>เบอร์โทร</th>
     <th>ที่อยู่</th>
     <th>ยี่ห้อ</th>
     <th>ทะเบียน</th>
@@ -124,7 +171,17 @@ function renderTable(){
 <td>${item.requestName || "-"}</td>
 <td>${item.createDate || "-"}</td>
 <td>${item.company || "-"}</td>
+<td>
+${
+    item.type === "car" 
+    ? "🚗 ประกันรถยนต์" 
+    : item.type === "product"
+    ? "📦 ประกันสินค้า"
+    : "-"
+}
+</td>
 <td>${item.customer || "-"}</td>
+<td>${item.phone || "-"}</td>
 <td>${item.address || "-"}</td>
 <td>${item.brand || "-"}</td>
 <td>${item.plate || "-"}</td>
@@ -138,9 +195,12 @@ function renderTable(){
 <td>${item.installment2 || "-"}</td>
 <td>${item.installment3 || "-"}</td>
 <td>${item.installment4 || "-"}</td>
-<td>
-<button onclick="openDoc(${i})">📄</button>
-<button onclick="deleteItem(${i})">🗑</button>
+
+<td class="action-buttons">
+    <button class="edit-btn" onclick="editItem(${i})">✏️</button>
+    <button class="doc-btn" onclick="openDoc(${i})">📄</button>
+    <button class="delete-btn" onclick="deleteItem(${i})">🗑️</button>
+</td>
 </td>
 </tr>
 `;
@@ -167,6 +227,36 @@ function openDoc(i){
     localStorage.setItem("pdfData",JSON.stringify(data[i]));
     location.href="contract_print.html";
 }
+
+function editItem(i){
+
+    let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+
+    // เก็บข้อมูลรายการที่เลือก
+    localStorage.setItem("editData", JSON.stringify(data[i]));
+
+    // เปิดฟอร์มตามประเภทประกัน
+    if(data[i].type === "car"){
+        location.href = "form_car.html";
+    }else{
+        location.href = "form_product.html";
+    }
+}
+
+    function openDoc(i){
+
+    let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+
+    localStorage.setItem(
+        "documentData",
+        JSON.stringify(data[i])
+    );
+
+    location.href="contract_print.html";
+}
+
+
+
 </script>
 
 </body>

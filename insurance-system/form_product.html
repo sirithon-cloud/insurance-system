@@ -9,16 +9,26 @@
     <link rel="stylesheet" href="style.css">
 
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+
 </head>
 
 <body class="form-page">
 
-    <div class="topbar">
-        <button id="menuBtn">☰</button>
-        <span class="apptitle">บันทึกข้อมูลประกันสินค้า</span>
-    </div>
+<div class="topbar">
+    <button id="menuBtn">☰</button>
+    <span class="apptitle">บันทึกข้อมูลประกันสินค้า</span>
+</div>
 
-    <main class="form-card">
+<aside class="sidebar">
+    <ul>
+        <li><a href="index.html" class="menu-link">🏠 หน้าหลัก</a></li>
+    </ul>
+</aside>
+
+<div id="overlay"></div>
+
+<main class="form-card">
 
         <h1 class="form-title">📦 ประกันสินค้า</h1>
 
@@ -41,6 +51,11 @@
 
             <label>ชื่อผู้เอาประกัน</label>
             <input type="text" id="name" required>
+
+            <div class="form-group">
+            <label>เบอร์โทรศัพท์</label>
+            <input type="tel" id="phone" placeholder="08x-xxx-xxxx">
+            </div>
 
             <label>ที่อยู่</label>
             <textarea id="address"></textarea>
@@ -92,31 +107,32 @@
             <div class="row">
                 <input type="number" id="installment1" placeholder="งวดที่ 1">
                 <input type="number" id="installment2" placeholder="งวดที่ 2">
-            </div>
-
-            <div class="row">
                 <input type="number" id="installment3" placeholder="งวดที่ 3">
                 <input type="number" id="installment4" placeholder="งวดที่ 4">
             </div>
-        <div class="button-group">
 
             <div class="button-group">
 
-                <button class="back-btn"
-                onclick="window.location.href='product.html'">
-                    ⬅️ กลับ
+                <button
+                type="button"
+                class="back-btn"
+                onclick="location.href='index.html'"> 
+
+                ⬅️ กลับ
+
                 </button>
 
 
-                <button class="save-btn"
-                onclick="saveData()">
+                <button
+                type="submit"
+                class="save-btn">
                     💾 บันทึกข้อมูล
                 </button>
 
 
                 <button class="edit-btn"
                 onclick="editData()">
-                    ✏️ แก้ไขข้อมูลเดิม
+                    ✏️ แก้ไขข้อมูล
                 </button>
 
             </div>
@@ -136,22 +152,21 @@
     <script>
     function collectFormData(type) {
         return {
+    id: editingId,
             type: type,
             company: document.getElementById("company")?.value,
             requestName: document.getElementById("requestName")?.value,
             customer: document.getElementById("name")?.value,
+            phone: document.getElementById("phone")?.value,
             address: document.getElementById("address")?.value,
-
             brand: document.getElementById("brand")?.value,
             plate: document.getElementById("plate")?.value,
-
+            chassis: document.getElementById("chassis")?.value,
             start: document.getElementById("start")?.value,
             end: document.getElementById("end")?.value,
-
             sumInsured: document.getElementById("sumInsured")?.value,
             total: document.getElementById("total")?.value,
             group: document.getElementById("group")?.value,
-
             installment1: document.getElementById("installment1")?.value,
             installment2: document.getElementById("installment2")?.value,
             installment3: document.getElementById("installment3")?.value,
@@ -160,17 +175,11 @@
     }
 
         document.getElementById("productForm").addEventListener("submit", function (e) {
-
             e.preventDefault();
-
             const record = collectFormData("product");
-
             saveRecord(record);
-
             localStorage.setItem("pdfData", JSON.stringify(record));
-
             alert("บันทึกข้อมูลเรียบร้อย");
-
         });
 
         function openFiles() {
@@ -178,7 +187,59 @@
         localStorage.setItem("pdfData", JSON.stringify(pdfData));
         window.location.href = "product_files.html";
     }
+
+        const menuBtn = document.getElementById("menuBtn");
+        const sidebar = document.querySelector(".sidebar");
+        const overlay = document.getElementById("overlay");
+
+        if (menuBtn && sidebar && overlay) {
+
+            menuBtn.addEventListener("click", function () {
+                sidebar.classList.toggle("show");
+                overlay.classList.toggle("show");
+            });
+
+            overlay.addEventListener("click", function () {
+                sidebar.classList.remove("show");
+                overlay.classList.remove("show");
+            });
+
+        }
+
+        const editData = JSON.parse(localStorage.getItem("editData"));
+
+if(editData){
+
+    editingId = editData.id;
+
+    document.getElementById("company").value = editData.company || "";
+    document.getElementById("requestName").value = editData.requestName || "";
+    document.getElementById("name").value = editData.customer || "";
+    document.getElementById("phone").value = editData.phone || "";
+    document.getElementById("address").value = editData.address || "";
+
+    document.getElementById("brand").value = editData.brand || "";
+    document.getElementById("plate").value = editData.plate || "";
+    document.getElementById("chassis").value = editData.chassis || "";
+
+    document.getElementById("start").value = editData.start || "";
+    document.getElementById("end").value = editData.end || "";
+
+    document.getElementById("sumInsured").value = editData.sumInsured || "";
+    document.getElementById("total").value = editData.total || "";
+    document.getElementById("group").value = editData.group || "";
+
+    document.getElementById("installment1").value = editData.installment1 || "";
+    document.getElementById("installment2").value = editData.installment2 || "";
+    document.getElementById("installment3").value = editData.installment3 || "";
+    document.getElementById("installment4").value = editData.installment4 || "";
+
+
+    localStorage.removeItem("editData");
+}
     </script>
+    
+    
 
 </body>
 

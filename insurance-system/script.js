@@ -17,9 +17,12 @@ document.addEventListener("DOMContentLoaded", () => {
     renderTable(getData());
 });
 
+let editingId = null;
+
 /* =========================
    STORAGE
 ========================= */
+
 function getData() {
     return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
 }
@@ -31,11 +34,20 @@ function saveData(data) {
 /* บันทึกข้อมูลใหม่จากฟอร์ม (เรียกใช้ตอน submit) */
 function saveRecord(record) {
     const data = getData();
-    record.id = Date.now();
-    record.createDate = new Date().toLocaleDateString("th-TH");
-    data.push(record);
+    if (record.id) {
+        const index = data.findIndex(item => item.id == record.id);
+        if (index !== -1) {
+            data[index] = record;
+        }
+    } else {
+
+        record.id = Date.now();
+        record.createDate = new Date().toLocaleDateString("th-TH");
+        data.push(record);
+    }
     saveData(data);
 }
+
 
 /* =========================
    SAFE
@@ -108,7 +120,44 @@ function openDocument(key){
 
 }
 
+function editData() {
 
+    const data = getData();
+
+    if (data.length === 0) {
+        alert("ยังไม่มีข้อมูล");
+        return;
+    }
+
+    const item = data[data.length - 1];
+
+    editingId = item.id;
+
+    document.getElementById("company").value = item.company || "";
+    document.getElementById("requestName").value = item.requestName || "";
+    document.getElementById("name").value = item.customer || "";
+    document.getElementById("phone").value = item.phone || "";
+    document.getElementById("address").value = item.address || "";
+
+    document.getElementById("brand").value = item.brand || "";
+    document.getElementById("plate").value = item.plate || "";
+    document.getElementById("chassis").value = item.chassis || "";
+
+    document.getElementById("start").value = item.start || "";
+    document.getElementById("end").value = item.end || "";
+
+    document.getElementById("sumInsured").value = item.sumInsured || "";
+    document.getElementById("total").value = item.total || "";
+
+    document.getElementById("group").value = item.group || "";
+
+    document.getElementById("installment1").value = item.installment1 || "";
+    document.getElementById("installment2").value = item.installment2 || "";
+    document.getElementById("installment3").value = item.installment3 || "";
+    document.getElementById("installment4").value = item.installment4 || "";
+
+    alert("โหลดข้อมูลล่าสุดเรียบร้อย");
+}
 
 
 
