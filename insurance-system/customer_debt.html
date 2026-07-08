@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>ลูกหนี้</title>
+
+
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css">
+
+
+<style>
+
+body{
+
+    font-family:"Kanit",sans-serif;
+    background:#f4f6f9;
+
+}
+
+
+.debt-card{
+
+    width:100%;
+    min-height:100vh;
+
+    background:white;
+
+    padding:25px;
+
+    overflow-x:auto;
+
+}
+
+
+
+h1{
+
+    text-align:center;
+    color:#002d72;
+
+}
+
+
+
+table{
+
+    width:100%;
+    border-collapse:collapse;
+
+    margin-top:25px;
+
+    font-size:13px;
+
+}
+
+
+
+th{
+
+    background:#002d72;
+    color:white;
+
+    padding:10px;
+
+    white-space:nowrap;
+
+}
+
+
+
+td{
+
+    padding:8px;
+
+    border-bottom:1px solid #ddd;
+
+    text-align:center;
+
+    white-space:nowrap;
+
+}
+
+
+
+/* เกินกำหนด */
+
+.overdue{
+
+    background:#ffd6d6 !important;
+
+    color:#b30000;
+
+    font-weight:bold;
+
+}
+
+/* ยังไม่เกินกำหนด */
+.not-overdue{
+
+    background:#d8f8d8 !important;
+
+    color:#087f23;
+
+    font-weight:bold;
+
+}
+
+
+
+.debt-total{
+
+    margin-top:20px;
+
+    font-size:20px;
+
+    font-weight:bold;
+
+    color:#002d72;
+
+}
+
+
+
+.back-btn-debt{
+
+    margin-top:25px;
+
+    background:#ffc000;
+
+    color:white;
+
+    border:none;
+
+    padding:10px 25px;
+
+    border-radius:10px;
+
+    cursor:pointer;
+
+    font-family:"Kanit";
+
+    font-size:16px;
+
+}
+
+
+</style>
+
+
+</head>
+
+
+
+<body>
+
+
+<div class="debt-card">
+
+
+<h1>
+💰 รายงานลูกหนี้
+</h1>
+
+
+
+<table>
+
+
+<thead>
+
+<tr>
+
+<th>ลำดับ</th>
+
+<th>ชื่อผู้แจ้ง</th>
+
+<th>วันที่แจ้งงาน</th>
+
+<th>บริษัทประกันภัย</th>
+
+<th>ชื่อผู้เอาประกัน</th>
+
+<th>ยี่ห้อ</th>
+
+<th>ทะเบียน</th>
+
+<th>วันเริ่ม</th>
+
+<th>วันสิ้นสุด</th>
+
+<th>ทุนประกัน</th>
+
+<th>รวม</th>
+
+<th>กลุ่มสินค้า</th>
+
+<th>งวดที่ 1</th>
+
+<th>งวดที่ 2</th>
+
+<th>งวดที่ 3</th>
+
+<th>งวดที่ 4</th>
+
+<th>ยอดค้าง</th>
+
+<th>เบอร์โทร</th>
+
+<th>วันที่ครบกำหนด</th>
+
+<th>เกินกำหนด(วัน)</th>
+
+
+</tr>
+
+</thead>
+
+
+
+<tbody id="debtTable">
+
+
+</tbody>
+
+
+
+</table>
+
+
+<div class="debt-total" id="debtTotal"></div>
+
+
+<button class="back-btn-debt"
+onclick="location.href='account_menu.html'">
+
+⬅ กลับเมนูบัญชี
+
+</button>
+
+
+
+</div>
+
+
+
+
+<script>
+
+
+const STORAGE_KEY="insuranceData";
+
+
+
+function calculateOverdue(date){
+
+    if(!date) return 0;
+
+
+    // รองรับวันที่แบบ dd/mm/yyyy
+    let parts = date.split("/");
+
+
+    let due;
+
+
+    if(parts.length === 3){
+
+        due = new Date(
+            Number(parts[2])-543,
+            Number(parts[1])-1,
+            Number(parts[0])
+        );
+
+    }
+    else{
+
+        due = new Date(date);
+
+    }
+
+
+    let today = new Date();
+
+
+    today.setHours(0,0,0,0);
+    due.setHours(0,0,0,0);
+
+
+
+    let diff = today - due;
+
+
+    let days = Math.floor(
+        diff / (1000*60*60*24)
+    );
+
+
+    return days > 0 ? days : 0;
+
+}
+
+
+
+function renderDebt(){
+
+
+let data=JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+
+
+
+/*
+ เอาเฉพาะรายการที่มียอดค้าง
+*/
+
+let debt = data;
+
+
+
+debt.forEach(item=>{
+
+
+    let total = Number(item.total || 0);
+
+
+    let paid = 
+        Number(item.installment1 || 0) +
+        Number(item.installment2 || 0) +
+        Number(item.installment3 || 0) +
+        Number(item.installment4 || 0);
+
+
+
+    item.debtAmount = total - paid;
+
+
+
+    item.overdue =
+    calculateOverdue(item.end);
+
+});
+
+
+/*
+ เรียงเกินกำหนดมากสุดขึ้นก่อน
+*/
+
+
+debt.sort((a,b)=>{
+
+
+return b.overdue-a.overdue;
+
+
+});
+
+
+
+
+
+let html="";
+
+
+
+debt.forEach((item,index)=>{
+
+
+
+let rowClass = "";
+
+if(item.overdue > 0){
+
+    rowClass = "overdue";
+
+}
+else{
+
+    rowClass = "not-overdue";
+
+}
+
+
+
+html+=`
+
+<tr class="${rowClass}">
+
+
+<td>${index+1}</td>
+
+<td>${item.requestName||"-"}</td>
+
+<td>${item.createDate||"-"}</td>
+
+<td>${item.company||"-"}</td>
+
+<td>${item.customer||"-"}</td>
+
+<td>${item.brand||"-"}</td>
+
+<td>${item.plate||"-"}</td>
+
+<td>${item.start||"-"}</td>
+
+<td>${item.end||"-"}</td>
+
+
+<td>
+${Number(item.sumInsured||0).toLocaleString()}
+</td>
+
+
+<td>
+${Number(item.total||0).toLocaleString()}
+</td>
+
+
+<td>${item.group||"-"}</td>
+
+
+<td>${item.installment1||"-"}</td>
+
+<td>${item.installment2||"-"}</td>
+
+<td>${item.installment3||"-"}</td>
+
+<td>${item.installment4||"-"}</td>
+
+
+
+<td>
+${item.debtAmount.toLocaleString()}
+</td>
+
+
+<td>
+${item.phone||"-"}
+</td>
+
+
+
+<td>
+${item.end||"-"}
+</td>
+
+
+
+<td>
+
+${item.overdue}
+
+</td>
+
+
+
+</tr>
+
+
+`;
+
+
+});
+
+
+
+document.getElementById("debtTable").innerHTML=html;
+
+
+
+let totalDebt=debt.reduce(
+(sum,item)=>sum+item.debtAmount,0
+);
+
+
+
+document.getElementById("debtTotal").innerText=
+
+"💰 ยอดลูกหนี้รวม : "+
+totalDebt.toLocaleString()+
+" บาท";
+
+
+
+}
+
+
+
+renderDebt();
+
+
+
+</script>
+
+
+</body>
+
+</html>

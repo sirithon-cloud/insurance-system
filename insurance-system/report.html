@@ -21,12 +21,22 @@ body{
     width:100%;
     max-width:none;
     min-height:100vh;
+    height:100vh;
     margin:0;
+
+    display:flex;
+    flex-direction:column;
+
     background:#fff;
     padding:20px;
+
     border-radius:0;
     box-shadow:none;
+
     overflow-x:auto;
+
+    display:flex;
+    flex-direction:column;
 }
 
 h1{
@@ -37,6 +47,7 @@ table{
     width:100%;
     border-collapse:collapse;
     font-size:12px;
+    
 }
 
 th{
@@ -105,6 +116,87 @@ tr:hover{
 .action-buttons button:hover{
     transform:scale(1.1);
 }
+
+/* =========================
+   สรุปยอดรวม (เลือกบริษัท → เลือกเดือน)
+========================= */
+
+.summary-panel{
+    background:#f8f9fb;
+    border:1px solid #e3e6ec;
+    border-radius:12px;
+    padding:16px 18px;
+    margin-bottom:20px;
+}
+
+.summary-filters{
+    display:flex;
+    gap:15px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin-bottom:12px;
+}
+
+.summary-filters label{
+    font-size:13px;
+    color:#002d72;
+    font-weight:bold;
+    margin-right:6px;
+}
+
+.summary-filters select{
+    padding:6px 10px;
+    border-radius:8px;
+    border:1px solid #cfd6e2;
+    font-family:"Kanit",sans-serif;
+    font-size:13px;
+}
+
+.summary-total{
+    font-size:17px;
+    font-weight:bold;
+    color:#002d72;
+}
+
+    /* =========================
+   ปุ่มกลับหน้าหลักด้านล่าง
+========================= */
+
+.report-footer{
+
+    width:100%;
+
+    display:flex;
+    justify-content:center;
+
+    margin-top:auto;
+
+    padding:20px 0;
+
+}
+
+
+.back-report-btn{
+    background:#002d72;
+    color:white;
+
+    border:none;
+    border-radius:8px;
+
+    padding:5px 15px;
+
+    font-family:"Kanit",sans-serif;
+    font-size:13px;
+
+    cursor:pointer;
+}
+
+
+.back-report-btn{
+    position:static !important;
+}
+
+
 </style>
 
 </head>
@@ -116,7 +208,23 @@ tr:hover{
 
 <h1>📊 รายงานข้อมูลประกันทั้งหมด</h1>
 
-<div id="summary" style="margin:10px 0;font-weight:bold;"></div>
+<div class="summary-panel">
+    <div class="summary-filters">
+        <span>
+            <label for="filterCompany">🏢 เลือกบริษัท</label>
+            <select id="filterCompany"></select>
+        </span>
+        <span>
+            <label for="filterYear">🗓️ เลือกปี</label>
+            <select id="filterYear"></select>
+        </span>
+        <span>
+            <label for="filterMonth">📅 เลือกเดือน</label>
+            <select id="filterMonth"></select>
+        </span>
+    </div>
+    <div id="summaryTotal" class="summary-total"></div>
+</div>
 
 <table id="table">
 
@@ -150,21 +258,55 @@ tr:hover{
 
 </table>
 
+
+<div class="report-footer">
+
+    <button 
+    class="back-report-btn"
+    onclick="location.href='index.html'">
+        ⬅️ กลับหน้าหลัก
+    </button>
+
+</div>
+
+
 </div>
 
 <script>
 const STORAGE_KEY = "insuranceData"; // ✅ ใช้ key เดียวกับ script.js/ฟอร์ม
 
+const THAI_MONTHS = [
+    "มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน",
+    "กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"
+];
+
+/* createDate ถูกเก็บด้วย new Date().toLocaleDateString("th-TH") ซึ่งได้ฟอร์แมต
+   วัน/เดือน/ปี (พ.ศ.) เช่น "8/7/2569" — ฟังก์ชันนี้แยกเดือน (01-12) และปี (พ.ศ.)
+   ออกจากกัน ถ้าพาร์สไม่ได้จะคืนค่า null ทั้งคู่ */
+function parseCreateDate(createDate){
+    if(!createDate) return { month:null, year:null };
+
+    const parts = createDate.split("/");
+    if(parts.length !== 3) return { month:null, year:null };
+
+    const month = parseInt(parts[1], 10);
+    const year = parts[2];
+
+    if(isNaN(month) || month < 1 || month > 12) return { month:null, year:null };
+
+    return { month: String(month).padStart(2,"0"), year: year };
+}
+
 function renderTable(){
 
     let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    allData = data;
+
     let tbody = document.querySelector("tbody");
     tbody.innerHTML = "";
 
-    let total = 0;
-
     data.forEach((item,i)=>{
-        total += Number(item.total||0);
+
         tbody.innerHTML += `
 <tr>
 <td>${i+1}</td>
@@ -201,13 +343,118 @@ ${
     <button class="doc-btn" onclick="openDoc(${i})">📄</button>
     <button class="delete-btn" onclick="deleteItem(${i})">🗑️</button>
 </td>
-</td>
 </tr>
 `;
     });
 
-    document.getElementById("summary").innerText =
-    "💰 ยอดรวมทั้งหมด: " + total.toLocaleString() + " บาท";
+    populateFilters();
+    updateSummary();
+}
+
+/* รายชื่อบริษัทที่มีอยู่แน่นอน (ตรงกับตัวเลือกใน select#company ของ form_product.html)
+   แสดงไว้เสมอแม้ยังไม่มีข้อมูลของบริษัทนั้น ถ้าใน localStorage มีชื่อบริษัทอื่นที่ไม่อยู่
+   ในลิสต์นี้ (เผื่อเพิ่มบริษัทใหม่ในอนาคต) จะต่อท้ายให้ด้วย */
+const KNOWN_COMPANIES = ["วิริยะ", "เมืองไทย", "AIG"];
+
+/* เติมตัวเลือกใน dropdown บริษัท / ปี / เดือน
+   ถ้าค่าที่เคยเลือกไว้ยังมีอยู่ในตัวเลือกใหม่ จะคงค่าเดิมไว้ ไม่รีเซ็ตโดยไม่จำเป็น */
+function populateFilters(){
+
+    const companySelect = document.getElementById("filterCompany");
+    const yearSelect = document.getElementById("filterYear");
+    const monthSelect = document.getElementById("filterMonth");
+
+    const prevCompany = companySelect.value || "all";
+
+    const companiesFromData = [...new Set(allData.map(item => item.company).filter(c => c))];
+    const extraCompanies = companiesFromData.filter(c => !KNOWN_COMPANIES.includes(c));
+    const companies = [...KNOWN_COMPANIES, ...extraCompanies];
+
+    companySelect.innerHTML =
+        `<option value="all">ทั้งหมด</option>` +
+        companies.map(c => `<option value="${c}">${c}</option>`).join("");
+
+    companySelect.value = companies.includes(prevCompany) ? prevCompany : "all";
+
+    populateYearOptions();
+    populateMonthOptions();
+
+    companySelect.onchange = updateSummary;
+    yearSelect.onchange = updateSummary;
+    monthSelect.onchange = updateSummary;
+}
+
+/* เติมตัวเลือกปี — แสดงคงที่ตั้งแต่ พ.ศ. 2569 ถึง 2575 เสมอ (ไม่ผูกกับข้อมูลที่มีอยู่จริง)
+   ถ้าในอนาคตมีข้อมูลปีนอกช่วงนี้ ให้ขยายค่า YEAR_START/YEAR_END ด้านล่างเพิ่มได้ */
+function populateYearOptions(){
+
+    const yearSelect = document.getElementById("filterYear");
+    const prevYear = yearSelect.value || "all";
+
+    const YEAR_START = 2569;
+    const YEAR_END = 2575;
+
+    const years = [];
+    for(let y = YEAR_START; y <= YEAR_END; y++){
+        years.push(String(y));
+    }
+
+    yearSelect.innerHTML =
+        `<option value="all">ทั้งหมด</option>` +
+        years.map(y => `<option value="${y}">${y}</option>`).join("");
+
+    yearSelect.value = years.includes(prevYear) ? prevYear : "all";
+}
+
+/* เติมตัวเลือกเดือน — แสดงครบทั้ง 12 เดือนเสมอ ไม่ผูกกับปี (ไม่ใส่ปีต่อท้ายชื่อเดือนแล้ว
+   เพราะแยกไปเลือกที่ dropdown ปีต่างหาก) เพื่อให้เลือกดูเดือนที่ยังไม่มีข้อมูลได้ด้วย */
+function populateMonthOptions(){
+
+    const monthSelect = document.getElementById("filterMonth");
+    const prevMonth = monthSelect.value || "all";
+
+    const options = [`<option value="all">ทั้งหมด</option>`];
+    for(let m = 1; m <= 12; m++){
+        const key = String(m).padStart(2,"0");
+        options.push(`<option value="${key}">${THAI_MONTHS[m-1]}</option>`);
+    }
+
+    monthSelect.innerHTML = options.join("");
+    monthSelect.value = prevMonth;
+    if(monthSelect.value !== prevMonth){
+        monthSelect.value = "all";
+    }
+}
+
+/* คำนวณยอดรวมตามบริษัท+ปี+เดือนที่เลือก แล้วแสดงผลตรง "ยอดรวม" จุดเดียว */
+function updateSummary(){
+
+    const selectedCompany = document.getElementById("filterCompany").value;
+    const selectedYear = document.getElementById("filterYear").value;
+    const selectedMonth = document.getElementById("filterMonth").value;
+
+    const filtered = allData.filter(item => {
+        const companyOk = selectedCompany === "all"
+            || (item.company || "ไม่ระบุบริษัท") === selectedCompany;
+
+        const parsed = parseCreateDate(item.createDate);
+
+        const yearOk = selectedYear === "all" || parsed.year === selectedYear;
+        const monthOk = selectedMonth === "all" || parsed.month === selectedMonth;
+
+        return companyOk && yearOk && monthOk;
+    });
+
+    const total = filtered.reduce((sum,item)=> sum + Number(item.total||0), 0);
+
+    const companyLabel = selectedCompany === "all" ? "ทุกบริษัท" : selectedCompany;
+    const yearLabel = selectedYear === "all" ? "ทุกปี" : "ปี " + selectedYear;
+    const monthLabel = selectedMonth === "all"
+        ? "ทุกเดือน"
+        : THAI_MONTHS[parseInt(selectedMonth,10)-1];
+
+    document.getElementById("summaryTotal").innerText =
+        `💰 ยอดรวม (${companyLabel} · ${yearLabel} · ${monthLabel}): ${total.toLocaleString()} บาท`;
 }
 
 renderTable();
@@ -222,40 +469,29 @@ function deleteItem(i){
     renderTable();
 }
 
+function editItem(i){
+
+    let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    localStorage.setItem("editData",JSON.stringify(data[i]));
+    localStorage.setItem("editIndex", i);
+
+    if(data[i].type === "product"){
+        location.href="form_product.html";
+    }
+    else{
+        location.href="form_car.html";
+    }
+
+}
+
+/* แก้ไข: เดิมมี openDoc(i) ประกาศซ้ำสองครั้งในไฟล์นี้ ตัวหลังทับตัวแรก
+   และเซฟลง key "documentData" ซึ่ง contract_print.html ไม่ได้อ่านค่านี้เลย
+   (อ่านจาก "pdfData" เท่านั้น) จึงลบตัวที่ซ้ำออก เหลือตัวเดียวที่ใช้ "pdfData" */
 function openDoc(i){
     let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
     localStorage.setItem("pdfData",JSON.stringify(data[i]));
     location.href="contract_print.html";
 }
-
-function editItem(i){
-
-    let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-
-    // เก็บข้อมูลรายการที่เลือก
-    localStorage.setItem("editData", JSON.stringify(data[i]));
-
-    // เปิดฟอร์มตามประเภทประกัน
-    if(data[i].type === "car"){
-        location.href = "form_car.html";
-    }else{
-        location.href = "form_product.html";
-    }
-}
-
-    function openDoc(i){
-
-    let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-
-    localStorage.setItem(
-        "documentData",
-        JSON.stringify(data[i])
-    );
-
-    location.href="contract_print.html";
-}
-
-
 
 </script>
 

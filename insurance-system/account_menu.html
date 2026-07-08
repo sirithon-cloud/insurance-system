@@ -4,45 +4,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>เมนูบัญชี</title>
+
+    <title>  เมนูบัญชี</title>
 
     <link rel="stylesheet" href="style.css">
+
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
 </head>
 
+
 <body>
 
-    <main class="main">
 
-        <h2 class="title">📒 เมนูบัญชี</h2>
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
 
-        <div class="cards">
+    <h2>📋 ระบบประกันกับคุณพลอย</h2>
 
-            <a href="report_sale.html" class="card">
-                <span class="icon">📊</span>
-                <h3>รายงานการขาย</h3>
-            </a>
+    <a href="index.html" class="active">
+        🏠 หน้าแรก
+    </a>
 
-            <a href="customer_debt.html" class="card">
-                <span class="icon">💰</span>
-                <h3>ลูกหนี้</h3>
-            </a>
+</div>
 
-            <a href="finance.html" class="card">
-                <span class="icon">💵</span>
-                <h3>บันทึกการเงิน</h3>
-            </a>
 
-        </div>
 
-        <div class="bottom-actions">
-            <a href="index.html" class="back-btn">
-                ⬅ กลับหน้าแรก
-            </a>
-        </div>
+<!-- TOPBAR -->
+<header class="topbar">
 
-    </main>
+    <button id="menuBtn">
+        ☰ 
+    </button>
+
+    <h3>
+        เมนูบัญชี
+    </h3>
+
+</header>
+
+
+
+<!-- CONTENT -->
+
+<main class="main account-page">
+
+
+    <h2 class="title">
+        📒 เมนูบัญชี
+    </h2>
+
+
+
+    <div class="cards">
+
+        <a href="report.html" class="card account-card">
+
+            <span class="icon">
+                📊
+            </span>
+
+            <h3>
+                รายงานข้อมูลประกัน
+            </h3>
+
+        </a>
+
+
+
+
+        <a href="customer_debt.html" class="card">
+
+            <span class="icon">
+                💰
+            </span>
+
+            <h3>
+                ลูกหนี้
+            </h3>
+
+        </a>
+
+
+
+
+        <a href="finance.html" class="card">
+
+            <span class="icon">
+                💵
+            </span>
+
+            <h3>
+                บันทึกการเงิน
+            </h3>
+
+        </a>
+
+
+    </div>
+
+
+
+    <div class="bottom-actions">
+
+        <a href="index.html" class="back-btn">
+            ⬅ กลับหน้าแรก
+        </a>
+
+    </div>
+
+
+
+</main>
+
+
+
+
+<script>
+
+
+const menuBtn = document.getElementById("menuBtn");
+
+const sidebar = document.getElementById("sidebar");
+
+
+if(menuBtn && sidebar){
+
+    menuBtn.addEventListener("click",()=>{
+
+        sidebar.classList.toggle("show");
+
+    });
+
+}
+
+
+</script>
+
+
 
 </body>
 

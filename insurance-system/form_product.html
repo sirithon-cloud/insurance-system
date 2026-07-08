@@ -20,7 +20,7 @@
     <span class="apptitle">บันทึกข้อมูลประกันสินค้า</span>
 </div>
 
-<aside class="sidebar">
+<aside class="sidebar" id="sidebar">
     <ul>
         <li><a href="index.html" class="menu-link">🏠 หน้าหลัก</a></li>
     </ul>
@@ -130,8 +130,7 @@
                 </button>
 
 
-                <button class="edit-btn"
-                onclick="editData()">
+                <button type="button" class="edit-btn" onclick="editData()">
                     ✏️ แก้ไขข้อมูล
                 </button>
 
@@ -150,10 +149,22 @@
     <script src="script.js"></script>
 
     <script>
-    function collectFormData(type) {
+        /* แก้ไข: เดิมมีการประกาศ let editingId / editingIndex ซ้ำที่นี่
+           ทั้งที่ script.js ประกาศตัวแปร editingId ไว้แล้ว การประกาศ let
+           ชื่อเดียวกันซ้ำในหน้าเดียวกันทำให้เกิด SyntaxError และ <script>
+           ก้อนนี้ทั้งก้อนไม่ทำงานเลย (ปุ่มบันทึก/ไฟล์เอกสาร/เมนูใช้ไม่ได้)
+           จึงตัดออก ใช้ editingId ตัวที่ประกาศไว้ใน script.js แทน */
+
+        function collectFormData(type) {
+
         return {
-    id: editingId,
-            type: type,
+    id: editingId || Date.now(),
+
+    type: type,
+
+    // วันที่กรอกฟอร์ม
+            createDate: new Date().toLocaleDateString("th-TH"),
+
             company: document.getElementById("company")?.value,
             requestName: document.getElementById("requestName")?.value,
             customer: document.getElementById("name")?.value,
@@ -175,18 +186,45 @@
     }
 
         document.getElementById("productForm").addEventListener("submit", function (e) {
-            e.preventDefault();
-            const record = collectFormData("product");
-            saveRecord(record);
-            localStorage.setItem("pdfData", JSON.stringify(record));
-            alert("บันทึกข้อมูลเรียบร้อย");
-        });
-
-        function openFiles() {
-        const pdfData = collectFormData("product");
-        localStorage.setItem("pdfData", JSON.stringify(pdfData));
-        window.location.href = "product_files.html";
+    e.preventDefault();
+    const record = collectFormData("product");
+    let data = JSON.parse(localStorage.getItem("insuranceData")) || [];
+    let index = localStorage.getItem("editIndex");
+    if(index !== null){
+        // แก้ไขข้อมูลเดิม
+        data[index] = record;
+        localStorage.removeItem("editIndex");
+        localStorage.removeItem("editData");
+    }else{
+        // เพิ่มข้อมูลใหม่
+        data.push(record);
     }
+    localStorage.setItem(
+        "insuranceData",
+        JSON.stringify(data)
+    );
+    localStorage.setItem(
+        "pdfData",
+        JSON.stringify(record)
+    );
+    alert("บันทึกข้อมูลเรียบร้อย");
+    location.href="report.html";
+
+});
+
+    function openFiles() {
+    const pdfData = collectFormData("product");
+    if(!pdfData.company){
+        alert("กรุณาเลือกบริษัทประกันภัย");
+        return;
+    }
+    localStorage.setItem(
+        "pdfData",
+        JSON.stringify(pdfData)
+    );
+
+    window.location.href = "contract_print.html";
+}
 
         const menuBtn = document.getElementById("menuBtn");
         const sidebar = document.querySelector(".sidebar");
@@ -206,37 +244,43 @@
 
         }
 
-        const editData = JSON.parse(localStorage.getItem("editData"));
+        window.addEventListener("DOMContentLoaded", function(){
 
-if(editData){
+    const oldData = JSON.parse(localStorage.getItem("editData"));
 
-    editingId = editData.id;
-
-    document.getElementById("company").value = editData.company || "";
-    document.getElementById("requestName").value = editData.requestName || "";
-    document.getElementById("name").value = editData.customer || "";
-    document.getElementById("phone").value = editData.phone || "";
-    document.getElementById("address").value = editData.address || "";
-
-    document.getElementById("brand").value = editData.brand || "";
-    document.getElementById("plate").value = editData.plate || "";
-    document.getElementById("chassis").value = editData.chassis || "";
-
-    document.getElementById("start").value = editData.start || "";
-    document.getElementById("end").value = editData.end || "";
-
-    document.getElementById("sumInsured").value = editData.sumInsured || "";
-    document.getElementById("total").value = editData.total || "";
-    document.getElementById("group").value = editData.group || "";
-
-    document.getElementById("installment1").value = editData.installment1 || "";
-    document.getElementById("installment2").value = editData.installment2 || "";
-    document.getElementById("installment3").value = editData.installment3 || "";
-    document.getElementById("installment4").value = editData.installment4 || "";
+    console.log("รับข้อมูลแก้ไข:", oldData);
 
 
-    localStorage.removeItem("editData");
-}
+    if(oldData){
+
+        editingId = oldData.id;
+
+
+        document.getElementById("company").value = oldData.company || "";
+        document.getElementById("requestName").value = oldData.requestName || "";
+        document.getElementById("name").value = oldData.customer || "";
+        document.getElementById("phone").value = oldData.phone || "";
+        document.getElementById("address").value = oldData.address || "";
+
+        document.getElementById("brand").value = oldData.brand || "";
+        document.getElementById("plate").value = oldData.plate || "";
+        document.getElementById("chassis").value = oldData.chassis || "";
+
+        document.getElementById("start").value = oldData.start || "";
+        document.getElementById("end").value = oldData.end || "";
+
+        document.getElementById("sumInsured").value = oldData.sumInsured || "";
+        document.getElementById("total").value = oldData.total || "";
+        document.getElementById("group").value = oldData.group || "";
+
+        document.getElementById("installment1").value = oldData.installment1 || "";
+        document.getElementById("installment2").value = oldData.installment2 || "";
+        document.getElementById("installment3").value = oldData.installment3 || "";
+        document.getElementById("installment4").value = oldData.installment4 || "";
+
+    }
+
+},500);
     </script>
     
     

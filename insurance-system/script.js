@@ -120,47 +120,98 @@ function openDocument(key){
 
 }
 
-function editData() {
+/* ==============================
+   โหลดข้อมูลสำหรับแก้ไข
+   (แก้ไข: เดิมมี editData() ประกาศซ้ำ 2 ตัวในไฟล์นี้ ตัวหลังทับตัวแรก
+   และตัวที่ใช้งานจริงเติมข้อมูลไม่ครบ — ไม่มี start, end, sumInsured,
+   total, group, installment1-4 และไม่ได้ตั้งค่า editingId เลย
+   รวมสองตัวเป็นตัวเดียว อ่านจาก "editData" ตามที่ report.html ตั้งค่าไว้
+   และเติมค่าให้ครบทุกฟิลด์ พร้อมตั้ง editingId ให้ถูกต้อง) */
+function editData(){
 
-    const data = getData();
+    const raw = localStorage.getItem("editData");
 
-    if (data.length === 0) {
-        alert("ยังไม่มีข้อมูล");
+    if(!raw){
+
+        alert("ไม่พบข้อมูลที่ต้องการแก้ไข");
+
         return;
     }
 
-    const item = data[data.length - 1];
 
-    editingId = item.id;
+    const data = JSON.parse(raw);
 
-    document.getElementById("company").value = item.company || "";
-    document.getElementById("requestName").value = item.requestName || "";
-    document.getElementById("name").value = item.customer || "";
-    document.getElementById("phone").value = item.phone || "";
-    document.getElementById("address").value = item.address || "";
+    editingId = data.id;
 
-    document.getElementById("brand").value = item.brand || "";
-    document.getElementById("plate").value = item.plate || "";
-    document.getElementById("chassis").value = item.chassis || "";
 
-    document.getElementById("start").value = item.start || "";
-    document.getElementById("end").value = item.end || "";
+    document.getElementById("company").value =
+        data.company || "";
 
-    document.getElementById("sumInsured").value = item.sumInsured || "";
-    document.getElementById("total").value = item.total || "";
 
-    document.getElementById("group").value = item.group || "";
+    document.getElementById("requestName").value =
+        data.requestName || "";
 
-    document.getElementById("installment1").value = item.installment1 || "";
-    document.getElementById("installment2").value = item.installment2 || "";
-    document.getElementById("installment3").value = item.installment3 || "";
-    document.getElementById("installment4").value = item.installment4 || "";
 
-    alert("โหลดข้อมูลล่าสุดเรียบร้อย");
+    document.getElementById("name").value =
+        data.customer || "";
+
+
+    document.getElementById("phone").value =
+        data.phone || "";
+
+
+    document.getElementById("address").value =
+        data.address || "";
+
+
+    document.getElementById("brand").value =
+        data.brand || "";
+
+
+    document.getElementById("plate").value =
+        data.plate || "";
+
+
+    document.getElementById("chassis").value =
+        data.chassis || "";
+
+
+    document.getElementById("start").value =
+        data.start || "";
+
+
+    document.getElementById("end").value =
+        data.end || "";
+
+
+    document.getElementById("sumInsured").value =
+        data.sumInsured || "";
+
+
+    document.getElementById("total").value =
+        data.total || "";
+
+
+    document.getElementById("group").value =
+        data.group || "";
+
+
+    document.getElementById("installment1").value =
+        data.installment1 || "";
+
+
+    document.getElementById("installment2").value =
+        data.installment2 || "";
+
+
+    document.getElementById("installment3").value =
+        data.installment3 || "";
+
+
+    document.getElementById("installment4").value =
+        data.installment4 || "";
+
+
+    alert("โหลดข้อมูลเดิมแล้ว สามารถแก้ไขได้");
+
 }
-
-
-
-
-
-

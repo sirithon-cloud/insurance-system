@@ -706,12 +706,87 @@ body {
   font-family: 'Kanit', sans-serif;
 }
 
+/* =========================
+   ปุ่มกลับหน้าหลัก Report
+========================= */
+
+.report-header{
+    position:relative;
+    margin-bottom:20px;
+}
 
 
+.back-report-btn{
+
+    position:absolute;
+    left:0;
+    top:0;
+
+    background:#002d72;
+    color:white;
+
+    border:none;
+    border-radius:6px;
+
+    padding:4px 10px;
+
+    font-family:"Kanit",sans-serif;
+    font-size:12px;
+
+    cursor:pointer;
+
+}
 
 
+.back-report-btn:hover{
+
+    transform:scale(1.05);
+    opacity:.9;
+
+}
+
+/* =========================
+   ACCOUNT MENU ONLY
+========================= */
+
+.account-page .account-card{
+
+    background: #ffffff;
+    color: #333;
+    border-radius: 20px;
+    padding: 30px;
+    text-align: center;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+
+}
 
 
+.account-page .account-card:hover{
+
+    transform: translateY(-5px);
+
+}
 
 
+.account-page .icon{
+
+    font-size:45px;
+
+}
+
+
+.account-page h3{
+
+    color:#333;
+
+}
+
+.back-btn{
+    display:inline-block;
+    padding:10px 25px;
+    background:#2563eb;
+    color:white;
+    text-decoration:none;
+    border-radius:8px;
+}
 
