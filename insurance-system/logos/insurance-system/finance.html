@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>บันทึกการเงิน</title>
+
+<link rel="stylesheet" href="style.css">
+
+<style>
+table{
+    width:90%;
+    margin:20px auto;
+}
+</style>
+
+<style>
+.main h2{
+    margin-top:-20px;
+    text-align:center;
+}
+</style>
+
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+</head>
+
+<body>
+
+<!-- SIDEBAR / TOPBAR ใช้ของเดิมได้ -->
+
+<div class="main">
+
+<h2>💵 บันทึกการเงิน</h2>
+
+<table>
+<thead>
+<tr>
+    <th>ลำดับ</th>
+    <th>วันที่แจ้งงาน</th>
+    <th>บริษัท</th>
+    <th>ชื่อผู้เอาประกัน</th>
+    <th>เบอร์โทร</th>
+    <th>ทะเบียน</th>
+    <th>วันเริ่ม</th>
+    <th>รวม</th>
+</tr>
+</thead>
+
+<tbody id="financeTable">
+
+</tbody>
+
+</table>
+
+    <div style="text-align:center; margin-top:30px;">
+    <a href="index.html" class="back-btn">
+        ← กลับหน้าหลัก
+    </a>
+
+</div>
+
+</div>
+
+
+<script>
+
+const STORAGE_KEY = "insuranceData";
+
+    function formatDate(date){
+
+    if(!date) return "-";
+
+    let d = new Date(date);
+
+    let day = String(d.getDate()).padStart(2,"0");
+    let month = String(d.getMonth()+1).padStart(2,"0");
+    let year = d.getFullYear() + 543;
+
+    return `${day}/${month}/${year}`;
+
+}
+
+function renderFinance(){
+
+    let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+
+    let table = document.getElementById("financeTable");
+
+    table.innerHTML = "";
+
+
+    data.forEach((item,index)=>{
+
+    let row = `
+    <tr>
+
+        <td>${index + 1}</td>
+
+        <td>${item.createDate || "-"}</td>
+
+        <td>${item.company || "-"}</td>
+
+        <td>${item.customer || "-"}</td>
+
+        <td>${item.phone || "-"}</td>
+
+        <td>${item.plate || "-"}</td>
+
+        <td>${formatDate(item.start)}</td>
+
+        <td>${item.total || "0"}</td>
+
+        </tr>
+    `;
+
+    table.innerHTML += row;
+
+});
+
+
+}
+
+
+document.addEventListener("DOMContentLoaded",()=>{
+
+    renderFinance();
+
+});
+
+
+</script>
+
+
+</body>
+</html>
