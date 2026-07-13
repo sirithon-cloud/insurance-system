@@ -2010,28 +2010,47 @@ const fileBase = safeFileName(data.customer) + "_" + safeFileName(data.plate);
 
 async function saveJPG() {
     fitPagesToA4();
-    const canvas = await html2canvas(docArea, { scale: 2, backgroundColor: "#ffffff" });
+    await new Promise(r => setTimeout(r, 100)); // รอ layout นิ่งก่อน capture
 
-    canvas.toBlob(async (blob) => {
-        const fileName = fileBase + ".jpg";
-        const file = new File([blob], fileName, { type: "image/jpeg" });
+    const pageLabels = {
+        main: "ใบคำขอ",
+        contract: "สัญญา",
+        cancel: "ใบยกเลิก",
+        poa: "หนังสือมอบอำนาจ",
+        receipt: "ใบรับเงิน",
+        invoice: "ใบแจ้งหนี้"
+    };
 
-        // มือถือที่รองรับ: เปิดเมนูแชร์ของเครื่อง ผู้ใช้เลือก "บันทึกรูปภาพ" เพื่อเข้าแกลลอรี่ได้เลย
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            try {
-                await navigator.share({ files: [file], title: fileName });
-                return;
-            } catch (err) {
-                // ผู้ใช้กดยกเลิก หรืออุปกรณ์แชร์ไม่สำเร็จ -> ดาวน์โหลดแบบปกติแทน
-            }
+    const pages = document.querySelectorAll(".document-page");
+    const files = [];
+
+    // capture ทีละหน้าแยกกัน เพื่อให้ได้ไฟล์ JPG ขนาด A4 คนละไฟล์ ไม่ติดกัน
+    for (let i = 0; i < pages.length; i++) {
+        const canvas = await html2canvas(pages[i], { scale: 2, backgroundColor: "#ffffff" });
+        const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg", 0.95));
+        const label = pageLabels[pages[i].id] || pages[i].id || (i + 1);
+        const fileName = `${fileBase}_${i + 1}_${label}.jpg`;
+        files.push(new File([blob], fileName, { type: "image/jpeg" }));
+    }
+
+    // มือถือที่รองรับ: เปิดเมนูแชร์ของเครื่อง ส่งทุกภาพไปพร้อมกัน ผู้ใช้เลือกบันทึกแต่ละภาพเข้าแกลลอรี่ได้
+    if (navigator.canShare && navigator.canShare({ files })) {
+        try {
+            await navigator.share({ files, title: fileBase });
+            return;
+        } catch (err) {
+            // ผู้ใช้กดยกเลิก หรืออุปกรณ์แชร์ไม่สำเร็จ -> ดาวน์โหลดทีละไฟล์แทน
         }
+    }
 
-        // เบราว์เซอร์ที่ไม่รองรับการแชร์ไฟล์: ดาวน์โหลดไฟล์ตามปกติ
+    // เบราว์เซอร์ที่ไม่รองรับการแชร์ไฟล์: ดาวน์โหลดทีละไฟล์แยกกัน (เว้นจังหวะกันเบราว์เซอร์บล็อก)
+    for (const file of files) {
         const link = document.createElement("a");
-        link.download = fileName;
-        link.href = URL.createObjectURL(blob);
+        link.download = file.name;
+        link.href = URL.createObjectURL(file);
         link.click();
-    }, "image/jpeg", 0.95);
+        await new Promise(r => setTimeout(r, 300));
+    }
 }
 
 async function downloadPDF() {
@@ -2077,3 +2096,9 @@ document.title = fileBase;
 </body>
 </html>
  
+
+
+
+
+
+

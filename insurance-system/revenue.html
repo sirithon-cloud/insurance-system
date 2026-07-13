@@ -208,8 +208,6 @@
  
     <script>
  
-        const STORAGE_KEY = "insuranceData";
- 
         const monthNamesTH = [
             "ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.",
             "ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."
@@ -230,10 +228,6 @@
             if(!day || !month || !year) return null;
  
             return { year: year, month: month };
-        }
- 
-        function getData(){
-            return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
         }
  
         function baht(n){

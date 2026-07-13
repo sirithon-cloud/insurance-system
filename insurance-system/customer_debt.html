@@ -16,22 +16,46 @@
 
 <style>
 
+:root{
+    --navy:#152A54;
+    --blue:#2F6FED;
+    --blue-dark:#1E4FC4;
+    --blue-light:#EAF1FF;
+    --bg:#F3F6FC;
+    --surface:#FFFFFF;
+    --border:#E4EAF5;
+    --text-soft:#6B7A99;
+
+    --coral:#FF8A65;
+    --mint:#2FBF9B;
+    --sky:#3E7BFA;
+}
+
+*{
+    box-sizing:border-box;
+}
+
 body{
 
     font-family:"Kanit",sans-serif;
-    background:#f4f6f9;
+    background:var(--bg);
+    padding:30px 15px;
 
 }
 
 
 .debt-card{
 
-    width:100%;
-    min-height:100vh;
+    max-width:1400px;
+    margin:0 auto;
+    min-height:calc(100vh - 60px);
 
-    background:white;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:26px;
+    box-shadow:0 14px 34px rgba(21,42,84,.10);
 
-    padding:25px;
+    padding:32px;
 
     overflow-x:auto;
 
@@ -42,8 +66,18 @@ body{
 h1{
 
     text-align:center;
-    color:#002d72;
+    color:var(--navy);
+    font-size:24px;
+    font-weight:700;
+    margin-bottom:6px;
 
+}
+
+.debt-subtitle{
+    text-align:center;
+    color:var(--text-soft);
+    font-size:14px;
+    margin-bottom:10px;
 }
 
 
@@ -63,10 +97,11 @@ table{
 
 th{
 
-    background:#002d72;
+    background:var(--navy);
     color:white;
+    font-weight:600;
 
-    padding:10px;
+    padding:12px 10px;
 
     white-space:nowrap;
 
@@ -76,9 +111,9 @@ th{
 
 td{
 
-    padding:8px;
+    padding:10px;
 
-    border-bottom:1px solid #ddd;
+    border-bottom:1px solid var(--border);
 
     text-align:center;
 
@@ -86,40 +121,48 @@ td{
 
 }
 
-
-
-/* เกินกำหนด */
-
-.overdue{
-
-    background:#ffd6d6 !important;
-
-    color:#b30000;
-
-    font-weight:bold;
-
+tbody tr.overdue:hover,
+tbody tr.not-overdue:hover,
+tbody tr.paid-complete:hover{
+    filter:brightness(.97);
 }
 
-/* ยังไม่เกินกำหนด */
-.not-overdue{
-
-    background:#d8f8d8 !important;
-
-    color:#087f23;
-
-    font-weight:bold;
-
+tbody tr:not(.overdue):not(.not-overdue):not(.paid-complete):hover{
+    background:var(--blue-light);
 }
 
-/* จ่ายครบแล้ว */
-.paid-complete{
+/* แถบสีทั้งแถวตามสถานะ */
+tr.overdue td{
+    background:#FFE7E0;
+    color:#B94324;
+    font-weight:600;
+}
 
-    background:#d6ecff !important;
+tr.not-overdue td{
+    background:#E1F7EF;
+    color:#178064;
+    font-weight:600;
+}
 
-    color:#0066cc;
+tr.paid-complete td{
+    background:var(--blue-light);
+    color:var(--blue-dark);
+    font-weight:600;
+}
 
-    font-weight:bold;
+.status-badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:5px;
 
+    padding:5px 14px;
+    border-radius:999px;
+
+    font-size:12px;
+    font-weight:700;
+    white-space:nowrap;
+    background:rgba(255,255,255,.6);
 }
 
 
@@ -127,13 +170,19 @@ td{
 
 .debt-total{
 
-    margin-top:20px;
+    margin-top:18px;
+    margin-bottom:6px;
 
-    font-size:20px;
+    font-size:18px;
 
-    font-weight:bold;
+    font-weight:600;
 
-    color:#002d72;
+    color:var(--navy);
+
+    background:var(--blue-light);
+    display:inline-block;
+    padding:12px 22px;
+    border-radius:16px;
 
 }
 
@@ -142,23 +191,33 @@ td{
 .back-btn-debt{
 
     margin-top:25px;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
 
-    background:#ffc000;
+    background:var(--blue-light);
 
-    color:white;
+    color:var(--blue-dark);
 
     border:none;
 
-    padding:10px 25px;
+    padding:12px 26px;
 
-    border-radius:10px;
+    border-radius:999px;
 
     cursor:pointer;
 
     font-family:"Kanit";
+    font-weight:600;
 
-    font-size:16px;
+    font-size:15px;
 
+    transition:.2s;
+
+}
+
+.back-btn-debt:hover{
+    background:#DCE9FF;
 }
 
 
@@ -178,6 +237,9 @@ td{
 <h1>
 💰 รายงานลูกหนี้
 </h1>
+<p class="debt-subtitle">สรุปยอดค้างชำระของลูกค้าทั้งหมด เรียงตามจำนวนวันที่เกินกำหนดมากที่สุด</p>
+
+<div class="debt-total" id="debtTotal"></div>
 
 
 
@@ -228,6 +290,8 @@ td{
 
 <th>เกินกำหนด(วัน)</th>
 
+<th>สถานะ</th>
+
 
 </tr>
 
@@ -245,13 +309,10 @@ td{
 </table>
 
 
-<div class="debt-total" id="debtTotal"></div>
-
-
 <button class="back-btn-debt"
 onclick="location.href='account_menu.html'">
 
-⬅ กลับเมนูบัญชี
+← กลับเมนูบัญชี
 
 </button>
 
@@ -402,6 +463,12 @@ else{
 
 
 
+let statusLabel = rowClass === "paid-complete"
+    ? "🟦 จ่ายครบแล้ว"
+    : rowClass === "overdue"
+        ? "🟥 เกินกำหนด"
+        : "🟩 ยังไม่เกินกำหนด";
+
 html+=`
 
 <tr class="${rowClass}">
@@ -472,6 +539,10 @@ ${item.overdue}
 
 </td>
 
+<td>
+<span class="status-badge">${statusLabel}</span>
+</td>
+
 
 
 </tr>
@@ -496,7 +567,7 @@ let totalDebt=debt.reduce(
 
 document.getElementById("debtTotal").innerText=
 
-"💰 ยอดลูกหนี้รวม : "+
+"ยอดลูกหนี้รวม : "+
 totalDebt.toLocaleString()+
 " บาท";
 
