@@ -163,6 +163,10 @@
             <div class="filters">
  
                 <select id="companyFilter"></select>
+
+                <select id="employeeFilter">
+                    <option value="__all__">พนักงานทุกคน</option>
+                </select>
  
                 <select id="yearFilter"></select>
  
@@ -247,16 +251,24 @@
  
         // รายชื่อบริษัท
         const companies = [...new Set(validData.map(item => item.company))].sort();
+
+        const employees = [...new Set(validData.map(item => item.requestName || "ไม่ระบุ"))].sort();
  
         // รายปี (พ.ศ.) ที่มีข้อมูล
         const years = [...new Set(validData.map(item => item._date.year))].sort((a,b)=>b-a);
  
         const companyFilter = document.getElementById("companyFilter");
+        const employeeFilter = document.getElementById("employeeFilter");
         const yearFilter = document.getElementById("yearFilter");
  
         companyFilter.innerHTML =
             `<option value="__all__">ทุกบริษัท</option>` +
             companies.map(c => `<option value="${c}">${c}</option>`).join("");
+
+        employeeFilter.innerHTML =
+            `<option value="__all__">พนักงานทุกคน</option>` +
+            employees.map(e => `<option value="${e}">${e}</option>`).join("");
+
  
         if(years.length === 0){
             const currentYear = new Date().getFullYear() + 543;
@@ -290,15 +302,29 @@
         });
  
         companyFilter.addEventListener("change", render);
+        employeeFilter.addEventListener("change", render);
         yearFilter.addEventListener("change", render);
  
         let chartInstance = null;
  
         function filteredByCompany(){
-            const company = companyFilter.value;
-            if(company === "__all__") return validData;
-            return validData.filter(item => item.company === company);
-        }
+
+    const company = companyFilter.value;
+    const employee = employeeFilter.value;
+
+    return validData.filter(item => {
+
+        const companyOK =
+            company === "__all__" || item.company === company;
+
+        const employeeOK =
+            employee === "__all__" || item.requestName === employee;
+
+        return companyOK && employeeOK;
+
+    });
+
+}
  
         function render(){
  
