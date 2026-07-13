@@ -22,17 +22,28 @@
 
     <h2>📋 ระบบประกันกับคุณพลอย</h2>
 
-    <a href="index.html" class="active">
-        🏠 หน้าแรก
-    </a>
+    <ul style="list-style:none;padding:0 10px;">
+        <li>
+            <a href="index.html" class="active">
+                🏠 หน้าแรก
+            </a>
+        </li>
+        <li>
+            <a href="revenue.html">
+                📈 กราฟรายได้
+            </a>
+        </li>
+    </ul>
 
 </div>
 
-
+<div id="overlay"></div>
 
 <!-- TOPBAR -->
 <header class="topbar">
+    <button id="menuBtn">☰</button>
     <img src="logo.png" class="toplogo" alt="logo">
+    <span class="apptitle">เมนูบัญชี</span>
 </header>
 
 
@@ -44,6 +55,9 @@
     <h2 class="title">
         📒 เมนูบัญชี
     </h2>
+    <p class="subtitle">
+        จัดการรายงาน ลูกหนี้ และบันทึกการเงินทั้งหมดได้จากที่นี่
+    </p>
 
 
 
@@ -115,16 +129,39 @@
 
 const menuBtn = document.getElementById("menuBtn");
 const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("overlay");
 
 if(menuBtn && sidebar){
     menuBtn.addEventListener("click",()=>{
         sidebar.classList.toggle("show");
+        if(overlay) overlay.classList.toggle("show");
     });
+}
 
+if(overlay){
+    overlay.addEventListener("click",()=>{
+        sidebar.classList.remove("show");
+        overlay.classList.remove("show");
+    });
 }
 
 
 </script>
 </body>
 </html>
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
 
