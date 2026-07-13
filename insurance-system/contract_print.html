@@ -2,6 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=794">
 <title>เอกสาร</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
@@ -45,8 +46,11 @@ body {
     padding:60px 20px; 
     color:#c0392b; }
 
-/* กรอบฟอร์มหลัก (เหมือนกรอบเอกสารต้นแบบ) */
-.app-box{ border:1.5px solid #000; padding:14px 18px; }
+/* กรอบฟอร์มหลัก */
+.app-box{
+    border:none;
+    padding:14px 18px;
+}
 
 /* หัวฟอร์ม: โลโก้ซ้าย / หัวเรื่อง-QR ขวา */
 .form-top{
@@ -66,7 +70,7 @@ body {
 }
 
 
-.form-top img.logo-img{ height:40px; }
+.form-top img.logo-img{ height:56px; }
 .form-top .ttl{ text-align:center; flex:1; }
 .form-top h1{ margin:0; font-size:16px; }
 .form-title-underline{ text-align:center; font-weight:bold; font-size:15px; text-decoration:underline; margin-bottom:8px; }
@@ -107,6 +111,7 @@ body {
 .field-row{ display:flex; gap:14px; flex-wrap:wrap; margin:4px 0; }
 .field-row > div{ flex:1; min-width:140px; }
 .field-row .lbl{ font-weight:bold; margin-right:4px; }
+.receipt-fields .lbl{ display:inline-block; min-width:145px; font-weight:bold; margin-right:4px; vertical-align:top; }
 
 .chk{ margin-right:14px; white-space:nowrap; }
 .chk .box{ display:inline-block; width:11px; height:11px; border:1px solid #000; margin-right:3px; position:relative; top:1px; }
@@ -116,11 +121,28 @@ table.grid{ width:100%; border-collapse:collapse; font-size:11.5px; margin-top:6
 table.grid th, table.grid td{ border:1px solid #000; padding:5px 6px; text-align:center; }
 table.grid th{ background:#f0f2f5; }
 
-.premium-table{ width:100%; border-collapse:collapse; margin-top:6px; font-size:12px; }
-.premium-table td{ border:1px solid #000; padding:6px 8px; text-align:center; }
-.premium-table .cap{ font-size:10.5px; color:#333; }
-.premium-table .val{ font-weight:bold; }
+.premium-table{
+    width:85%;
+    margin:12px auto;
+    border-collapse:collapse;
+    font-size:11px;
+}
 
+.premium-table td{
+    border:1px solid #000;
+    padding:4px 6px;
+    text-align:center;
+}
+
+.premium-table .cap{
+    font-size:9.5px;
+    color:#333;
+}
+
+.premium-table .val{
+    font-size:12px;
+    font-weight:bold;
+}
 .sign-2col{ display:flex; justify-content:space-between; margin-top:35px; gap:20px; }
 .sign-2col > div{ flex:1; text-align:center; }
 
@@ -193,10 +215,22 @@ table.grid th{ background:#f0f2f5; }
  
 /* หน้าวิริยะ (ใบคำขอฯ ต้นแบบ): แก้เฉพาะขนาดตัวอักษรให้ใหญ่ขึ้นและบรรทัดห่างขึ้น ไม่แตะโครงสร้าง */
 .viriyah-only-form, .viriyah-only-form *{
-    font-size:13px !important;
-    line-height:1.9 !important;
+    font-size:12.5px !important;
+    line-height:1.7 !important;
 }
 .viriyah-only-form .form-top .small{ font-size:12px !important; }
+
+/* หน้าใบคำขอเอาประกันภัยความรับผิดของผู้ขนส่ง */
+.carrier-app-form,
+.carrier-app-form *{
+    font-size:17px !important;
+    line-height:1.5 !important;
+}
+
+.carrier-app-form h1{
+    font-size:22px !important;
+    font-weight:bold;
+}
  
 /* พื้นที่เว้นสำหรับลงลายมือชื่อในเอกสารราชการหน้าอื่นๆ */
 .official-sign-space{ margin-top:110px !important; }
@@ -395,6 +429,11 @@ if (data) {
    RENDER: ใบรับเงิน
 ========================================================== */
 function renderReceipt(info, typeLabel) {
+    const receiptInstallments = [1, 2, 3, 4].map(i => Number(data["installment" + i]) || 0).filter(v => v > 0);
+    const instCount = receiptInstallments.length || 1;
+    const perInstallment = receiptInstallments.length ? receiptInstallments[0] : Number(data.total) || 0;
+    const productLabel = typeLabel.includes("รถยนต์") ? "ประกันรถยนต์" : "ประกันสินค้า";
+    const receiptCompanyName = companyMeta().fullName;
     return `
         <!-- ส่วนหัว -->
         <div style="
@@ -450,6 +489,7 @@ function renderReceipt(info, typeLabel) {
                 ใบอนุญาตเป็นนายหน้าประกันวินาศภัยที่ ${info.licenseNo}
             </div>
 
+            <div class="receipt-fields">
             <div class="field-row">
                 <div>
                     <span class="lbl">ได้รับเงินจาก</span>
@@ -489,22 +529,46 @@ function renderReceipt(info, typeLabel) {
                     <span class="field-line">${safe(data.chassis)}</span>
                 </div>
             </div>
-
-            <!-- จำนวนเงิน -->
-            <div class="amount-box">
-                <div class="small">จำนวนเงิน</div>
-                <div class="num">${fmt(data.total)}</div>
-                <div class="small">${numberToThaiText(data.total)}</div>
             </div>
 
-            
-<div style="margin-top:180px;">
+            <!-- จำนวนเงิน -->
+            <table class="grid" style="margin-top:14px;">
+                <tr>
+                    <th>ลำดับ</th>
+                    <th>ผลิตภัณฑ์</th>
+                    <th>บริษัทประกัน</th>
+                    <th>เบี้ยประกัน (บาท)</th>
+                </tr>
+                <tr>
+                    <td>1</td>
+                    <td>${productLabel}</td>
+                    <td>${receiptCompanyName}</td>
+                    <td style="text-align:right;">${fmt(data.total)}</td>
+                </tr>
+                <tr>
+                    <td colspan="3" style="text-align:right;font-weight:bold;">จำนวนเงินที่ต้องชำระ</td>
+                    <td style="text-align:right;font-weight:bold;">${fmt(data.total)} บาท</td>
+                </tr>
+                <tr>
+                    <td colspan="4">ชำระจำนวน <b>${instCount}</b> งวด งวดละ <b>${fmt(perInstallment)}</b> บาท</td>
+                </tr>
+            </table>
+
+            <div style="text-align:center;margin-top:8px;font-weight:bold;">
+                (${numberToThaiText(data.total)})
+            </div>
+
+<div style="margin-top:120px;">
 
     <!-- ลายเซ็น -->
     <div class="official-sign-space" style="
         clear:both;
         text-align:center;
     ">
+
+        <div style="font-weight:bold;margin-bottom:6px;">
+            ผู้ออกเอกสาร
+        </div>
 
         <img
             src="logos/signature1.png"
@@ -675,20 +739,42 @@ function renderviriyahMain() {
         ["5","น้ำมันเชื้อเพลิงบรรจุแท็งก์ ก๊าซบรรจุแท็งก์ เป็นต้น (ยกเว้นสินค้ากลุ่มที่ 1, 2, 3, 4, 6)"],
         ["6","สินค้าทุกประเภทที่ต้องควบคุมอุณหภูมิโดยอุปกรณ์เครื่องทำความเย็น COLD CHAIN (ยกเว้นสินค้ากลุ่มที่ 4, 5)"],
         ["7","ผักสด ผลไม้สด ต้นไม้ ดอกไม้ อาหารสด อาหารทะเลสด เป็นต้น (ไม่คุ้มครองสินค้ากลุ่มที่ 3, 5, 6)"]
-    ];
-    return `
-        <div class="app-box viriyah-only-form" style="font-size:13px;">
-            <div class="form-top">
+            ];
+            return `
+                       <div class="form-top" style="
+                                position:relative;
+                                display:flex;
+                                align-items:flex-start;
+                                padding:0;
+                                margin:0;
+                                padding-bottom:40px;
+                            ">
+
                 <img
-    class="logo-img"
-    src="${meta.logo}"
-    style="width:500px;height:auto;"
-    onerror="this.style.display='none'"
->
-                <div class="ttl">
-                
+                    class="logo-img"
+                    src="${meta.logo}"
+                    style="
+                        position:absolute;
+                        left:0;
+                        top:0;
+                        width:620px;
+                        height:auto;
+                    "
+                    onerror="this.style.display='none'"
+                >
+
+                <div class="ttl"></div>
+
+                <div class="small"
+                    style="
+                        white-space:nowrap;
+                        text-align:right;
+                        position:relative;
+                        top:30px;
+                    ">
+                    เอกสารเริ่มมีผลบังคับใช้ 01/01/2022
                 </div>
-                <div class="small" style="white-space:nowrap; text-align:right; position:relative; top:30px;">เอกสารเริ่มมีผลบังคับใช้ 01/01/2022</div>
+
             </div>
 
             <div class="viriyah-content" style="overflow:hidden;">
@@ -744,7 +830,9 @@ function renderviriyahMain() {
                 <div class="head"><span class="no">5.</span> จำนวนเงินจำกัดความรับผิดสำหรับค่าสินไหมทดแทน ต่อหนึ่งยานพาหนะ &nbsp;
                     <b style="color:#000;">${fmt(data.sumInsured)}</b> บาท (ตลอดระยะเวลาประกันภัย)
                 </div>
-                <div class="sub small">(หมายเหตุ : ในกรณีที่ได้มีการเรียกร้องค่าสินไหมทดแทนจากทางบริษัทฯ จนถึงจำนวนเงินดังกล่าว กรมธรรม์จะสิ้นสุดความคุ้มครองทันที แม้ว่ายังไม่สิ้นสุดระยะเวลาประกันภัย)</div>
+                <div class="sub small" style="margin-left:20px;">
+    (หมายเหตุ : ในกรณีที่ได้มีการเรียกร้องค่าสินไหมทดแทนจากทางบริษัทฯ จนถึงจำนวนเงินดังกล่าว กรมธรรม์จะสิ้นสุดความคุ้มครองทันที แม้ว่ายังไม่สิ้นสุดระยะเวลาประกันภัย)
+</div>
             </div>
 
             <div class="num-block">
@@ -774,7 +862,7 @@ function renderviriyahMain() {
                 : การแจ้งงานขอเอาประกันภัยในวันเดียวกันกับวันที่เริ่มต้นระยะเวลาเอาประกันภัย ให้ถือว่าเวลาที่เริ่มมีผลคุ้มครองคือเวลาที่บริษัทตอบตกลงรับประกันภัย
             </p>
 
-            <div class="sign-2col viriyah-sign" style="margin-top:-20px;">
+            <div class="sign-2col viriyah-sign" style="margin-top:30px;">
                 <div>
                 <div class="small">
                     ผู้นำเสนอได้แจ้งและอธิบายให้ผู้ขอเอาประกันภัยเข้าใจและรับทราบรายละเอียดของแบบผลิตภัณฑ์ประกันภัยเป็นอย่างดีแล้ว
@@ -846,7 +934,7 @@ function renderviriyahContract() {
     });
 
  return `
-<div style="margin-bottom:20px;">
+<div style="margin-bottom:20px;padding-top:18px;">
 
     <!-- ส่วนหัว -->
     <div style="
@@ -900,50 +988,14 @@ function renderviriyahContract() {
         ให้แก่บริษัทผู้รับประกันภัยแทนข้าพเจ้า โดยมีรายละเอียดดังนี้
     </p>
 
-    <table style="
-    width:80%;
-    margin:0 auto 16px;
-    border-collapse:collapse;
-    font-size:14px;
-">
-
-        <tr>
-            <td style="border:1px solid #000;padding:8px;width:28%;">
-                ทะเบียนรถ
-            </td>
-            <td style="border:1px solid #000;padding:8px;">
-                ${safe(data.plate)}
-            </td>
-        </tr>
-
-        <tr>
-            <td style="border:1px solid #000;padding:8px;">
-                บริษัทผู้รับประกันภัย
-            </td>
-            <td style="border:1px solid #000;padding:8px;">
-                บริษัท วิริยะประกันภัย จำกัด (มหาชน)
-            </td>
-        </tr>
-
-        <tr>
-            <td style="border:1px solid #000;padding:8px;">
-                ค่าเบี้ยประกันภัย
-            </td>
-            <td style="border:1px solid #000;padding:8px;">
-                ${fmt(data.total)} บาท
-            </td>
-        </tr>
-
-        <tr>
-            <td style="border:1px solid #000;padding:8px;">
-                จำนวนงวด
-            </td>
-            <td style="border:1px solid #000;padding:8px;">
-                ${installments.length} งวด
-            </td>
-        </tr>
-
-    </table>
+    <div class="field-row" style="margin:10px 0;">
+        <div><span class="lbl">ทะเบียนรถ</span><span class="field-line" style="min-width:160px;">${safe(data.plate)}</span></div>
+        <div><span class="lbl">บริษัทผู้รับประกันภัย</span><span class="field-line" style="min-width:220px;">บริษัท วิริยะประกันภัย จำกัด (มหาชน)</span></div>
+    </div>
+    <div class="field-row" style="margin:10px 0 16px;">
+        <div><span class="lbl">ค่าเบี้ยประกันภัย</span><span class="field-line" style="min-width:160px;">${fmt(data.total)} บาท</span></div>
+        <div><span class="lbl">จำนวนงวด</span><span class="field-line" style="min-width:100px;">${installments.length} งวด</span></div>
+    </div>
 
     <p style="
         line-height:2;
@@ -955,64 +1007,9 @@ function renderviriyahContract() {
         จนครบเต็มจำนวน ตามรายละเอียดดังต่อไปนี้
     </p>
 
-   <table style="
-    width:70%;
-    margin:12px auto 16px;
-    border-collapse:collapse;
-    font-size:13px;
-">
- <tr style="font-weight:bold;">
-
-    <th style="
-        border:1px solid #000;
-        width:20%;
-        padding:5px;
-        text-align:center;
-        vertical-align:middle;
-    ">
-        งวดที่
-    </th>
-
-    <th style="
-        border:1px solid #000;
-        width:40%;
-        padding:5px;
-        text-align:center;
-        vertical-align:middle;
-    ">
-        จำนวนเงิน
-    </th>
-
-    <th style="
-        border:1px solid #000;
-        width:40%;
-        padding:5px;
-        text-align:center;
-        vertical-align:middle;
-    ">
-        วันที่ครบกำหนด
-    </th>
-
-</tr>
-        ${installments.map((amt,i)=>{
-            const due=new Date(contractDate);
-            due.setDate(due.getDate()+30*(i+1));
-            return `
-            <tr>
-                <td style="border:1px solid #000;padding:8px;text-align:center;">
-                    ${i+1}
-                </td>
-
-                <td style="border:1px solid #000;padding:8px;text-align:right;">
-                    ${fmt(amt)} บาท
-                </td>
-
-                <td style="border:1px solid #000;padding:8px;text-align:center;">
-                    ${toBuddhistDate(due)}
-                </td>
-            </tr>`;
-        }).join("")}
-    </table>
+    <div class="receipt-fields">
+        ${installmentRows}
+    </div>
 
    <p style="
     margin-top:20px;
@@ -1148,7 +1145,7 @@ function renderCarrierApplication(companyKey) {
     const isMuangthai = companyKey === "เมืองไทย";
 
     return `
-        <div class="app-box">
+        <div class="app-box carrier-app-form">
             <div class="form-top" style="position:relative;display:flex;justify-content:flex-end;align-items:center;">
 
     <div class="ttl" style="position:absolute;left:50%;top:50px;transform:translateX(-50%);text-align:center;">
@@ -1157,10 +1154,10 @@ function renderCarrierApplication(companyKey) {
         </h1>
     </div>
 
-    <div style="display:flex;align-items:center;gap:10px;">
-        ${meta.logo2 ? `<img src="${meta.logo2}" style="height:50px;" onerror="this.style.display='none'">` : ""}
-        <img class="logo-img" src="${meta.logo}" onerror="this.style.display='none'">
-    </div>
+   <div style="display:flex;align-items:center;gap:12px;">
+    ${meta.logo2 ? `<img src="${meta.logo2}" style="height:90px;" onerror="this.style.display='none'">` : ""}
+    <img class="logo-img" src="${meta.logo}" style="height:90px;" onerror="this.style.display='none'">
+</div>
 
 </div>
 
@@ -1340,11 +1337,10 @@ function renderCarrierApplication(companyKey) {
 </div>
 
             ${(meta.footer || meta.iso) ? `
-            <div style="margin-top:20px;display:flex;align-items:center;gap:14px;">
-                ${meta.footer ? `<img src="${meta.footer}" style="height:${isMuangthai ? 40 : 70}px;" onerror="this.style.display='none'">` : ""}
-                ${meta.iso ? `<img src="${meta.iso}" style="height:36px;" onerror="this.style.display='none'">` : ""}
-            </div>` : ""}
-
+<div style="margin-top:20px;display:flex;align-items:center;gap:16px;">
+    ${meta.footer ? `<img src="${meta.footer}" style="height:${isMuangthai ? 90 : 125}px;" onerror="this.style.display='none'">` : ""}
+    ${meta.iso ? `<img src="${meta.iso}" style="height:75px;" onerror="this.style.display='none'">` : ""}
+</div>` : ""}
             </div>
         </div>
     `;
@@ -1828,6 +1824,7 @@ function renderBrokerContract(companyFullName) {
     const contractDate = new Date();
 
     return `
+        <div style="padding:22px 26px;">
         <div class="small">สำนักงานนายหน้าประกันวินาศภัย โดยคุณอรุณลักษณ์ มหาจตุพัฒน์</div>
         <div class="small">520 หมู่ที่ 5 ตำบลโนนสะอาด อำเภอชุมแพ จังหวัดขอนแก่น โทร.043-312788</div>
         <h1>สัญญาคำขอแบ่งชำระค่าเบี้ยประกันภัย</h1>
@@ -1883,9 +1880,15 @@ function renderBrokerContract(companyFullName) {
             ข้าพเจ้าได้อ่านและเข้าใจข้อความตามสัญญาคำขอฉบับนี้โดยตลอดแล้ว จึงได้ลงลายมือชื่อไว้เป็นสำคัญ
         </p>
 
-        <div style="text-align:center;margin-top:130px;">
-            <div class="sign-line2" style="display:inline-block;width:250px;">ลงชื่อ ${safe(data.customer)} ผู้ขอ</div><br>
-            <span class="small">${toBuddhistDate(contractDate)}</span>
+        <div style="text-align:center;margin-top:90px;">
+            <div style="font-size:18px;">
+                ลงชื่อ....................................................ผู้ขอ
+            </div>
+            <div style="margin-top:12px;">
+                (${safe(data.customer)})
+            </div>
+            <div class="small" style="margin-top:4px;">วันที่ ${toBuddhistDate(contractDate)}</div>
+        </div>
         </div>
     `;
 }
@@ -2102,3 +2105,4 @@ document.title = fileBase;
 
 
 
+ 
