@@ -153,7 +153,7 @@ table.grid th{ background:#f0f2f5; }
 .document-page{
     width:210mm;
     max-width:900px;
-    aspect-ratio:210/297;
+    height:297mm;
     margin:0 auto 40px;
     background:#fff;
     border:0px solid #333333;
@@ -162,6 +162,8 @@ table.grid th{ background:#f0f2f5; }
     break-after:page;
     box-sizing:border-box;
     box-shadow:0 0 6px rgba(0,0,0,0.15);
+    overflow:hidden;
+    position:relative;
 }
 
 .document-page:last-child{ page-break-after:auto; break-after:auto; }
@@ -169,6 +171,12 @@ table.grid th{ background:#f0f2f5; }
 .document-page > .app-box{
     min-height:100%;
     box-sizing:border-box;
+}
+
+/* กล่องในสุดที่ครอบเนื้อหาจริง ใช้สำหรับย่อขนาด (scale) ให้พอดี 1 หน้า A4 */
+.page-scale{
+    width:100%;
+    transform-origin:top left;
 }
 
 /* ================= จัดรูปแบบเอกสารราชการ: ขนาดตัวอักษรเท่ากันทุกหน้า ระยะบรรทัดโปร่งขึ้น ================= */
@@ -197,11 +205,13 @@ table.grid th{ background:#f0f2f5; }
 .qr-bottom .cap{ margin-top:4px; font-size:10px !important; }
  
 @media print {
+    @page{ size:A4; margin:0; }
     .btn-bar, .document-list{ display:none; }
     body{ background:#fff; padding:0; }
     .document-page{
-        width:210mm; aspect-ratio:210/297; margin:0; padding:0mm 0mm 0mm 0mm;
+        width:210mm; height:297mm; margin:0; padding:0mm 0mm 0mm 0mm;
         border:none; box-shadow:none; page-break-after:always; break-after:page;
+        overflow:hidden;
     }
     .document-page:last-child{ page-break-after:auto; break-after:auto; }
     .document-page > .app-box{
@@ -1950,9 +1960,45 @@ docsForThisCompany.forEach(type=>{
     let div=document.createElement("div");
     div.className="document-page";
     div.id=type;
-    div.innerHTML=getDocumentHTML(type);
+
+    let inner=document.createElement("div");
+    inner.className="page-scale";
+    inner.innerHTML=getDocumentHTML(type);
+
+    div.appendChild(inner);
     docArea.appendChild(div);
 });
+
+/* ==========================================================
+   บังคับให้เนื้อหาแต่ละเอกสารพอดี 1 หน้า A4 เป๊ะ
+   โดยย่อขนาด (scale) ทั้งกล่องลงอัตโนมัติถ้าเนื้อหายาวเกินหน้า
+========================================================== */
+function fitPagesToA4(){
+    document.querySelectorAll(".document-page").forEach(page=>{
+        const inner = page.querySelector(".page-scale");
+        if(!inner) return;
+
+        // รีเซ็ตก่อนวัดขนาดจริงทุกครั้ง
+        inner.style.transform="none";
+        inner.style.width="100%";
+
+        const pageHeight = page.clientHeight;
+        const contentHeight = inner.scrollHeight;
+
+        if(contentHeight > pageHeight){
+            const scale = pageHeight / contentHeight;
+            inner.style.transform=`scale(${scale})`;
+            inner.style.width=(100/scale)+"%";
+        }
+    });
+}
+
+// เรียกทันทีหลัง render และเรียกซ้ำหลังโลโก้/รูปโหลดเสร็จ (กันความสูงคลาดเคลื่อน)
+fitPagesToA4();
+window.addEventListener("load", fitPagesToA4);
+window.addEventListener("beforeprint", fitPagesToA4);
+setTimeout(fitPagesToA4, 500);
+setTimeout(fitPagesToA4, 1500);
 
 /* ==========================================================
    บันทึกเป็น JPG / PDF
@@ -1962,13 +2008,30 @@ function safeFileName(s) {
 }
 const fileBase = safeFileName(data.customer) + "_" + safeFileName(data.plate);
 
-function saveJPG() {
-    html2canvas(docArea, { scale: 2, backgroundColor: "#ffffff" }).then(canvas => {
+async function saveJPG() {
+    fitPagesToA4();
+    const canvas = await html2canvas(docArea, { scale: 2, backgroundColor: "#ffffff" });
+
+    canvas.toBlob(async (blob) => {
+        const fileName = fileBase + ".jpg";
+        const file = new File([blob], fileName, { type: "image/jpeg" });
+
+        // มือถือที่รองรับ: เปิดเมนูแชร์ของเครื่อง ผู้ใช้เลือก "บันทึกรูปภาพ" เพื่อเข้าแกลลอรี่ได้เลย
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+                await navigator.share({ files: [file], title: fileName });
+                return;
+            } catch (err) {
+                // ผู้ใช้กดยกเลิก หรืออุปกรณ์แชร์ไม่สำเร็จ -> ดาวน์โหลดแบบปกติแทน
+            }
+        }
+
+        // เบราว์เซอร์ที่ไม่รองรับการแชร์ไฟล์: ดาวน์โหลดไฟล์ตามปกติ
         const link = document.createElement("a");
-        link.download = fileBase + ".jpg";
-        link.href = canvas.toDataURL("image/jpeg", 0.95);
+        link.download = fileName;
+        link.href = URL.createObjectURL(blob);
         link.click();
-    });
+    }, "image/jpeg", 0.95);
 }
 
 async function downloadPDF() {
@@ -1978,6 +2041,7 @@ async function downloadPDF() {
     btn.disabled = true;
 
     try {
+        fitPagesToA4();
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF({ unit: "mm", format: "a4" });
         const pageW = pdf.internal.pageSize.getWidth();
