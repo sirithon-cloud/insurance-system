@@ -2,15 +2,42 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=794">
+<meta name="viewport" content="width=794, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>เอกสาร</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=block" rel="stylesheet">
 <style>
+
+    body{
+    width:794px;
+    min-width:794px;
+    margin:0;
+    padding:0;
+}
+
 body {
-    font-family:"TH Sarabun New",Tahoma,sans-serif;
+    font-family:"Sarabun","TH Sarabun New",Tahoma,sans-serif;
     background:#e9ecef;
     padding:0 10px;
     font-size:13px;}
+
+/* ================= เพิ่มเติม: ป้องกัน Font Rendering เพี้ยนข้ามอุปกรณ์ / ป้องกันข้อความล้น =================
+   (ส่วนนี้เพิ่มใหม่ทั้งหมด ไม่ได้แก้ไขหรือลบกฎ CSS เดิมด้านบนแต่อย่างใด) */
+html, body{
+    -webkit-text-size-adjust:100%;
+    text-size-adjust:100%;
+}
+*, *::before, *::after{
+    box-sizing:border-box;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+}
+.field-row > div, .num-block, .info-table td, table.grid td{
+    overflow-wrap:break-word;
+    word-break:break-word;
+}
 
 .btn-bar {
      max-width:900px; 
@@ -109,6 +136,18 @@ body {
 
 .field-line{ border-bottom:1px dotted #999; padding:0 4px; display:inline-block; min-width:60px; }
 .field-row{ display:flex; gap:14px; flex-wrap:wrap; margin:4px 0; }
+ 
+/* เพิ่มใหม่: ลดขนาดตัวอักษรเฉพาะบรรทัดข้อมูลรถ (ยี่ห้อ/ทะเบียนรถ/เลขตัวถัง/เลขเครื่องยนต์) เท่านั้น
+   ป้องกันข้อความล้น/ชนกันตอน Export PDF/JPG โดยไม่กระทบขนาดตัวอักษรส่วนอื่นของเอกสาร
+   ใช้ selector .document-page ...  เพื่อให้ specificity สูงกว่ากฎ .document-page * ที่มีอยู่เดิม */
+.document-page .field-row-vehicle,
+.document-page .field-row-vehicle *{
+    font-size:10px !important;
+}
+.field-row-vehicle{ gap:8px; }
+.field-row-vehicle > div{ min-width:108px; flex:1 1 0; }
+.field-row-vehicle .lbl{ margin-right:2px; }
+.field-row-vehicle .field-line{ min-width:40px; padding:0 2px; }
 .field-row > div{ flex:1; min-width:140px; }
 .field-row .lbl{ font-weight:bold; margin-right:4px; }
 .receipt-fields .lbl{ display:inline-block; min-width:145px; font-weight:bold; margin-right:4px; vertical-align:top; }
@@ -212,6 +251,18 @@ table.grid th{ background:#f0f2f5; }
 .document-page table.grid td,
 .document-page .premium-table td,
 .document-page .info-table td{ line-height:1.5 !important; }
+
+/* เพิ่มใหม่: ลดขนาดตัวอักษรเฉพาะเนื้อหา (ย่อหน้า) ของหน้า "หนังสือขอบอกเลิกสัญญาประกันภัย" (id="cancel") เล็กน้อย
+   ป้องกันข้อความล้นหน้า โดยไม่กระทบหัวเรื่อง ลายเซ็น ข้อความท้ายหน้า หรือเอกสารหน้าอื่น */
+#cancel p{
+    font-size:12px !important;
+}
+
+/* เพิ่มใหม่: ลดขนาดตัวอักษรเฉพาะหัวข้อ (h1) ของหน้า "หนังสือขอบอกเลิกสัญญาประกันภัย" (id="cancel") เล็กน้อย
+   ไม่กระทบตัวอักษรเนื้อหา ลายเซ็น หรือเอกสารหน้าอื่น */
+#cancel h1{
+    font-size:13px !important;
+}
  
 /* หน้าวิริยะ (ใบคำขอฯ ต้นแบบ): แก้เฉพาะขนาดตัวอักษรให้ใหญ่ขึ้นและบรรทัดห่างขึ้น ไม่แตะโครงสร้าง */
 .viriyah-only-form, .viriyah-only-form *{
@@ -550,13 +601,15 @@ function renderReceipt(info, typeLabel) {
                     <td style="text-align:right;font-weight:bold;">${fmt(data.total)} บาท</td>
                 </tr>
                 <tr>
-                    <td colspan="4">ชำระจำนวน <b>${instCount}</b> งวด งวดละ <b>${fmt(perInstallment)}</b> บาท</td>
+                    <td colspan="3" style="text-align:right;padding-right:14px;">ชำระจำนวน <b>${instCount}</b> งวด งวดละ</td>
+                    <td style="text-align:right;font-weight:bold;">${fmt(perInstallment)} บาท</td>
+                </tr>
+                <tr>
+                    <td colspan="4" style="text-align:center;font-weight:bold;">
+                        (${numberToThaiText(data.total)})
+                    </td>
                 </tr>
             </table>
-
-            <div style="text-align:center;margin-top:8px;font-weight:bold;">
-                (${numberToThaiText(data.total)})
-            </div>
 
 <div style="margin-top:120px;">
 
@@ -802,7 +855,7 @@ function renderviriyahMain() {
                     ลักษณะยานพาหนะพื้นเรียบ ${chk(true)}ใช่ ${chk(false)}ไม่ใช่
                     &nbsp;&nbsp; ตู้บรรทุกติดตั้งอุปกรณ์เครื่องทำความเย็น COLD CHAIN ${chk(false)}ใช่ ${chk(true)}ไม่ใช่
                 </div>
-                <div class="field-row sub">
+                <div class="field-row sub field-row-vehicle">
                     <div><span class="lbl">ยี่ห้อ</span><span class="field-line">${safe(data.brand)}</span></div>
                     <div><span class="lbl">ทะเบียนรถ</span><span class="field-line">${safe(data.plate)}</span></div>
                     <div><span class="lbl">เลขตัวถัง</span><span class="field-line">${safe(data.chassis)}</span></div>
@@ -914,22 +967,23 @@ function renderviriyahMain() {
    RENDER: สัญญาวิริยะ - สัญญาคำขอแบ่งชำระค่าเบี้ยประกันภัย
 ========================================================== */
 function renderviriyahContract() {
-    const installments = [
+    const installmentsRaw = [
         Number(data.installment1) || 0,
         Number(data.installment2) || 0,
         Number(data.installment3) || 0,
         Number(data.installment4) || 0
-    ].filter(v => v > 0);
+    ];
+    const installments = installmentsRaw.filter(v => v > 0);
 
     const contractDate = new Date();
     let installmentRows = "";
-    installments.forEach((amt, i) => {
+    installmentsRaw.forEach((amt, i) => {
         const due = new Date(contractDate);
         due.setDate(due.getDate() + 30 * (i + 1));
         installmentRows += `
-            <div class="field-row">
-                <div><span class="lbl">งวดที่ ${i + 1} ยอดที่ต้องชำระ</span><span class="field-line">${fmt(amt)} บาท</span></div>
-                <div><span class="lbl">วันที่ครบกำหนด</span><span class="field-line">${toBuddhistDate(due)}</span></div>
+            <div class="field-row" style="margin:8px 0;">
+                <div><span class="lbl">งวดที่ ${i + 1} ยอดที่ต้องชำระ</span><span class="field-line" style="min-width:140px;">${fmt(amt)} บาท</span></div>
+                <div><span class="lbl">วันที่ครบกำหนด</span><span class="field-line" style="min-width:140px;">${toBuddhistDate(due)}</span></div>
             </div>`;
     });
 
@@ -1007,7 +1061,7 @@ function renderviriyahContract() {
         จนครบเต็มจำนวน ตามรายละเอียดดังต่อไปนี้
     </p>
 
-    <div class="receipt-fields">
+    <div style="margin:16px 0 20px;">
         ${installmentRows}
     </div>
 
@@ -1814,6 +1868,7 @@ function renderPowerOfAttorney(companyFullName) {
    RENDER: สัญญาคำขอแบ่งชำระค่าเบี้ยประกันภัย (นายหน้าประกัน)
 ========================================================== */
 function renderBrokerContract(companyFullName) {
+
     const installments = [
         Number(data.installment1) || 0,
         Number(data.installment2) || 0,
@@ -1824,74 +1879,339 @@ function renderBrokerContract(companyFullName) {
     const contractDate = new Date();
 
     return `
-        <div style="padding:22px 26px;">
-        <div class="small">สำนักงานนายหน้าประกันวินาศภัย โดยคุณอรุณลักษณ์ มหาจตุพัฒน์</div>
-        <div class="small">520 หมู่ที่ 5 ตำบลโนนสะอาด อำเภอชุมแพ จังหวัดขอนแก่น โทร.043-312788</div>
-        <h1>สัญญาคำขอแบ่งชำระค่าเบี้ยประกันภัย</h1>
-        <div style="text-align:right;" class="small">วันที่ ${toBuddhistDate(contractDate)}</div>
+<div style="margin-bottom:20px;padding-top:18px;">
 
-        <p style="margin-top:15px;line-height:1.9;">
-            ข้าพเจ้า <b>${safe(data.customer)}</b> ที่อยู่ปัจจุบัน <b>${safe(data.address)}</b>
-        </p>
+    <!-- ส่วนหัว -->
+    <div style="
+        text-align:left;
+        font-size:16px;
+        line-height:1.6;
+    ">
+        สำนักงานนายหน้าประกันวินาศภัย โดยคุณอรุณลักษณ์ มหาจตุพัฒน์<br>
+        520 หมู่ที่ 5 ตำบลโนนสะอาด อำเภอชุมแพ จังหวัดขอนแก่น โทร.043-312788
+    </div>
 
-        <p style="line-height:1.9;">
-            สัญญาคำขอฉบับนี้ ทำไว้กับนางสาวอรุณลักษณ์ มหาจตุพัฒน์ ("นายหน้าประกัน") เพื่อเป็นหลักฐานแสดงว่า ข้าพเจ้าตกลงให้นายหน้าประกันออก
-            เงินชำระค่าเบี้ยประกันภัย จำนวน <b>${fmt(data.total)}</b> บาท ให้แก่ผู้รับประกันภัยแทนข้าพเจ้า รายละเอียดดังนี้
-        </p>
+    <div style="
+        text-align:center;
+        font-size:30px;
+        font-weight:bold;
+        margin:18px 0 15px;
+        letter-spacing:0.5px;
+    ">
+        สัญญาคำขอแบ่งชำระค่าเบี้ยประกันภัย
+    </div>
 
-        <div class="field-row">
-            <div><span class="lbl">กรมธรรม์ประกันภัยของรถยนต์คันหมายเลขทะเบียน</span><span class="field-line">${safe(data.plate)}</span></div>
-            <div>ชำระให้แก่ ${companyFullName}</div>
-        </div>
+    <div style="
+        text-align:right;
+        font-size:16px;
+        margin-bottom:15px;
+    ">
+        วันที่ ${toBuddhistDate(contractDate)}
+    </div>
 
-        <p style="line-height:1.9;">
-            โดยข้าพเจ้าตกลงแบ่งชำระเงินจำนวนดังกล่าวคืนให้แก่นายหน้าประกัน เป็นจำนวน <b>${installments.length}</b> งวด
-            จนครบเต็มจำนวนค่าเบี้ยประกันภัย กำหนดชำระทุกๆ 30 วัน นับจากวันที่ทำสัญญาคำขอฉบับนี้ จนครบเต็มจำนวน ตามรายละเอียดนี้
-        </p>
+</div>
 
 
-        <p style="margin-top:20px;font-weight:bold;">ข้าพเจ้าขอตกลงผูกพันตามสัญญา เงื่อนไขและข้อตกลงดังต่อไปนี้</p>
+<!-- เนื้อหา -->
+<div style="padding:0 40px;">
 
-        <ol class="small" style="line-height:1.9;padding-left:20px;">
-            <li>ข้าพเจ้าตกลงส่งมอบและตกลงให้นายหน้าประกันเป็นผู้ยึดถือ/เก็บรักษาต้นฉบับกรมธรรม์ประกันภัย (ซึ่งต่อไปในสัญญานี้เรียกว่า "กรมธรรม์ประกันภัย") และต้นฉบับใบเสร็จรับเงินค่าเบี้ยประกันภัยเพื่อเป็นประกันจนกว่าจะมีการชำระหนี้ครบถ้วนตามสัญญา</li>
-            <li>ข้าพเจ้าตกลงแบ่งชำระค่าเบี้ยประกันภัยที่นายหน้าประกันออกให้ จนครบเต็มจำนวนตามรายการดังกล่าวข้างต้น</li>
-            <li>หากข้าพเจ้าผิดนัดชำระ ไม่ได้ชำระเงินค่างวดหนึ่งงวดใด ตามระยะเวลาที่กำหนดตามสัญญาคำขอฉบับนี้ ถือว่าข้าพเจ้าไม่ประสงค์ทำประกันอีกต่อไป ข้าพเจ้ายินยอมให้ยกเลิกกรมธรรม์ประกันภัยหรือบอกล้างสัญญาประกันภัยรถคันดังกล่าวในสัญญาคำขอฉบับนี้ได้ทันที โดยไม่จำเป็นต้องแจ้งให้ข้าพเจ้าทราบล่วงหน้าได้</li>
-            <li>ข้าพเจ้าตกลงโอนสิทธิค่าเวนคืนกรมธรรม์ประกันภัย ค่าเบี้ยประกันภัยที่จ่ายคืนกรณีมีการยกเลิกกรมธรรม์ประกันภัย ให้แก่นายหน้าประกัน โดยนายหน้าประกันสามารถนำเงินที่ได้รับตามสิทธิข้างต้นหักชำระหนี้ของข้าพเจ้าตามคำขอนี้ได้ และหากกรณีมีเงินหักชำระหนี้แล้วมีเงินคงเหลือ ข้าพเจ้าจะไม่ขอรับเงินคืน หรือหากกรณีหักชำระหนี้แล้วมียอดหนี้คงค้างอยู่เท่าใด นายหน้าประกันก็จะไม่เรียกร้องเงินส่วนที่คงค้างคืนจากข้าพเจ้าด้วยเช่นกัน</li>
-            <li>ข้าพเจ้าตกลงยินยอมให้นายหน้าประกันมีอำนาจลงนามในเอกสารหรือกระทำการใดๆ อันจำเป็นเพื่อความสะดวกในการที่จะทำขึ้นใหม่ทดแทนซึ่งกรมธรรม์ประกันภัย หรือยกเลิกกรมธรรม์ประกันภัย หรือทำให้สิ้นผลผูกพันซึ่งกรมธรรม์ประกันภัย ทั้งนี้การยกเลิกกรมธรรม์ประกันภัยหรือทำให้สิ้นผลผูกพันของกรมธรรม์ประกันภัย นายหน้าประกันไม่ต้องรับผิดชอบความเสียหายที่เกิดขึ้นภายหลังการยกเลิกหรือสิ้นผลผูกพันซึ่งกรมธรรม์ประกันภัยดังกล่าว</li>
-            <li>
-                กรณีมีเหตุการณ์อย่างหนึ่งอย่างใดดังต่อไปนี้ ให้ถือว่าข้าพเจ้ากระทำผิดเงื่อนไขข้อตกลงตามคำขอนี้ และให้นายหน้าประกันมีสิทธิเรียกให้ข้าพเจ้าชำระเงินที่ค้างชำระทั้งสิ้นตามคำขอนี้ได้ทันที
-                <ul style="margin-top:6px;">
-                    <li>6.1 ข้าพเจ้าผิดนัด ไม่ชำระเงินจำนวนใดๆ ที่ถึงกำหนดชำระตามสัญญาคำขอนี้ หรือไม่ปฏิบัติตามเงื่อนไขข้อหนึ่งข้อใดในคำขอนี้</li>
-                    <li>6.2 ข้าพเจ้าโอนกรรมสิทธิ์รถยนต์ที่เอาประกันให้แก่บุคคลภายนอก หรือเมื่อสิทธิตามกรมธรรม์ประกันภัยถูกโอน หรือตกแก่บุคคลภายนอก</li>
-                    <li>6.3 ข้าพเจ้ากระทำการขอออกกรมธรรม์ประกันภัยฉบับใหม่ โดยไม่ส่งมอบกรมธรรม์ประกันภัยฉบับที่ออกใหม่นั้นให้แก่นายหน้าประกันยึดถือไว้เพื่อเป็นหลักประกัน</li>
-                </ul>
-            </li>
-        </ol>
+<p style="
+    line-height:2;
+    text-align:justify;
+    margin:0 0 12px 0;
+">
+    ข้าพเจ้า <b>${safe(data.customer)}</b>
+    ที่อยู่ปัจจุบัน <b>${safe(data.address)}</b>
+</p>
 
-        <p class="small" style="line-height:1.9;margin-top:10px;">
-            หากข้าพเจ้าผิดนัดไม่ชำระเงินงวดหนึ่งงวดใดให้แก่นายหน้าประกัน ข้าพเจ้าตกลงให้นายหน้าประกันมีสิทธินำกรมธรรม์ประกันภัยไปยกเลิกต่อผู้รับประกันภัยได้ทุกเมื่อ
-            และให้นายหน้าประกันมีสิทธิ์ได้รับเงินคืนค่าเบี้ยประกันภัย หรือเงินใดๆ จากผู้รับประกันภัยเพื่อนำมาหักชำระเงินที่คงค้างตามคำขอนี้ได้
-        </p>
 
-        <p class="small" style="line-height:1.9;">
-            เมื่อนายหน้าประกันส่งคำบอกกล่าวหรือหนังสือติดต่อใดๆ ไปยังที่อยู่ของข้าพเจ้าตามที่ระบุไว้ในคำขอนี้ หรือที่อยู่ตามที่ข้าพเจ้าได้แจ้งเปลี่ยนแปลงครั้งหลังสุด
-            ให้ถือว่าได้มีการส่งให้และข้าพเจ้าได้รับโดยชอบแล้ว หากกรณีมีข้อความใดในสัญญาฉบับนี้ขัดแย้ง และหรือไม่ตรงตามกับข้อความในสัญญาฉบับอื่น
-            ข้าพเจ้าจะถือข้อความในสัญญานี้ใช้บังคับยึดเป็นสำคัญ และจะไม่นำข้อความในสัญญาอื่นขึ้นมาต่อสู้หรือหักล้างกับข้อความในสัญญาฉบับนี้
-            ข้าพเจ้าได้อ่านและเข้าใจข้อความตามสัญญาคำขอฉบับนี้โดยตลอดแล้ว จึงได้ลงลายมือชื่อไว้เป็นสำคัญ
-        </p>
+<p style="
+    line-height:2;
+    text-align:justify;
+    margin-bottom:12px;
+">
+    สัญญาคำขอฉบับนี้ ทำไว้กับนางสาวอรุณลักษณ์ มหาจตุพัฒน์
+    ("นายหน้าประกัน")
+    เพื่อเป็นหลักฐานแสดงว่า ข้าพเจ้าตกลงให้นายหน้าประกันออกเงินชำระค่าเบี้ยประกันภัย
+    จำนวน <b>${fmt(data.total)}</b> บาท
+    ให้แก่บริษัทผู้รับประกันภัยแทนข้าพเจ้า โดยมีรายละเอียดดังนี้
+</p>
 
-        <div style="text-align:center;margin-top:90px;">
-            <div style="font-size:18px;">
-                ลงชื่อ....................................................ผู้ขอ
-            </div>
-            <div style="margin-top:12px;">
-                (${safe(data.customer)})
-            </div>
-            <div class="small" style="margin-top:4px;">วันที่ ${toBuddhistDate(contractDate)}</div>
-        </div>
-        </div>
+
+<div class="field-row" style="margin:10px 0;">
+    <div>
+        <span class="lbl">ทะเบียนรถ</span>
+        <span class="field-line" style="min-width:160px;">
+            ${safe(data.plate)}
+        </span>
+    </div>
+
+    <div>
+        <span class="lbl">บริษัทผู้รับประกันภัย</span>
+        <span class="field-line" style="min-width:220px;">
+            ${companyFullName}
+        </span>
+    </div>
+</div>
+
+
+<div class="field-row" style="margin:10px 0 16px;">
+    <div>
+        <span class="lbl">ค่าเบี้ยประกันภัย</span>
+        <span class="field-line" style="min-width:160px;">
+            ${fmt(data.total)} บาท
+        </span>
+    </div>
+
+    <div>
+        <span class="lbl">จำนวนงวด</span>
+        <span class="field-line" style="min-width:100px;">
+            ${installments.length} งวด
+        </span>
+    </div>
+</div>
+
+
+<p style="
+    line-height:2;
+    text-align:justify;
+    margin-bottom:15px;
+">
+    โดยข้าพเจ้าตกลงแบ่งชำระเงินจำนวนดังกล่าวคืนให้นายหน้าประกัน
+    เป็นจำนวน <b>${installments.length}</b> งวด
+    กำหนดชำระทุก ๆ 30 วัน นับจากวันที่ทำสัญญาฉบับนี้
+    จนครบเต็มจำนวน ตามรายละเอียดดังต่อไปนี้
+</p>
+
+
+<table style="
+    width:70%;
+    margin:12px auto 16px;
+    border-collapse:collapse;
+    font-size:13px;
+">
+
+<tr style="font-weight:bold;">
+
+<th style="
+    border:1px solid #000;
+    width:20%;
+    padding:5px;
+    text-align:center;
+">
+    งวดที่
+</th>
+
+<th style="
+    border:1px solid #000;
+    width:40%;
+    padding:5px;
+    text-align:center;
+">
+    จำนวนเงิน
+</th>
+
+<th style="
+    border:1px solid #000;
+    width:40%;
+    padding:5px;
+    text-align:center;
+">
+    วันที่ครบกำหนด
+</th>
+
+</tr>
+
+
+${installments.map((amt,i)=>{
+
+    const due = new Date(contractDate);
+    due.setDate(due.getDate()+30*(i+1));
+
+    return `
+    <tr>
+
+        <td style="
+            border:1px solid #000;
+            padding:8px;
+            text-align:center;
+        ">
+            ${i+1}
+        </td>
+
+        <td style="
+            border:1px solid #000;
+            padding:8px;
+            text-align:right;
+        ">
+            ${fmt(amt)} บาท
+        </td>
+
+        <td style="
+            border:1px solid #000;
+            padding:8px;
+            text-align:center;
+        ">
+            ${toBuddhistDate(due)}
+        </td>
+
+    </tr>
     `;
+
+}).join("")}
+
+
+</table>
+
+<p style="
+    margin-top:20px;
+    margin-bottom:12px;
+    font-weight:bold;
+    font-size:18px;
+">
+    ข้าพเจ้าขอตกลงผูกพันตามสัญญา เงื่อนไขและข้อตกลงดังต่อไปนี้
+</p>
+
+
+<ol class="small" style="
+    line-height:2;
+    text-align:justify;
+    padding-left:28px;
+    margin:0;
+">
+
+<li>
+    ข้าพเจ้าตกลงส่งมอบและตกลงให้นายหน้าประกันเป็นผู้ยึดถือ/เก็บรักษาต้นฉบับกรมธรรม์ประกันภัย
+    และต้นฉบับใบเสร็จรับเงินค่าเบี้ยประกันภัย
+    เพื่อเป็นประกันจนกว่าจะมีการชำระหนี้ครบถ้วนตามสัญญา
+</li>
+
+<li>
+    ข้าพเจ้าตกลงแบ่งชำระค่าเบี้ยประกันภัยที่นายหน้าประกันออกให้
+    จนครบเต็มจำนวนตามรายการดังกล่าวข้างต้น
+</li>
+
+<li>
+    หากข้าพเจ้าผิดนัดชำระ ไม่ได้ชำระเงินค่างวดหนึ่งงวดใด
+    ตามระยะเวลาที่กำหนดตามสัญญาคำขอฉบับนี้
+    ถือว่าข้าพเจ้าไม่ประสงค์ทำประกันอีกต่อไป
+    ข้าพเจ้ายินยอมให้ยกเลิกกรมธรรม์ประกันภัย
+    หรือบอกล้างสัญญาประกันภัยได้ทันที
+    โดยไม่จำเป็นต้องแจ้งให้ทราบล่วงหน้า
+</li>
+
+<li>
+    ข้าพเจ้าตกลงโอนสิทธิค่าเวนคืนกรมธรรม์ประกันภัย
+    ค่าเบี้ยประกันภัยที่จ่ายคืนกรณีมีการยกเลิกกรมธรรม์ประกันภัย
+    ให้แก่นายหน้าประกัน
+    เพื่อนำมาหักชำระหนี้ของข้าพเจ้าตามคำขอนี้
+</li>
+
+<li>
+    ข้าพเจ้าตกลงยินยอมให้นายหน้าประกันมีอำนาจลงนามในเอกสาร
+    หรือกระทำการใด ๆ อันจำเป็น
+    เพื่อทำขึ้นใหม่ทดแทนกรมธรรม์ประกันภัย
+    หรือยกเลิกกรมธรรม์ประกันภัยตามเงื่อนไขของสัญญาฉบับนี้
+</li>
+
+
+<li>
+    กรณีมีเหตุการณ์อย่างหนึ่งอย่างใดดังต่อไปนี้
+    ให้ถือว่าข้าพเจ้ากระทำผิดเงื่อนไขข้อตกลงตามคำขอนี้
+    และให้นายหน้าประกันมีสิทธิเรียกให้ชำระหนี้ทั้งหมดทันที
+
+    <ul style="
+        margin-top:8px;
+        margin-left:20px;
+        line-height:1.9;
+    ">
+
+        <li>
+            6.1 ข้าพเจ้าผิดนัด ไม่ชำระเงินจำนวนใด ๆ
+            ที่ถึงกำหนดชำระตามสัญญาคำขอนี้
+        </li>
+
+        <li>
+            6.2 ข้าพเจ้าโอนกรรมสิทธิ์รถยนต์
+            หรือโอนสิทธิตามกรมธรรม์ให้บุคคลภายนอก
+        </li>
+
+        <li>
+            6.3 ข้าพเจ้าขอออกกรมธรรม์ฉบับใหม่
+            โดยไม่ส่งมอบกรมธรรม์ให้แก่นายหน้าประกัน
+            เพื่อถือไว้เป็นหลักประกัน
+        </li>
+
+    </ul>
+
+</li>
+
+</ol>
+
+
+
+<p class="small" style="
+    line-height:2;
+    text-align:justify;
+    margin-top:18px;
+">
+    หากข้าพเจ้าผิดนัดไม่ชำระเงินงวดหนึ่งงวดใดให้แก่นายหน้าประกัน
+    ข้าพเจ้าตกลงให้นายหน้าประกันมีสิทธินำกรมธรรม์ประกันภัย
+    ไปยกเลิกต่อบริษัทผู้รับประกันภัยได้ทุกเมื่อ
+    และให้นายหน้าประกันมีสิทธิได้รับเงินคืนค่าเบี้ยประกันภัย
+    หรือเงินอื่นใดจากผู้รับประกันภัย
+    เพื่อนำมาหักชำระหนี้ที่คงค้างตามสัญญาฉบับนี้
+</p>
+
+
+
+<p class="small" style="
+    line-height:2;
+    text-align:justify;
+">
+    เมื่อนายหน้าประกันส่งคำบอกกล่าวหรือหนังสือติดต่อใด ๆ
+    ไปยังที่อยู่ของข้าพเจ้าตามที่ระบุไว้ในสัญญาฉบับนี้
+    ให้ถือว่าข้าพเจ้าได้รับหนังสือโดยชอบแล้ว
+
+    หากข้อความใดในสัญญาฉบับนี้ขัดแย้งกับเอกสารฉบับอื่น
+    ให้ถือข้อความในสัญญาฉบับนี้เป็นสำคัญ
+
+    ข้าพเจ้าได้อ่านและเข้าใจข้อความทั้งหมดแล้ว
+    จึงได้ลงลายมือชื่อไว้เป็นหลักฐาน
+</p>
+
+
+</div>
+
+
+<!-- ลายเซ็น -->
+<div style="
+    margin-top:70px;
+    text-align:center;
+    line-height:2.2;
+">
+
+    <div style="font-size:18px;">
+        ลงชื่อ....................................................ผู้ขอ
+    </div>
+
+    <div style="margin-top:12px;">
+        (${safe(data.customer)})
+    </div>
+
+    <div class="small" style="margin-top:4px;">
+        วันที่ ${toBuddhistDate(contractDate)}
+    </div>
+
+</div>
+
+
+</div>
+`;
 }
+
+
+
 
 /* ==========================================================
    PENDING
@@ -2012,8 +2332,10 @@ function safeFileName(s) {
 const fileBase = safeFileName(data.customer) + "_" + safeFileName(data.plate);
 
 async function saveJPG() {
+    await document.fonts.ready; // รอฟอนต์โหลดเสร็จจริงก่อน (เพิ่มใหม่ ป้องกันฟอนต์ยังไม่พร้อมตอน capture)
     fitPagesToA4();
     await new Promise(r => setTimeout(r, 100)); // รอ layout นิ่งก่อน capture
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); // เพิ่มใหม่ รอ repaint นิ่งอีกชั้น
 
     const pageLabels = {
         main: "ใบคำขอ",
@@ -2029,7 +2351,7 @@ async function saveJPG() {
 
     // capture ทีละหน้าแยกกัน เพื่อให้ได้ไฟล์ JPG ขนาด A4 คนละไฟล์ ไม่ติดกัน
     for (let i = 0; i < pages.length; i++) {
-        const canvas = await html2canvas(pages[i], { scale: 2, backgroundColor: "#ffffff" });
+        const canvas = await html2canvas(pages[i], { scale: 2, backgroundColor: "#ffffff", useCORS: true, letterRendering: true });
         const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg", 0.95));
         const label = pageLabels[pages[i].id] || pages[i].id || (i + 1);
         const fileName = `${fileBase}_${i + 1}_${label}.jpg`;
@@ -2063,7 +2385,9 @@ async function downloadPDF() {
     btn.disabled = true;
 
     try {
+        await document.fonts.ready; // รอฟอนต์โหลดเสร็จจริงก่อน (เพิ่มใหม่ ป้องกันฟอนต์ยังไม่พร้อมตอน capture)
         fitPagesToA4();
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); // เพิ่มใหม่ รอ repaint นิ่งก่อน capture
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF({ unit: "mm", format: "a4" });
         const pageW = pdf.internal.pageSize.getWidth();
@@ -2071,7 +2395,7 @@ async function downloadPDF() {
 
         const pages = document.querySelectorAll(".document-page");
         for (let i = 0; i < pages.length; i++) {
-            const canvas = await html2canvas(pages[i], { scale: 2, backgroundColor: "#ffffff" });
+            const canvas = await html2canvas(pages[i], { scale: 2, backgroundColor: "#ffffff", useCORS: true, letterRendering: true });
             const imgData = canvas.toDataURL("image/jpeg", 0.95);
             const ratio = Math.min(pageW / canvas.width, pageH / canvas.height);
             const imgW = canvas.width * ratio;
@@ -2106,3 +2430,4 @@ document.title = fileBase;
 
 
  
+
