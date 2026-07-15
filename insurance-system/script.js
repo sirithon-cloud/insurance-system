@@ -1,3 +1,36 @@
+import { initializeApp } from "firebase/app";
+
+import { 
+    getFirestore,
+    collection,
+    addDoc,
+    onSnapshot,
+    deleteDoc,
+    doc
+} from "firebase/firestore";
+
+
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyCNpaYlwrkJhBA-8tAax022PWWFYMRz7Kw",
+  authDomain: "insurance-system-f26b0.firebaseapp.com",
+  projectId: "insurance-system-f26b0",
+  storageBucket: "insurance-system-f26b0.firebasestorage.app",
+  messagingSenderId: "438698153100",
+  appId: "1:438698153100:web:a553b97b59701883f057a9",
+  measurementId: "G-XXWCQEMT0B"
+};
+
+const app = initializeApp(firebaseConfig);
+
+const db = getFirestore(app);
+
+console.log("Firebase เชื่อมสำเร็จ", db);
+
+
+
+
+
 const STORAGE_KEY = "insuranceData";
 
 /* =========================
@@ -14,7 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    renderTable(getData());
+    getData();
 });
 
 let editingId = null;
@@ -24,28 +57,42 @@ let editingId = null;
 ========================= */
 
 function getData() {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+
+    onSnapshot(
+        collection(db, "insuranceData"),
+        (snapshot) => {
+
+            let data = [];
+
+            snapshot.forEach((doc) => {
+
+                data.push({
+                    id: doc.id,
+                    ...doc.data()
+                });
+
+            });
+
+            renderTable(data);
+
+        }
+    );
+
 }
 
-function saveData(data) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
+
 
 /* บันทึกข้อมูลใหม่จากฟอร์ม (เรียกใช้ตอน submit) */
-function saveRecord(record) {
-    const data = getData();
-    if (record.id) {
-        const index = data.findIndex(item => item.id == record.id);
-        if (index !== -1) {
-            data[index] = record;
-        }
-    } else {
+async function saveRecord(record) {
 
-        record.id = Date.now();
-        record.createDate = new Date().toLocaleDateString("th-TH");
-        data.push(record);
-    }
-    saveData(data);
+    record.createDate = new Date().toLocaleDateString("th-TH");
+
+    await addDoc(
+        collection(db, "insuranceData"),
+        record
+    );
+
+    alert("บันทึกข้อมูลเรียบร้อย");
 }
 
 
@@ -59,14 +106,15 @@ function safe(v) {
 /* =========================
    DELETE
 ========================= */
-function deleteData(id) {
+async function deleteData(id) {
+
     if (!confirm("ต้องการลบข้อมูลนี้หรือไม่ ?")) return;
 
-    let data = getData();
-    data = data.filter(item => item.id !== id);
+    await deleteDoc(
+        doc(db, "insuranceData", id)
+    );
 
-    saveData(data);
-    renderTable(data);
+    alert("ลบข้อมูลเรียบร้อย");
 }
 
 /* =========================
@@ -88,7 +136,7 @@ function renderTable(data) {
                 <td>${safe(item.company)}</td>
                 <td>${safe(item.customer)}</td>
                 <td>
-                    <button onclick="deleteData(${item.id})">🗑</button>
+                    <button onclick="deleteData('${item.id}')">🗑</button>
                 </td>
             </tr>
         `;

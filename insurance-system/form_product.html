@@ -190,11 +190,17 @@
         };
     }
 
-        document.getElementById("productForm").addEventListener("submit", function (e) {
+        document.getElementById("productForm").addEventListener("submit", async function (e) {
     e.preventDefault();
+
     const record = collectFormData("product");
+
+    await saveRecord(record);
+
     let data = JSON.parse(localStorage.getItem("insuranceData")) || [];
+
     let index = localStorage.getItem("editIndex");
+
     if(index !== null){
         // แก้ไขข้อมูลเดิม
         data[index] = record;
