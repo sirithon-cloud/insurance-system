@@ -164,9 +164,7 @@
 
         function collectFormData(type) {
 
-        return {
-    id: editingId || Date.now(),
-
+        const record = {
     type: type,
 
     // วันที่กรอกฟอร์ม
@@ -190,6 +188,14 @@
             installment3: document.getElementById("installment3")?.value,
             installment4: document.getElementById("installment4")?.value
         };
+
+        // แนบ id เฉพาะตอนแก้ไขข้อมูลเดิม (id คือ document id จริงจาก Firestore)
+        // ถ้าเป็นข้อมูลใหม่จะไม่มี id -> saveRecord() จะสร้างเอกสารใหม่ด้วย addDoc
+        if (editingId) {
+            record.id = editingId;
+        }
+
+        return record;
     }
 
         document.getElementById("productForm").addEventListener("submit", async function (e) {
@@ -197,30 +203,20 @@
 
     const record = collectFormData("product");
 
-    await saveRecord(record);
+    // บันทึกลง Firestore (แหล่งข้อมูลกลางเดียว ทุกเครื่องเห็นตรงกัน)
+    // saveRecord() จะ alert "บันทึกข้อมูลเรียบร้อย" ให้เองแล้ว
+    await window.saveRecord(record);
 
-    let data = JSON.parse(localStorage.getItem("insuranceData")) || [];
-
-    let index = localStorage.getItem("editIndex");
-
-    if(index !== null){
-        // แก้ไขข้อมูลเดิม
-        data[index] = record;
-        localStorage.removeItem("editIndex");
-        localStorage.removeItem("editData");
-    }else{
-        // เพิ่มข้อมูลใหม่
-        data.push(record);
-    }
-    localStorage.setItem(
-        "insuranceData",
-        JSON.stringify(data)
-    );
+    // เก็บไว้เฉพาะข้อมูลชั่วคราวสำหรับเปิดเอกสาร PDF ของรายการนี้ทันที
     localStorage.setItem(
         "pdfData",
         JSON.stringify(record)
     );
-    alert("บันทึกข้อมูลเรียบร้อย");
+
+    // เคลียร์ข้อมูลแก้ไขชั่วคราว (ใช้แล้วหมดหน้าที่)
+    localStorage.removeItem("editIndex");
+    localStorage.removeItem("editData");
+
     location.href="report.html";
 
 });
@@ -302,17 +298,5 @@
 
 </html>
  
-
-
-
-
-
-
-
-
-
-
-
-
 
 

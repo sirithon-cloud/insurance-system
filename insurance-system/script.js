@@ -4,6 +4,7 @@ import {
     getFirestore,
     collection,
     addDoc,
+    setDoc,
     onSnapshot,
     deleteDoc,
     doc
@@ -82,15 +83,32 @@ function getData() {
 
 
 
-/* บันทึกข้อมูลใหม่จากฟอร์ม (เรียกใช้ตอน submit) */
+/* บันทึกข้อมูลใหม่จากฟอร์ม (เรียกใช้ตอน submit)
+   - ถ้ามี record.id (แปลว่ากำลังแก้ไขข้อมูลเดิมที่มาจาก Firestore) -> อัปเดตเอกสารเดิมด้วย setDoc
+   - ถ้าไม่มี record.id (ข้อมูลใหม่) -> สร้างเอกสารใหม่ด้วย addDoc
+   ป้องกันปัญหาเดิมที่แก้ไขข้อมูลแล้วกลายเป็นสร้างซ้ำ */
 async function saveRecord(record) {
 
     record.createDate = new Date().toLocaleDateString("th-TH");
 
-    await addDoc(
-        collection(db, "insuranceData"),
-        record
-    );
+    if (record.id) {
+
+        const { id, ...fields } = record;
+
+        await setDoc(
+            doc(db, "insuranceData", id),
+            fields,
+            { merge: true }
+        );
+
+    } else {
+
+        await addDoc(
+            collection(db, "insuranceData"),
+            record
+        );
+
+    }
 
     alert("บันทึกข้อมูลเรียบร้อย");
 }
@@ -263,3 +281,13 @@ function editData(){
     alert("โหลดข้อมูลเดิมแล้ว สามารถแก้ไขได้");
 
 }
+
+window.saveRecord = saveRecord;
+window.editData = editData;
+window.deleteData = deleteData;
+
+
+
+
+
+

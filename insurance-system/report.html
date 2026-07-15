@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <html lang="th">
     <head>
-
+ 
     <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+ 
             <title>รายงานข้อมูลประกัน</title>
-
+ 
             <link rel="stylesheet" href="style.css">
-
+ 
             <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-
+ 
+ 
         <style>
             /* =========================
             REPORT PAGE
@@ -20,18 +20,18 @@
                     width:100%;
                     min-height:100vh;
                     margin:0;
-
+ 
                     display:flex;
                     flex-direction:column;
-
+ 
                     background:#fff;
-
+ 
                     padding:20px;
                     padding-top:90px;
-
+ 
                     overflow-x:auto;
                 }
-
+ 
             .report-card h1{
     width:100%;
     text-align:center;
@@ -41,53 +41,53 @@
             /* ========================
             TABLE
             ========================= */
-
+ 
             table{
                 width:100%;
                 border-collapse:collapse;
                 font-size:12px;
             }
-
-
+ 
+ 
             th{
                 background:#2c3e50;
                 color:#fff;
                 padding:8px;
                 white-space:nowrap;
             }
-
-
+ 
+ 
             td{
                 padding:6px;
                 border-bottom:1px solid #eee;
                 white-space:nowrap;
                 text-align:center;
             }
-
-
+ 
+ 
             tr:hover{
                 background:#f2f2f2;
             }
-
-
+ 
+ 
             @media(max-width:768px){
                 table{
                     font-size:10px;
                 }
-
+ 
             }
-
+ 
             /* =========================
             ACTION BUTTON
             ========================= */
-
+ 
             .action-buttons{
                 display:flex;
                 justify-content:center;
                 align-items:center;
                 gap:4px;
             }
-
+ 
             .action-buttons button{
                 width:28px !important;
                 height:28px !important;
@@ -98,27 +98,27 @@
                 font-size:13px;
                 cursor:pointer;
             }
-
+ 
             .edit-btn{
                 background:#ffc000;
                 color:#002d72;
             }
-
+ 
             .doc-btn{
                 background:#0d6efd;
                 color:white;
             }
-
+ 
             .delete-btn{
                 background:#dc3545;
                 color:white;
             }
-
+ 
             .action-buttons button:hover{
                 transform:scale(1.1);
-
+ 
             }
-
+ 
             /* =========================
             SUMMARY PANEL
             ========================= */
@@ -129,8 +129,8 @@
                 padding:16px 18px;
                 margin-bottom:20px;
             }
-
-
+ 
+ 
             .summary-filters{
                 display:flex;
                 gap:15px;
@@ -138,14 +138,14 @@
                 align-items:center;
                 margin-bottom:12px;
             }
-
+ 
             .summary-filters label{
                 font-size:13px;
                 color:#002d72;
                 font-weight:bold;
                 margin-right:6px;
             }
-
+ 
             .summary-filters select{
                 padding:6px 10px;
                 border-radius:8px;
@@ -153,21 +153,21 @@
                 font-family:"Kanit",sans-serif;
                 font-size:13px;
             }
-
+ 
             .summary-total{
                 font-size:17px;
                 font-weight:bold;
                 color:#002d72;
             }
-
+ 
             
-
-
+ 
+ 
         </style>
-
+ 
     </head>
-
-
+ 
+ 
     <body>
         <!-- TOPBAR -->
         <div class="topbar">
@@ -177,29 +177,29 @@
                 ระบบประกันรถยนต์กับคุณพลอย
             </span>
         </div>
-
+ 
                   <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
         <img src="logo.png" class="logo">
-
+ 
         <ul class="menu">
             <li><a href="index.html" class="menu-link">🏠 หน้าหลัก</a></li>
-
+ 
         </ul>
     </aside>
-
+ 
 <!-- OVERLAY -->
 <div id="overlay"></div>
-
-
-
+ 
+ 
+ 
         <div class="report-card">
-
+ 
         <h1>
         📊 รายงานข้อมูลประกันทั้งหมด
         </h1>
-
-
+ 
+ 
         <div class="summary-panel">
             <div class="summary-filters">
                 <span>
@@ -208,39 +208,39 @@
                     </label>
                     <select id="filterCompany"></select>
                 </span>
-
-
+ 
+ 
                 <span>
                     <label for="filterYear">
                         🗓️ เลือกปี
                     </label>
                     <select id="filterYear"></select>
                 </span>
-
-
-
-
+ 
+ 
+ 
+ 
                 <span>
-
+ 
                     <label for="filterMonth">
                         📅 เลือกเดือน
                     </label>
                     <select id="filterMonth"></select>
-
+ 
                 </span>
-
+ 
             </div>
-
+ 
             <div id="summaryTotal" class="summary-total"></div>
-
+ 
         </div>
-
-
-
-
-
+ 
+ 
+ 
+ 
+ 
 <table id="table">
-
+ 
         <thead>
         <tr>
         <th>ลำดับ</th>
@@ -265,34 +265,58 @@
         <th>ยอดค้าง</th>
         <th>จัดการ</th>
         </tr>
-
+ 
         </thead>
-
-
-
+ 
+ 
+ 
 <tbody></tbody>
 </table>
 </div>
-<script>
-
-
+<script type="module">
+ 
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+import {
+    getFirestore,
+    collection,
+    onSnapshot,
+    deleteDoc,
+    doc
+} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+ 
+/* =========================
+   FIREBASE
+   (ตั้งค่าเดียวกับ script.js เพื่อให้ทุกหน้าอ่าน/เขียน collection "insuranceData" เดียวกัน)
+========================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyCNpaYlwrkJhBA-8tAax022PWWFYMRz7Kw",
+  authDomain: "insurance-system-f26b0.firebaseapp.com",
+  projectId: "insurance-system-f26b0",
+  storageBucket: "insurance-system-f26b0.firebasestorage.app",
+  messagingSenderId: "438698153100",
+  appId: "1:438698153100:web:a553b97b59701883f057a9",
+  measurementId: "G-XXWCQEMT0B"
+};
+ 
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+ 
 /* =========================
    STORAGE
+   (allData ตอนนี้มาจาก Firestore แบบ realtime ผ่าน onSnapshot ด้านล่าง ไม่ใช้ localStorage แล้ว)
 ========================= */
-
-        const STORAGE_KEY = "insuranceData";
-
+ 
         let allData = [];
-
-
-
+ 
+ 
+ 
         /* =========================
         THAI MONTH
         ========================= */
-
-
+ 
+ 
         const THAI_MONTHS = [
-
+ 
             "มกราคม",
             "กุมภาพันธ์",
             "มีนาคม",
@@ -305,101 +329,98 @@
             "ตุลาคม",
             "พฤศจิกายน",
             "ธันวาคม"
-
+ 
         ];
-
-
-
-
-
+ 
+ 
+ 
+ 
+ 
         /* =========================
         แปลงวันที่แจ้งงาน
         ========================= */
-
-
+ 
+ 
         function parseCreateDate(createDate){
             if(!createDate)
                 return {
                     month:null,
                     year:null
                 };
-
-
+ 
+ 
             const parts = createDate.split("/");
-
+ 
             if(parts.length !== 3)
                 return {
                     month:null,
                     year:null
                 };
-
+ 
             const month = parseInt(parts[1],10);
             const year = parts[2];
-
+ 
             if(
                 isNaN(month) ||
                 month < 1 ||
                 month > 12
             ){
-
+ 
                 return {
                     month:null,
                     year:null
                 };
             }
-
+ 
             return {
                 month:String(month).padStart(2,"0"),
                 year:year
             };
-
-
+ 
+ 
         }
-
+ 
         /* =========================
         แสดงข้อมูลตาราง
         ========================= */
-
+ 
         function renderTable(){
-
-            allData = JSON.parse(
-                localStorage.getItem(STORAGE_KEY)
-            ) || [];
-
+ 
+            // allData มาจาก Firestore แบบ realtime (onSnapshot) ไม่อ่านจาก localStorage แล้ว
             let tbody = document.querySelector("tbody");
-
+ 
             tbody.innerHTML = "";
-
-
+ 
+ 
             getFilteredData().forEach((item,i)=>{
-
-
+ 
+ 
                 tbody.innerHTML += `
-
+ 
         <tr>
-
+ 
         <td>${i+1}</td>
         <td>${item.requestName || "-"}</td>
         <td>${item.createDate || "-"}</td>
         <td>${item.company || "-"}</td>
-
+ 
         <td>
-
+ 
         ${
             item.type === "car"
-
+ 
             ? "🚗 ประกันรถยนต์"
-
+ 
             : item.type === "product"
-
+ 
             ? "📦 ประกันสินค้า"
-
+ 
             : "-"
-
+ 
         }
-
+ 
         </td>
-
+ 
         <td>${item.customer || "-"}</td>
         <td>${item.phone || "-"}</td>
         <td>${item.address || "-"}</td>
@@ -407,24 +428,24 @@
         <td>${item.plate || "-"}</td>
         <td>${item.start || "-"}</td>
         <td>${item.end || "-"}</td>
-
+ 
         <td>
-
+ 
         ${Number(item.sumInsured || 0).toLocaleString()}
-
+ 
         </td>
-
+ 
         <td>
-
+ 
         ${Number(item.total || 0).toLocaleString()}
-
+ 
         </td>
         <td>${item.group || "-"}</td>
         <td>${item.installment1 || "-"}</td>
         <td>${item.installment2 || "-"}</td>
         <td>${item.installment3 || "-"}</td>
         <td>${item.installment4 || "-"}</td>
-
+ 
         <td>
         ${
         (
@@ -438,728 +459,668 @@
         ).toLocaleString()
         }
         </td>
-
-
+ 
+ 
 <td class="action-buttons">
-
-
+ 
+ 
         <button 
         class="edit-btn"
-        onclick="editItem(${i})">
+        onclick="editItem('${item.id}')">
         ✏️
         </button>
-
-
+ 
+ 
         <button 
         class="doc-btn"
-        onclick="openDoc(${i})">
+        onclick="openDoc('${item.id}')">
         📄
         </button>
-
-
+ 
+ 
         <button 
         class="delete-btn"
-        onclick="deleteItem(${i})">
+        onclick="deleteItem('${item.id}')">
         🗑️
         </button>
-
+ 
         </td>
-
+ 
         </tr>
-
+ 
         `;
-
+ 
             });
-
+ 
             populateFilters();
-
+ 
         }
  
         /* =========================
         รายชื่อบริษัท
         ========================= */
-
+ 
         const KNOWN_COMPANIES = [
-
+ 
             "วิริยะ",
             "เมืองไทย",
             "AIG"
-
+ 
         ];
-
-
+ 
+ 
         /* =========================
         สร้างตัวเลือก Filter
         ========================= */
-
-
+ 
+ 
         function populateFilters(){
-
+ 
             const companySelect =
                 document.getElementById("filterCompany");
-
+ 
             const yearSelect =
                 document.getElementById("filterYear");
-
+ 
             const monthSelect =
                 document.getElementById("filterMonth");
-
+ 
             const prevCompany =
                 companySelect.value || "all";
-
+ 
             const companiesFromData = [
-
+ 
                 ...new Set(
                     allData
                     .map(item=>item.company)
                     .filter(c=>c)
                 )
-
+ 
             ];
-
-
+ 
+ 
             const extraCompanies =
                 companiesFromData.filter(
                     c => !KNOWN_COMPANIES.includes(c)
                 );
-
+ 
             const companies = [
-
+ 
                 ...KNOWN_COMPANIES,
-
+ 
                 ...extraCompanies
-
+ 
             ];
-
+ 
             companySelect.innerHTML =
-
+ 
             `
-
+ 
             <option value="all">
                 ทั้งหมด
             </option>
-
+ 
             `
-
+ 
             +
             companies.map(c=>`
-
+ 
                 <option value="${c}">
                     ${c}
                 </option>
-
+ 
             `).join("");
-
-
+ 
+ 
             companySelect.value =
-
+ 
                 companies.includes(prevCompany)
-
+ 
                 ? prevCompany
-
+ 
                 : "all";
-
+ 
             populateYearOptions();
-
+ 
             populateMonthOptions();
-
+ 
 companySelect.onchange = function(){
     updateSummary();
     renderTable();
 };
-
-
+ 
+ 
 yearSelect.onchange = function(){
     updateSummary();
     renderTable();
 };
-
-
+ 
+ 
 monthSelect.onchange = function(){
     updateSummary();
     renderTable();
 };
-
-
+ 
+ 
         }
-
-
-
+ 
+ 
+ 
 /* =========================
    ปี
 ========================= */
-
-
+ 
+ 
 function populateYearOptions(){
-
-
-
+ 
+ 
+ 
     const yearSelect =
         document.getElementById("filterYear");
-
-
-
+ 
+ 
+ 
     const prevYear =
         yearSelect.value || "all";
-
-
-
-
+ 
+ 
+ 
+ 
     const YEAR_START = 2569;
-
+ 
     const YEAR_END = 2575;
-
-
-
-
+ 
+ 
+ 
+ 
     let years = [];
-
-
-
+ 
+ 
+ 
     for(
         let y = YEAR_START;
         y <= YEAR_END;
         y++
     ){
-
+ 
         years.push(String(y));
-
+ 
     }
-
-
-
-
-
+ 
+ 
+ 
+ 
+ 
     yearSelect.innerHTML =
-
-
+ 
+ 
     `
-
+ 
     <option value="all">
         ทั้งหมด
     </option>
-
-
+ 
+ 
     `
-
+ 
     +
-
+ 
     years.map(y=>`
-
+ 
         <option value="${y}">
             ${y}
         </option>
-
+ 
     `).join("");
-
-
-
-
-
+ 
+ 
+ 
+ 
+ 
     yearSelect.value =
         years.includes(prevYear)
         ? prevYear
         : "all";
-
+ 
 }
-
-
-
+ 
+ 
+ 
         /* =========================
         เดือน
         ========================= */
         function populateMonthOptions(){
-
+ 
             const monthSelect =
                 document.getElementById("filterMonth");
-
+ 
             const prevMonth =
                 monthSelect.value || "all";
-
-
+ 
+ 
             let options = [`<option value="all"> ทั้งหมด </option>` ];
-
-
+ 
+ 
             for(
                 let m = 1;
                 m <= 12;
                 m++
             ){
-
+ 
                 let key =
                     String(m).padStart(2,"0");
-
+ 
                 options.push(`
-
+ 
                 <option value="${key}">
                     ${THAI_MONTHS[m-1]}
                 </option>
-
+ 
                 `);
-
+ 
             }
-
-
+ 
+ 
             monthSelect.innerHTML =
                 options.join("");
-
-
+ 
+ 
             monthSelect.value =
-
+ 
                 prevMonth;
-
-
+ 
+ 
         }
-
-
+ 
+ 
             /* =========================
    กรองข้อมูลสำหรับตาราง
 ========================= */
-
+ 
 function getFilteredData(){
-
-
+ 
+ 
     const selectedCompany =
     document.getElementById("filterCompany").value;
-
-
+ 
+ 
     const selectedYear =
     document.getElementById("filterYear").value;
-
-
+ 
+ 
     const selectedMonth =
     document.getElementById("filterMonth").value;
-
-
-
+ 
+ 
+ 
     return allData.filter(item=>{
-
-
+ 
+ 
         const companyOK =
         selectedCompany === "all"
         ||
         item.company === selectedCompany;
-
-
-
+ 
+ 
+ 
         const parsed =
         parseCreateDate(item.createDate);
-
-
-
+ 
+ 
+ 
         const yearOK =
         selectedYear === "all"
         ||
         parsed.year === selectedYear;
-
-
-
+ 
+ 
+ 
         const monthOK =
         selectedMonth === "all"
         ||
         parsed.month === selectedMonth;
-
-
-
+ 
+ 
+ 
         return companyOK && yearOK && monthOK;
-
-
+ 
+ 
     });
-
-
+ 
+ 
 }
-
+ 
         /* =========================
         สรุปยอดรวม
         ========================= */
-
-
+ 
+ 
         function updateSummary(){
-
-
-
+ 
+ 
+ 
             const selectedCompany =
-
+ 
                 document.getElementById(
                     "filterCompany"
                 ).value;
-
-
-
+ 
+ 
+ 
             const selectedYear =
-
+ 
                 document.getElementById(
                     "filterYear"
                 ).value;
-
-
-
-
+ 
+ 
+ 
+ 
             const selectedMonth =
-
+ 
                 document.getElementById(
                     "filterMonth"
                 ).value;
-
-
-
-
-
-
+ 
+ 
+ 
+ 
+ 
+ 
             const filtered = allData.filter(item=>{
-
-
-
+ 
+ 
+ 
                 const companyOK =
-
+ 
                 selectedCompany === "all"
-
+ 
                 ||
-
+ 
                 (item.company || "ไม่ระบุบริษัท")
                 === selectedCompany;
-
-
-
-
-
+ 
+ 
+ 
+ 
+ 
                 const parsed =
                     parseCreateDate(
                         item.createDate
                     );
-
-
-
-
-
+ 
+ 
+ 
+ 
+ 
                 const yearOK =
-
+ 
                 selectedYear === "all"
-
+ 
                 ||
-
+ 
                 parsed.year === selectedYear;
-
-
-
-
-
+ 
+ 
+ 
+ 
+ 
                 const monthOK =
-
+ 
                 selectedMonth === "all"
-
+ 
                 ||
-
+ 
                 parsed.month === selectedMonth;
-
-
-
-
-
-
+ 
+ 
+ 
+ 
+ 
+ 
                 return (
-
+ 
                     companyOK
-
+ 
                     &&
-
+ 
                     yearOK
-
+ 
                     &&
-
+ 
                     monthOK
-
+ 
                 );
-
-
-
+ 
+ 
+ 
             });
-
-
-
-
-
-
-
+ 
+ 
+ 
+ 
+ 
+ 
+ 
             const total = filtered.reduce(
-
+ 
                 (sum,item)=>
-
+ 
                 sum + Number(item.total || 0),
-
+ 
                 0
-
+ 
             );
-
-
-
-
-
-
+ 
+ 
+ 
+ 
+ 
+ 
             const companyLabel =
-
+ 
             selectedCompany === "all"
-
+ 
             ? "ทุกบริษัท"
-
+ 
             : selectedCompany;
-
-
-
-
+ 
+ 
+ 
+ 
             const yearLabel =
-
+ 
             selectedYear === "all"
-
+ 
             ? "ทุกปี"
-
+ 
             : "ปี " + selectedYear;
-
+ 
             const monthLabel =
-
+ 
             selectedMonth === "all"
-
+ 
             ?
-
+ 
             "ทุกเดือน"
-
+ 
             :
-
+ 
             THAI_MONTHS[
                 parseInt(selectedMonth,10)-1
             ];
-
-
+ 
+ 
             document.getElementById(
                 "summaryTotal"
             ).innerText =
-
+ 
             `💰 ยอดรวม (${companyLabel} · ${yearLabel} · ${monthLabel}): ${total.toLocaleString()} บาท`;
-
+ 
         }
-
-
+ 
+ 
         
 /* =========================
    เริ่มทำงาน
 ========================= */
-
-
-//////////allData = JSON.parse(
-//////////    localStorage.getItem(STORAGE_KEY)) || [];
-
-
-populateFilters();
-
-
-renderTable();
-
-
-
-
+ 
+ 
+/* ฟังข้อมูลจาก Firestore แบบ realtime
+   เมื่อมีใครเพิ่ม/แก้ไข/ลบข้อมูล จากเครื่องไหนก็ตาม ตารางนี้จะอัปเดตอัตโนมัติ */
+onSnapshot(collection(db, "insuranceData"), (snapshot) => {
+ 
+    allData = snapshot.docs.map(d => ({
+        id: d.id,
+        ...d.data()
+    }));
+ 
+    renderTable();
+    updateSummary();
+ 
+});
+ 
+ 
+ 
+ 
 /* =========================
    ลบข้อมูล
 ========================= */
-
-
-function deleteItem(i){
-
-
-
+ 
+ 
+async function deleteItem(id){
+ 
     if(!confirm("ลบข้อมูล?"))
-
         return;
-
-
-
-
-
-    let data = JSON.parse(
-
-        localStorage.getItem(STORAGE_KEY)
-
-    ) || [];
-
-
-
-
-
-    data.splice(i,1);
-
-
-
-
-
-    localStorage.setItem(
-
-        STORAGE_KEY,
-
-        JSON.stringify(data)
-
-    );
-
-
-
-
-
-    renderTable();
-
-
-
+ 
+    // ลบที่ Firestore โดยตรง — onSnapshot ด้านบนจะอัปเดตตารางให้อัตโนมัติทุกเครื่องที่เปิดหน้านี้อยู่
+    await deleteDoc(doc(db, "insuranceData", id));
+ 
 }
-
-
-
-
-
-
-
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 /* =========================
    แก้ไขข้อมูล
 ========================= */
-
-
-function editItem(i){
-
-
-
-    let data = JSON.parse(
-
-        localStorage.getItem(STORAGE_KEY)
-
-    ) || [];
-
-
-
-
-
+ 
+ 
+function editItem(id){
+ 
+    const item = allData.find(x => x.id === id);
+ 
+    if(!item){
+        alert("ไม่พบข้อมูล");
+        return;
+    }
+ 
+    // ส่งข้อมูลชั่วคราวไปให้หน้าฟอร์มเติมค่าในช่องกรอก (id ที่แนบไปคือ Firestore document id)
     localStorage.setItem(
-
         "editData",
-
-        JSON.stringify(data[i])
-
+        JSON.stringify(item)
     );
-
-
-
-
-
-    localStorage.setItem(
-
-        "editIndex",
-
-        i
-
-    );
-
-
-
-
-
-
-
-    if(data[i].type === "product"){
-
-
+ 
+    if(item.type === "product"){
+ 
         location.href =
             "form_product.html";
-
-
+ 
     }
-
+ 
     else{
-
-
+ 
         location.href =
             "form_car.html";
-
-
+ 
     }
-
-
-
+ 
 }
-
-
-
-
-
-
-
-
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 /* =========================
    เปิดเอกสาร
 ========================= */
-
-
-function openDoc(i){
-
-
-
-    let data = JSON.parse(
-
-        localStorage.getItem(STORAGE_KEY)
-
-    ) || [];
-
-
-
-
-
+ 
+ 
+function openDoc(id){
+ 
+    const item = allData.find(x => x.id === id);
+ 
+    if(!item){
+        alert("ไม่พบข้อมูล");
+        return;
+    }
+ 
+    // ข้อมูลชั่วคราวสำหรับเปิดเอกสาร PDF เท่านั้น ไม่ใช่แหล่งข้อมูลหลัก
     localStorage.setItem(
-
         "pdfData",
-
-        JSON.stringify(data[i])
-
+        JSON.stringify(item)
     );
-
-
-
-
-
+ 
     location.href =
         "contract_print.html";
-
-
-
+ 
 }
-
+ 
 /* =========================
    SIDEBAR MENU
 ========================= */
-
+ 
 const menuBtn = document.getElementById("menuBtn");
 const sidebar = document.getElementById("sidebar");
 const overlay = document.getElementById("overlay");
-
-
+ 
+ 
+/* =========================
+   เปิดให้ onclick="" ในตาราง (inline HTML) เรียกใช้ได้
+   จำเป็นเพราะ <script type="module"> ไม่ผูกฟังก์ชันเข้า window ให้อัตโนมัติ
+========================= */
+window.editItem = editItem;
+window.openDoc = openDoc;
+window.deleteItem = deleteItem;
+ 
 if(menuBtn && sidebar && overlay){
-
+ 
     menuBtn.addEventListener("click",()=>{
-
+ 
         sidebar.classList.toggle("show");
         overlay.classList.toggle("show");
-
+ 
     });
-
-
+ 
+ 
     overlay.addEventListener("click",()=>{
-
+ 
         sidebar.classList.remove("show");
         overlay.classList.remove("show");
-
+ 
     });
-
+ 
 }
-
-
-
+ 
+ 
+ 
 </script>
-
-
-
+ 
+ 
+ 
 </body>
-
+ 
 </html>
+
+
+
+
+
+
+
