@@ -1,4 +1,4 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
 
 import { 
     getFirestore,
@@ -7,7 +7,7 @@ import {
     onSnapshot,
     deleteDoc,
     doc
-} from "firebase/firestore";
+} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
 
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
