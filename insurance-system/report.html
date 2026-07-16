@@ -228,6 +228,17 @@
                     <select id="filterMonth"></select>
  
                 </span>
+
+                <!-- เพิ่มใหม่: ตัวกรอง "พนักงาน" (ชื่อผู้แจ้ง) ตามที่ต้องการ
+                     เป็นตัวเลือกเสริม ค่าเริ่มต้น = "ทั้งหมด" ไม่บังคับเลือก -->
+                <span>
+
+                    <label for="filterEmployee">
+                        👤 เลือกพนักงาน
+                    </label>
+                    <select id="filterEmployee"></select>
+
+                </span>
  
             </div>
  
@@ -524,9 +535,15 @@ const db = getFirestore(app);
  
             const monthSelect =
                 document.getElementById("filterMonth");
+
+            const employeeSelect =
+                document.getElementById("filterEmployee");
  
             const prevCompany =
                 companySelect.value || "all";
+
+            const prevEmployee =
+                employeeSelect.value || "all";
  
             const companiesFromData = [
  
@@ -579,6 +596,45 @@ const db = getFirestore(app);
                 ? prevCompany
  
                 : "all";
+
+            /* เพิ่มใหม่: สร้างตัวเลือกรายชื่อพนักงาน (requestName) จากข้อมูลจริง
+               เป็นตัวเลือกเสริม ค่าเริ่มต้น "ทั้งหมด" */
+            const employeesFromData = [
+
+                ...new Set(
+                    allData
+                    .map(item=>item.requestName)
+                    .filter(e=>e)
+                )
+
+            ];
+
+            employeeSelect.innerHTML =
+
+            `
+
+            <option value="all">
+                ทั้งหมด
+            </option>
+
+            `
+
+            +
+            employeesFromData.map(e=>`
+
+                <option value="${e}">
+                    ${e}
+                </option>
+
+            `).join("");
+
+            employeeSelect.value =
+
+                employeesFromData.includes(prevEmployee)
+
+                ? prevEmployee
+
+                : "all";
  
             populateYearOptions();
  
@@ -597,6 +653,11 @@ yearSelect.onchange = function(){
  
  
 monthSelect.onchange = function(){
+    updateSummary();
+    renderTable();
+};
+
+employeeSelect.onchange = function(){
     updateSummary();
     renderTable();
 };
@@ -750,6 +811,9 @@ function getFilteredData(){
  
     const selectedMonth =
     document.getElementById("filterMonth").value;
+
+    const selectedEmployee =
+    document.getElementById("filterEmployee").value;
  
  
  
@@ -779,10 +843,15 @@ function getFilteredData(){
         selectedMonth === "all"
         ||
         parsed.month === selectedMonth;
+
+        const employeeOK =
+        selectedEmployee === "all"
+        ||
+        item.requestName === selectedEmployee;
  
  
  
-        return companyOK && yearOK && monthOK;
+        return companyOK && yearOK && monthOK && employeeOK;
  
  
     });
@@ -820,6 +889,12 @@ function getFilteredData(){
  
                 document.getElementById(
                     "filterMonth"
+                ).value;
+
+            const selectedEmployee =
+
+                document.getElementById(
+                    "filterEmployee"
                 ).value;
  
  
@@ -872,6 +947,15 @@ function getFilteredData(){
                 ||
  
                 parsed.month === selectedMonth;
+
+                const employeeOK =
+
+                selectedEmployee === "all"
+
+                ||
+
+                (item.requestName || "ไม่ระบุพนักงาน")
+                === selectedEmployee;
  
  
  
@@ -889,6 +973,10 @@ function getFilteredData(){
                     &&
  
                     monthOK
+
+                    &&
+
+                    employeeOK
  
                 );
  
@@ -949,13 +1037,25 @@ function getFilteredData(){
             THAI_MONTHS[
                 parseInt(selectedMonth,10)-1
             ];
+
+            const employeeLabel =
+
+            selectedEmployee === "all"
+
+            ?
+
+            "ทุกพนักงาน"
+
+            :
+
+            selectedEmployee;
  
  
             document.getElementById(
                 "summaryTotal"
             ).innerText =
  
-            `💰 ยอดรวม (${companyLabel} · ${yearLabel} · ${monthLabel}): ${total.toLocaleString()} บาท`;
+            `💰 ยอดรวม (${companyLabel} · ${yearLabel} · ${monthLabel} · ${employeeLabel}): ${total.toLocaleString()} บาท`;
  
         }
  
@@ -1117,10 +1217,3 @@ if(menuBtn && sidebar && overlay){
 </body>
  
 </html>
-
-
-
-
-
-
-

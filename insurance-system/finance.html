@@ -23,6 +23,67 @@ table{
 }
 </style>
 
+<!-- เพิ่มใหม่: สไตล์ตัวกรอง + กล่องกราฟ (ไม่แตะ style.css เดิม) -->
+<style>
+.finance-summary-panel{
+    max-width:1100px;
+    margin:0 auto 20px;
+    background:#f8f9fb;
+    border:1px solid #e3e6ec;
+    border-radius:12px;
+    padding:16px 18px;
+}
+
+.finance-summary-filters{
+    display:flex;
+    gap:15px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin-bottom:12px;
+}
+
+.finance-summary-filters label{
+    font-size:13px;
+    color:#002d72;
+    font-weight:bold;
+    margin-right:6px;
+}
+
+.finance-summary-filters select{
+    padding:6px 10px;
+    border-radius:8px;
+    border:1px solid #cfd6e2;
+    font-family:"Kanit",sans-serif;
+    font-size:13px;
+}
+
+.finance-summary-total{
+    font-size:17px;
+    font-weight:bold;
+    color:#002d72;
+}
+
+.finance-chart-box{
+    max-width:1100px;
+    margin:0 auto 10px;
+    background:#fff;
+    border:1px solid #e3e6ec;
+    border-radius:12px;
+    padding:18px;
+}
+
+.finance-chart-box h3{
+    text-align:center;
+    color:#152A54;
+    margin-bottom:14px;
+    font-size:16px;
+}
+
+.finance-chart-box canvas{
+    max-height:340px;
+}
+</style>
+
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
 </head>
@@ -34,6 +95,35 @@ table{
 <div class="main">
 
 <h2>💵 บันทึกการเงิน</h2>
+
+<!-- เพิ่มใหม่: ตัวกรองบริษัท / พนักงาน / ปี / เดือน (เป็นตัวเลือกเสริม ค่าเริ่มต้น = ทั้งหมด) -->
+<div class="finance-summary-panel">
+    <div class="finance-summary-filters">
+        <span>
+            <label for="financeFilterCompany">🏢 บริษัท</label>
+            <select id="financeFilterCompany"></select>
+        </span>
+        <span>
+            <label for="financeFilterEmployee">👤 พนักงาน</label>
+            <select id="financeFilterEmployee"></select>
+        </span>
+        <span>
+            <label for="financeFilterYear">🗓️ ปี</label>
+            <select id="financeFilterYear"></select>
+        </span>
+        <span>
+            <label for="financeFilterMonth">📅 เดือน</label>
+            <select id="financeFilterMonth"></select>
+        </span>
+    </div>
+    <div id="financeSummaryTotal" class="finance-summary-total"></div>
+</div>
+
+<!-- เพิ่มใหม่: กราฟรายได้รายเดือน (แยกตามบริษัท/พนักงานที่เลือกกรอง) -->
+<div class="finance-chart-box">
+    <h3>📈 กราฟรายได้รายเดือน</h3>
+    <canvas id="revenueChart"></canvas>
+</div>
 
 <table>
 <thead>
@@ -64,16 +154,52 @@ table{
 
 </div>
 
+<!-- ไลบรารีกราฟ (โหลดจาก cdnjs เหมือน html2canvas/jsPDF ที่ใช้อยู่แล้วในระบบ) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 
-<script>
+<!-- แก้ไข: เดิมอ่านข้อมูลจาก localStorage.getItem("insuranceData") ซึ่งไม่มีการเขียนคีย์นี้เลย
+     (ทุกฟอร์มบันทึกลง Firebase Firestore) ทำให้ตาราง/กราฟไม่ขึ้นเลย
+     แก้ให้ดึงข้อมูล realtime จาก Firestore แหล่งเดียวกับ report.html / customer_debt.html
+     พร้อมเพิ่มตัวกรองเดือน/บริษัท/พนักงาน และกราฟรายได้ตามที่ต้องการ -->
+<script type="module">
 
-const STORAGE_KEY = "insuranceData";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+import {
+    getFirestore,
+    collection,
+    onSnapshot
+} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
-    function formatDate(date){
+const firebaseConfig = {
+  apiKey: "AIzaSyCNpaYlwrkJhBA-8tAax022PWWFYMRz7Kw",
+  authDomain: "insurance-system-f26b0.firebaseapp.com",
+  projectId: "insurance-system-f26b0",
+  storageBucket: "insurance-system-f26b0.firebasestorage.app",
+  messagingSenderId: "438698153100",
+  appId: "1:438698153100:web:a553b97b59701883f057a9",
+  measurementId: "G-XXWCQEMT0B"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+let allData = [];
+let chartInstance = null;
+
+const THAI_MONTHS = [
+    "มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน",
+    "กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"
+];
+
+const KNOWN_COMPANIES = ["วิริยะ","เมืองไทย","AIG"];
+
+function formatDate(date){
 
     if(!date) return "-";
 
     let d = new Date(date);
+
+    if(isNaN(d)) return date;
 
     let day = String(d.getDate()).padStart(2,"0");
     let month = String(d.getMonth()+1).padStart(2,"0");
@@ -83,56 +209,211 @@ const STORAGE_KEY = "insuranceData";
 
 }
 
-function renderFinance(){
+function parseCreateDate(createDate){
+    if(!createDate) return { month:null, year:null };
 
-    let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    const parts = createDate.split("/");
+    if(parts.length !== 3) return { month:null, year:null };
 
-    let table = document.getElementById("financeTable");
+    const month = parseInt(parts[1],10);
+    const year = parts[2];
 
-    table.innerHTML = "";
+    if(isNaN(month) || month < 1 || month > 12){
+        return { month:null, year:null };
+    }
 
-
-    data.forEach((item,index)=>{
-
-    let row = `
-    <tr>
-
-        <td>${index + 1}</td>
-
-        <td>${item.createDate || "-"}</td>
-
-        <td>${item.company || "-"}</td>
-
-        <td>${item.customer || "-"}</td>
-
-        <td>${item.phone || "-"}</td>
-
-        <td>${item.plate || "-"}</td>
-
-        <td>${formatDate(item.start)}</td>
-
-        <td>${item.total || "0"}</td>
-
-        </tr>
-    `;
-
-    table.innerHTML += row;
-
-});
-
-
+    return { month:String(month).padStart(2,"0"), year:year };
 }
 
+function populateFilters(){
 
-document.addEventListener("DOMContentLoaded",()=>{
+    const companySelect = document.getElementById("financeFilterCompany");
+    const employeeSelect = document.getElementById("financeFilterEmployee");
+    const yearSelect = document.getElementById("financeFilterYear");
+    const monthSelect = document.getElementById("financeFilterMonth");
 
-    renderFinance();
+    const prevCompany = companySelect.value || "all";
+    const prevEmployee = employeeSelect.value || "all";
+    const prevYear = yearSelect.value || "all";
+    const prevMonth = monthSelect.value || "all";
 
+    // บริษัท
+    const companiesFromData = [...new Set(allData.map(i=>i.company).filter(Boolean))];
+    const extraCompanies = companiesFromData.filter(c=>!KNOWN_COMPANIES.includes(c));
+    const companies = [...KNOWN_COMPANIES, ...extraCompanies];
+
+    companySelect.innerHTML = `<option value="all">ทั้งหมด</option>` +
+        companies.map(c=>`<option value="${c}">${c}</option>`).join("");
+    companySelect.value = companies.includes(prevCompany) ? prevCompany : "all";
+
+    // พนักงาน
+    const employees = [...new Set(allData.map(i=>i.requestName).filter(Boolean))];
+    employeeSelect.innerHTML = `<option value="all">ทั้งหมด</option>` +
+        employees.map(e=>`<option value="${e}">${e}</option>`).join("");
+    employeeSelect.value = employees.includes(prevEmployee) ? prevEmployee : "all";
+
+    // ปี
+    const YEAR_START = 2569;
+    const YEAR_END = 2575;
+    let years = [];
+    for(let y = YEAR_START; y <= YEAR_END; y++) years.push(String(y));
+
+    yearSelect.innerHTML = `<option value="all">ทั้งหมด</option>` +
+        years.map(y=>`<option value="${y}">${y}</option>`).join("");
+    yearSelect.value = years.includes(prevYear) ? prevYear : "all";
+
+    // เดือน
+    let monthOptions = [`<option value="all">ทั้งหมด</option>`];
+    for(let m = 1; m <= 12; m++){
+        const key = String(m).padStart(2,"0");
+        monthOptions.push(`<option value="${key}">${THAI_MONTHS[m-1]}</option>`);
+    }
+    monthSelect.innerHTML = monthOptions.join("");
+    monthSelect.value = prevMonth;
+
+    companySelect.onchange = updateAll;
+    employeeSelect.onchange = updateAll;
+    yearSelect.onchange = updateAll;
+    monthSelect.onchange = updateAll;
+}
+
+function getFilteredData(){
+
+    const selectedCompany = document.getElementById("financeFilterCompany").value;
+    const selectedEmployee = document.getElementById("financeFilterEmployee").value;
+    const selectedYear = document.getElementById("financeFilterYear").value;
+    const selectedMonth = document.getElementById("financeFilterMonth").value;
+
+    return allData.filter(item=>{
+
+        const companyOK = selectedCompany === "all" || item.company === selectedCompany;
+        const employeeOK = selectedEmployee === "all" || item.requestName === selectedEmployee;
+
+        const parsed = parseCreateDate(item.createDate);
+        const yearOK = selectedYear === "all" || parsed.year === selectedYear;
+        const monthOK = selectedMonth === "all" || parsed.month === selectedMonth;
+
+        return companyOK && employeeOK && yearOK && monthOK;
+    });
+}
+
+function renderTable(){
+
+    const table = document.getElementById("financeTable");
+    table.innerHTML = "";
+
+    const filtered = getFilteredData();
+    let totalSum = 0;
+
+    filtered.forEach((item,index)=>{
+
+        totalSum += Number(item.total || 0);
+
+        const row = `
+        <tr>
+            <td>${index + 1}</td>
+            <td>${item.createDate || "-"}</td>
+            <td>${item.company || "-"}</td>
+            <td>${item.customer || "-"}</td>
+            <td>${item.phone || "-"}</td>
+            <td>${item.plate || "-"}</td>
+            <td>${formatDate(item.start)}</td>
+            <td>${Number(item.total || 0).toLocaleString()}</td>
+        </tr>
+        `;
+
+        table.innerHTML += row;
+    });
+
+    document.getElementById("financeSummaryTotal").innerText =
+        `💰 ยอดรวมรายได้ที่กรอง: ${totalSum.toLocaleString()} บาท (${filtered.length} รายการ)`;
+}
+
+function renderChart(){
+
+    const selectedCompany = document.getElementById("financeFilterCompany").value;
+    const selectedEmployee = document.getElementById("financeFilterEmployee").value;
+    const selectedYear = document.getElementById("financeFilterYear").value;
+
+    // กราฟสรุปยอดรวมรายเดือน (เคารพตัวกรองบริษัท/พนักงาน/ปี แต่ไม่เคารพตัวกรองเดือน
+    // เพื่อให้เห็นแนวโน้มรายได้ทั้ง 12 เดือนพร้อมกัน)
+    const monthlyTotals = new Array(12).fill(0);
+
+    allData.forEach(item=>{
+
+        const companyOK = selectedCompany === "all" || item.company === selectedCompany;
+        const employeeOK = selectedEmployee === "all" || item.requestName === selectedEmployee;
+
+        const parsed = parseCreateDate(item.createDate);
+        const yearOK = selectedYear === "all" || parsed.year === selectedYear;
+
+        if(companyOK && employeeOK && yearOK && parsed.month){
+            const idx = parseInt(parsed.month,10) - 1;
+            monthlyTotals[idx] += Number(item.total || 0);
+        }
+    });
+
+    const ctx = document.getElementById("revenueChart");
+
+    if(chartInstance){
+        chartInstance.data.datasets[0].data = monthlyTotals;
+        chartInstance.update();
+        return;
+    }
+
+    if(typeof Chart === "undefined"){
+        console.error("ไม่สามารถโหลด Chart.js ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต");
+        return;
+    }
+
+    chartInstance = new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: THAI_MONTHS,
+            datasets: [{
+                label: "รายได้ (บาท)",
+                data: monthlyTotals,
+                backgroundColor: "#2F6FED",
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value){
+                            return Number(value).toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateAll(){
+    renderTable();
+    renderChart();
+}
+
+/* ฟังข้อมูลจาก Firestore แบบ realtime — collection เดียวกับ report.html / customer_debt.html */
+onSnapshot(collection(db, "insuranceData"), (snapshot) => {
+
+    allData = snapshot.docs.map(d => ({
+        id: d.id,
+        ...d.data()
+    }));
+
+    populateFilters();
+    updateAll();
 });
 
-
 </script>
-
 
 </body>
 </html>

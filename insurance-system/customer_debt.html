@@ -323,11 +323,32 @@ onclick="location.href='account_menu.html'">
 
 
 
-<script>
+<!-- แก้ไข: เดิมอ่านข้อมูลจาก localStorage.getItem("insuranceData") ซึ่งไม่มีการเขียนคีย์นี้
+     ที่ไหนเลยในระบบ (ทุกฟอร์มบันทึกลง Firebase Firestore collection "insuranceData")
+     ทำให้หน้านี้ว่างเปล่าเสมอ แก้ให้ดึงข้อมูล realtime จาก Firestore แหล่งเดียวกับ
+     report.html / script.js โดยไม่แตะตรรกะคำนวณยอดค้าง/สถานะเดิมเลย -->
+<script type="module">
 
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+import {
+    getFirestore,
+    collection,
+    onSnapshot
+} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
-const STORAGE_KEY="insuranceData";
+/* ตั้งค่าเดียวกับ script.js / report.html เพื่ออ่าน collection "insuranceData" เดียวกัน */
+const firebaseConfig = {
+  apiKey: "AIzaSyCNpaYlwrkJhBA-8tAax022PWWFYMRz7Kw",
+  authDomain: "insurance-system-f26b0.firebaseapp.com",
+  projectId: "insurance-system-f26b0",
+  storageBucket: "insurance-system-f26b0.firebasestorage.app",
+  messagingSenderId: "438698153100",
+  appId: "1:438698153100:web:a553b97b59701883f057a9",
+  measurementId: "G-XXWCQEMT0B"
+};
 
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
 
 function calculateOverdue(date){
@@ -380,11 +401,7 @@ function calculateOverdue(date){
 
 
 
-function renderDebt(){
-
-
-let data=JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-
+function renderDebt(data){
 
 
 /*
@@ -576,9 +593,18 @@ totalDebt.toLocaleString()+
 }
 
 
+/* ฟังข้อมูลจาก Firestore แบบ realtime — อัปเดตอัตโนมัติทุกครั้งที่มีการบันทึก/แก้ไข/ลบ
+   จากหน้า form_car.html / form_product.html / report.html */
+onSnapshot(collection(db, "insuranceData"), (snapshot) => {
 
-renderDebt();
+    const data = snapshot.docs.map(d => ({
+        id: d.id,
+        ...d.data()
+    }));
 
+    renderDebt(data);
+
+});
 
 
 </script>

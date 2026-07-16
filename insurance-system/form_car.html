@@ -119,12 +119,18 @@
 
     </main>
 
-    <script src="script.js"></script>
+    <!-- แก้ไข: เดิมโหลดด้วย <script src="script.js"> (ไม่ใส่ type="module")
+         แต่ script.js มีคำสั่ง import ข้างใน ทำให้เบราว์เซอร์ throw SyntaxError
+         และทั้งไฟล์ใช้งานไม่ได้เลย (ปุ่มเมนู / การเชื่อม Firebase ใช้ไม่ได้)
+         แก้เป็น type="module" ให้ตรงกับ form_product.html และ report.html
+         เพื่อให้บันทึกข้อมูลลง Firestore แหล่งเดียวกับทุกหน้า -->
+    <script type="module" src="script.js"></script>
 
     <script>
     function collectFormData(type) {
         return {
             type: type,
+            createDate: new Date().toLocaleDateString("th-TH"),
             company: document.getElementById("company")?.value,
             requestName: document.getElementById("requestName")?.value,
             customer: document.getElementById("name")?.value,
@@ -148,12 +154,16 @@
         };
     }
 
-    // ✅ บันทึกข้อมูลจริงตอนกด "บันทึกข้อมูล"
-    document.getElementById("carForm").addEventListener("submit", function (e) {
+    /* แก้ไข: เดิมเรียก saveRecord(record) ตรงๆ ซึ่งเป็นฟังก์ชันใน script.js
+       ที่ถูก import แบบ module (ไม่ได้อยู่ใน global scope) ทำให้เกิด
+       ReferenceError ทันทีที่กดบันทึก (ข้อมูลไม่เคยถูกบันทึกลง Firestore เลย)
+       แก้เป็นเรียกผ่าน window.saveRecord (ที่ script.js expose ไว้ให้แล้ว)
+       และ await ผลลัพธ์ก่อน — ฟังก์ชันนี้ alert "บันทึกข้อมูลเรียบร้อย" ให้เองอยู่แล้ว
+       จึงตัด alert ซ้ำออก เพื่อไม่ให้เตือนซ้อนกัน 2 ครั้ง */
+    document.getElementById("carForm").addEventListener("submit", async function (e) {
         e.preventDefault();
         const record = collectFormData("car");
-        saveRecord(record); // มาจาก script.js
-        alert("บันทึกข้อมูลเรียบร้อย");
+        await window.saveRecord(record); // บันทึกลง Firestore (แหล่งข้อมูลกลางเดียวกับทุกหน้า)
     });
 
     // ✅ ดู PDF ใช้ข้อมูลจาก field ที่มีจริงเท่านั้น
