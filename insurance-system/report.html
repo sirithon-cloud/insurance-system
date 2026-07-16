@@ -229,14 +229,27 @@
  
                 </span>
 
-                <!-- เพิ่มใหม่: ตัวกรอง "พนักงาน" (ชื่อผู้แจ้ง) ตามที่ต้องการ
-                     เป็นตัวเลือกเสริม ค่าเริ่มต้น = "ทั้งหมด" ไม่บังคับเลือก -->
+                <!-- เพิ่มใหม่: ตัวกรอง "พนักงาน" (ชื่อผู้แจ้ง) ตัวเลือกเสริม ค่าเริ่มต้น = "ทั้งหมด" -->
                 <span>
 
                     <label for="filterEmployee">
                         👤 เลือกพนักงาน
                     </label>
                     <select id="filterEmployee"></select>
+
+                </span>
+
+                <!-- เพิ่มใหม่: ตัวกรอง "ประเภทประกัน" ตัวเลือกเสริม ค่าเริ่มต้น = "ทั้งหมด" -->
+                <span>
+
+                    <label for="filterType">
+                        🧾 ประเภทประกัน
+                    </label>
+                    <select id="filterType">
+                        <option value="all">ทั้งหมด</option>
+                        <option value="car">🚗 ประกันรถยนต์</option>
+                        <option value="product">📦 ประกันสินค้า</option>
+                    </select>
 
                 </span>
  
@@ -342,8 +355,16 @@ const db = getFirestore(app);
             "ธันวาคม"
  
         ];
- 
- 
+
+        /* เพิ่มใหม่: helper แปลง createdAt (Firestore Timestamp) เป็นตัวเลข millisecond
+           เพื่อเรียงข้อมูลตามลำดับการบันทึกจริง (เก่า -> ใหม่ อยู่ล่างสุด) และคงลำดับ
+           เดิมทุกครั้งที่รีเฟรชหน้า ข้อมูลเก่าที่ไม่มี field นี้จะได้ 0 (อยู่บนสุด ไม่หาย) */
+        function getSortMillis(item){
+            if(item && item.createdAt && typeof item.createdAt.toMillis === "function"){
+                return item.createdAt.toMillis();
+            }
+            return 0;
+        }
  
  
  
@@ -597,7 +618,7 @@ const db = getFirestore(app);
  
                 : "all";
 
-            /* เพิ่มใหม่: สร้างตัวเลือกรายชื่อพนักงาน (requestName) จากข้อมูลจริง
+            /* เพิ่มใหม่: สร้างตัวเลือกรายชื่อพนักงาน (requestName) จากข้อมูลจริงแบบ Real-time
                เป็นตัวเลือกเสริม ค่าเริ่มต้น "ทั้งหมด" */
             const employeesFromData = [
 
@@ -658,6 +679,11 @@ monthSelect.onchange = function(){
 };
 
 employeeSelect.onchange = function(){
+    updateSummary();
+    renderTable();
+};
+
+document.getElementById("filterType").onchange = function(){
     updateSummary();
     renderTable();
 };
@@ -796,6 +822,8 @@ function populateYearOptions(){
  
             /* =========================
    กรองข้อมูลสำหรับตาราง
+   (เพิ่มใหม่: เรียงตามลำดับการบันทึกจริงก่อน (เก่า->ใหม่) แล้วค่อยกรอง
+   เพื่อให้ข้อมูลใหม่อยู่ล่างสุดเสมอ ไม่ว่าจะกรองเงื่อนไขใด)
 ========================= */
  
 function getFilteredData(){
@@ -814,10 +842,16 @@ function getFilteredData(){
 
     const selectedEmployee =
     document.getElementById("filterEmployee").value;
+
+    const selectedType =
+    document.getElementById("filterType").value;
  
  
+    const sorted = [...allData].sort(
+        (a,b)=> getSortMillis(a) - getSortMillis(b)
+    );
  
-    return allData.filter(item=>{
+    return sorted.filter(item=>{
  
  
         const companyOK =
@@ -848,10 +882,15 @@ function getFilteredData(){
         selectedEmployee === "all"
         ||
         item.requestName === selectedEmployee;
+
+        const typeOK =
+        selectedType === "all"
+        ||
+        item.type === selectedType;
  
  
  
-        return companyOK && yearOK && monthOK && employeeOK;
+        return companyOK && yearOK && monthOK && employeeOK && typeOK;
  
  
     });
@@ -866,6 +905,7 @@ function getFilteredData(){
  
         function updateSummary(){
  
+            const filtered = getFilteredData();
  
  
             const selectedCompany =
@@ -896,94 +936,12 @@ function getFilteredData(){
                 document.getElementById(
                     "filterEmployee"
                 ).value;
- 
- 
- 
- 
- 
- 
-            const filtered = allData.filter(item=>{
- 
- 
- 
-                const companyOK =
- 
-                selectedCompany === "all"
- 
-                ||
- 
-                (item.company || "ไม่ระบุบริษัท")
-                === selectedCompany;
- 
- 
- 
- 
- 
-                const parsed =
-                    parseCreateDate(
-                        item.createDate
-                    );
- 
- 
- 
- 
- 
-                const yearOK =
- 
-                selectedYear === "all"
- 
-                ||
- 
-                parsed.year === selectedYear;
- 
- 
- 
- 
- 
-                const monthOK =
- 
-                selectedMonth === "all"
- 
-                ||
- 
-                parsed.month === selectedMonth;
 
-                const employeeOK =
+            const selectedType =
 
-                selectedEmployee === "all"
-
-                ||
-
-                (item.requestName || "ไม่ระบุพนักงาน")
-                === selectedEmployee;
- 
- 
- 
- 
- 
- 
-                return (
- 
-                    companyOK
- 
-                    &&
- 
-                    yearOK
- 
-                    &&
- 
-                    monthOK
-
-                    &&
-
-                    employeeOK
- 
-                );
- 
- 
- 
-            });
- 
+                document.getElementById(
+                    "filterType"
+                ).value;
  
  
  
@@ -1049,13 +1007,25 @@ function getFilteredData(){
             :
 
             selectedEmployee;
+
+            const typeLabel =
+
+            selectedType === "all"
+
+            ? "ทุกประเภท"
+
+            : selectedType === "car"
+
+            ? "ประกันรถยนต์"
+
+            : "ประกันสินค้า";
  
  
             document.getElementById(
                 "summaryTotal"
             ).innerText =
  
-            `💰 ยอดรวม (${companyLabel} · ${yearLabel} · ${monthLabel} · ${employeeLabel}): ${total.toLocaleString()} บาท`;
+            `💰 ยอดรวม (${companyLabel} · ${yearLabel} · ${monthLabel} · ${employeeLabel} · ${typeLabel}): ${total.toLocaleString()} บาท (${filtered.length} รายการ)`;
  
         }
  
@@ -1067,7 +1037,8 @@ function getFilteredData(){
  
  
 /* ฟังข้อมูลจาก Firestore แบบ realtime
-   เมื่อมีใครเพิ่ม/แก้ไข/ลบข้อมูล จากเครื่องไหนก็ตาม ตารางนี้จะอัปเดตอัตโนมัติ */
+   เมื่อมีใครเพิ่ม/แก้ไข/ลบข้อมูล จากเครื่องไหนก็ตาม ตารางนี้จะอัปเดตอัตโนมัติ
+   เปิดหน้าแล้วแสดงข้อมูลทั้งหมดทันที (ตัวกรองทั้งหมด default = "ทั้งหมด") */
 onSnapshot(collection(db, "insuranceData"), (snapshot) => {
  
     allData = snapshot.docs.map(d => ({

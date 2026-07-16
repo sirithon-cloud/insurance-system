@@ -326,7 +326,7 @@ onclick="location.href='account_menu.html'">
 <!-- แก้ไข: เดิมอ่านข้อมูลจาก localStorage.getItem("insuranceData") ซึ่งไม่มีการเขียนคีย์นี้
      ที่ไหนเลยในระบบ (ทุกฟอร์มบันทึกลง Firebase Firestore collection "insuranceData")
      ทำให้หน้านี้ว่างเปล่าเสมอ แก้ให้ดึงข้อมูล realtime จาก Firestore แหล่งเดียวกับ
-     report.html / script.js โดยไม่แตะตรรกะคำนวณยอดค้าง/สถานะเดิมเลย -->
+     report.html / finance.html / script.js โดยไม่แตะตรรกะคำนวณยอดค้าง/สถานะเดิมเลย -->
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
@@ -594,7 +594,7 @@ totalDebt.toLocaleString()+
 
 
 /* ฟังข้อมูลจาก Firestore แบบ realtime — อัปเดตอัตโนมัติทุกครั้งที่มีการบันทึก/แก้ไข/ลบ
-   จากหน้า form_car.html / form_product.html / report.html */
+   จากหน้า form_car.html / form_product.html / report.html / finance.html */
 onSnapshot(collection(db, "insuranceData"), (snapshot) => {
 
     const data = snapshot.docs.map(d => ({

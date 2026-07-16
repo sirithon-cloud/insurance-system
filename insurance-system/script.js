@@ -7,7 +7,8 @@ import {
     setDoc,
     onSnapshot,
     deleteDoc,
-    doc
+    doc,
+    serverTimestamp
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
 
@@ -57,6 +58,17 @@ let editingId = null;
    STORAGE
 ========================= */
 
+/* เพิ่มใหม่: helper แปลง createdAt (Firestore Timestamp) เป็นตัวเลข millisecond
+   เพื่อใช้เรียงลำดับข้อมูลตามลำดับการบันทึกจริง (เก่า -> ใหม่)
+   ข้อมูลเก่าที่ยังไม่มี field นี้ (บันทึกไว้ก่อนอัปเดตนี้) จะได้ค่า 0
+   จึงถูกจัดให้อยู่ลำดับต้นๆ โดยอัตโนมัติ ไม่หายไปจากระบบ */
+function getSortMillis(item) {
+    if (item && item.createdAt && typeof item.createdAt.toMillis === "function") {
+        return item.createdAt.toMillis();
+    }
+    return 0;
+}
+
 function getData() {
 
     onSnapshot(
@@ -74,6 +86,9 @@ function getData() {
 
             });
 
+            // เรียงตามลำดับการบันทึกจริง (เก่า -> ใหม่ อยู่ล่างสุด)
+            data.sort((a, b) => getSortMillis(a) - getSortMillis(b));
+
             renderTable(data);
 
         }
@@ -85,7 +100,9 @@ function getData() {
 
 /* บันทึกข้อมูลใหม่จากฟอร์ม (เรียกใช้ตอน submit)
    - ถ้ามี record.id (แปลว่ากำลังแก้ไขข้อมูลเดิมที่มาจาก Firestore) -> อัปเดตเอกสารเดิมด้วย setDoc
-   - ถ้าไม่มี record.id (ข้อมูลใหม่) -> สร้างเอกสารใหม่ด้วย addDoc
+     (ไม่แตะ createdAt เดิม เพราะไม่ได้ส่ง field นี้ไปใน fields ที่จะ merge)
+   - ถ้าไม่มี record.id (ข้อมูลใหม่) -> สร้างเอกสารใหม่ด้วย addDoc พร้อมประทับเวลา createdAt
+     (เพิ่มใหม่: ใช้ serverTimestamp() เพื่อให้ทุกหน้าจัดเรียงลำดับข้อมูลได้แม่นยำและเสถียรหลังรีเฟรช)
    ป้องกันปัญหาเดิมที่แก้ไขข้อมูลแล้วกลายเป็นสร้างซ้ำ */
 async function saveRecord(record) {
 
@@ -102,6 +119,8 @@ async function saveRecord(record) {
         );
 
     } else {
+
+        record.createdAt = serverTimestamp();
 
         await addDoc(
             collection(db, "insuranceData"),
@@ -285,9 +304,3 @@ function editData(){
 window.saveRecord = saveRecord;
 window.editData = editData;
 window.deleteData = deleteData;
-
-
-
-
-
-
