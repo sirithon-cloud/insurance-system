@@ -3,7 +3,7 @@
     <head>
  
     <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
  
             <title>รายงานข้อมูลประกัน</title>
  
@@ -30,20 +30,31 @@
                     padding-top:90px;
  
                     overflow-x:auto;
+                    -webkit-overflow-scrolling:touch;
                 }
  
             .report-card h1{
     width:100%;
     text-align:center;
     color:#002d72;
+    font-size:clamp(18px, 4vw, 28px);
 }
             
             /* ========================
             TABLE
             ========================= */
  
+            .table-scroll{
+                width:100%;
+                overflow:auto;
+                -webkit-overflow-scrolling:touch;
+                touch-action:pan-x pan-y pinch-zoom;
+                border-radius:10px;
+            }
+
             table{
                 width:100%;
+                min-width:1100px;
                 border-collapse:collapse;
                 font-size:12px;
             }
@@ -74,7 +85,55 @@
                 table{
                     font-size:10px;
                 }
- 
+
+                .report-card{
+                    padding:14px;
+                    padding-top:86px;
+                }
+
+                .summary-panel{
+                    padding:12px 14px;
+                }
+
+                .summary-filters{
+                    gap:10px;
+                }
+
+                .summary-filters label{
+                    font-size:12px;
+                    margin-right:4px;
+                }
+
+                .summary-filters select{
+                    padding:5px 8px;
+                    font-size:12px;
+                }
+
+                .summary-total{
+                    font-size:14px;
+                }
+            }
+
+            @media(max-width:480px){
+                .report-card h1{
+                    font-size:16px;
+                }
+
+                .summary-filters{
+                    flex-direction:column;
+                    align-items:flex-start;
+                    gap:8px;
+                }
+
+                .summary-filters > span{
+                    display:flex;
+                    align-items:center;
+                    width:100%;
+                }
+
+                .summary-filters select{
+                    flex:1;
+                }
             }
  
             /* =========================
@@ -167,34 +226,6 @@
 .report-card{
     position:relative;
 }
-
-.report-back-btn{
-    display:inline-flex;
-    align-items:center;
-    gap:4px;
-
-    background:#52525252;
-    color:#fff;
-
-    border:none;
-    padding:12px 30px;
-    border-radius:999px;
-
-    font-family:"Kanit",sans-serif;
-    font-weight:600;
-    font-size:12px;
-
-    cursor:pointer;
-    transition:.2s;
-
-    position:absolute;
-    left:20px;
-    top:90px;
-}
-
-.report-back-btn:hover{
-    background:#1E4FC4;
-}
             
  
  
@@ -230,11 +261,6 @@
  
         <div class="report-card">
 
-        <!-- เพิ่มใหม่: ปุ่มกลับไปหน้าเมนูบัญชี -->
-        <button class="report-back-btn" onclick="location.href='account_menu.html'">
-            ← กลับ
-        </button>
- 
         <h1>
         📊 รายงานข้อมูลประกันทั้งหมด
         </h1>
@@ -303,6 +329,7 @@
  
  
  
+<div class="table-scroll">
 <table id="table">
  
         <thead>
@@ -337,6 +364,7 @@
  
 <tbody></tbody>
 </table>
+</div>
 </div>
 <script type="module">
  
@@ -1260,6 +1288,32 @@ if(menuBtn && sidebar && overlay){
 </body>
  
 </html>
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

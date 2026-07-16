@@ -4,7 +4,7 @@
 <head>
 
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
 
 <title>ลูกหนี้</title>
 
@@ -58,6 +58,7 @@ body{
     padding:32px;
 
     overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
 
 }
 
@@ -67,7 +68,7 @@ h1{
 
     text-align:center;
     color:var(--navy);
-    font-size:24px;
+    font-size:clamp(18px, 4vw, 24px);
     font-weight:700;
     margin-bottom:6px;
 
@@ -82,12 +83,22 @@ h1{
 
 
 
+.table-scroll{
+
+    width:100%;
+    overflow:auto;
+    -webkit-overflow-scrolling:touch;
+    touch-action:pan-x pan-y pinch-zoom;
+    margin-top:25px;
+    border-radius:12px;
+
+}
+
 table{
 
     width:100%;
+    min-width:1500px;
     border-collapse:collapse;
-
-    margin-top:25px;
 
     font-size:13px;
 
@@ -266,6 +277,7 @@ tr.paid-complete td{
 
 
 
+<div class="table-scroll">
 <table>
 
 
@@ -330,6 +342,7 @@ tr.paid-complete td{
 
 
 </table>
+</div>
 
 
 
@@ -629,6 +642,32 @@ onSnapshot(collection(db, "insuranceData"), (snapshot) => {
 </body>
 
 </html>
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
