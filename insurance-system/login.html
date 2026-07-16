@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>เข้าสู่ระบบ | Insurance Management System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  :root{
+    --navy-deep:#061B33;
+    --navy:#0C2F55;
+    --navy-mid:#12447D;
+    --sky:#A9CBEA;
+    --gray-300:#D6DCE5;
+    --gray-500:#8A96A8;
+    --white:#FFFFFF;
+    --glass:rgba(255,255,255,0.10);
+    --glass-border:rgba(255,255,255,0.28);
+    --radius-lg:24px;
+    --radius-md:14px;
+  }
+ 
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;}
+ 
+  body{
+    font-family:'Kanit', sans-serif;
+    min-height:100vh;
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    overflow:hidden;
+    background:var(--navy-deep);
+  }
+ 
+  /* Cinematic Hero Background */
+  .hero-bg{
+    position:fixed;
+    inset:0;
+    z-index:0;
+    background-image:url('hero-bg.png');
+    background-size:cover;
+    background-position:center 20%;
+    background-repeat:no-repeat;
+    transform:scale(1.06);
+    animation:floatBg 16s ease-in-out infinite;
+  }
+ 
+  @keyframes floatBg{
+    0%,100%{transform:scale(1.06) translateY(0);}
+    50%{transform:scale(1.1) translateY(-14px);}
+  }
+ 
+  /* Animated gradient wash เพื่อความพรีเมียมและกลืนกับโทนกรมท่า */
+  .bg-gradient{
+    position:fixed;
+    inset:0;
+    z-index:1;
+    background:linear-gradient(120deg, rgba(6,27,51,0.55), rgba(18,68,125,0.35), rgba(6,27,51,0.6));
+    background-size:300% 300%;
+    animation:gradientShift 20s ease infinite;
+    mix-blend-mode:multiply;
+  }
+  @keyframes gradientShift{
+    0%{background-position:0% 50%;}
+    50%{background-position:100% 50%;}
+    100%{background-position:0% 50%;}
+  }
+ 
+  .overlay{
+    position:fixed;
+    inset:0;
+    z-index:2;
+    background:linear-gradient(180deg, rgba(6,27,51,0.5) 0%, rgba(8,32,58,0.68) 55%, rgba(5,20,38,0.88) 100%);
+  }
+ 
+  .grain{
+    position:fixed;
+    inset:0;
+    z-index:2;
+    opacity:0.035;
+    background-image:repeating-radial-gradient(circle, #fff 0, transparent 1px);
+    background-size:3px 3px;
+    pointer-events:none;
+  }
+ 
+  .content{
+    position:relative;
+    z-index:3;
+    width:100%;
+    max-width:430px;
+    opacity:0;
+    transform:translateY(24px);
+    animation:fadeUp 0.9s cubic-bezier(.22,1,.36,1) forwards;
+  }
+ 
+  @keyframes fadeUp{
+    to{opacity:1; transform:translateY(0);}
+  }
+ 
+  .brand{
+    text-align:center;
+    color:var(--white);
+    margin-bottom:22px;
+  }
+ 
+  .brand-mark{
+    width:64px;
+    height:64px;
+    margin:0 auto 14px;
+    border-radius:18px;
+    background:linear-gradient(150deg, var(--sky), var(--navy-mid));
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow:0 16px 30px -10px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.3);
+    animation:floatY 4s ease-in-out infinite;
+  }
+ 
+  @keyframes floatY{
+    0%,100%{transform:translateY(0);}
+    50%{transform:translateY(-7px);}
+  }
+ 
+  .brand-mark i{font-size:26px; color:var(--white);}
+ 
+  .brand h1{
+    font-size:21px;
+    font-weight:600;
+    letter-spacing:0.01em;
+    margin-bottom:4px;
+    text-shadow:0 2px 12px rgba(0,0,0,0.4);
+  }
+ 
+  .brand p{
+    font-size:12.5px;
+    font-weight:300;
+    letter-spacing:0.1em;
+    color:var(--sky);
+  }
+ 
+  .card{
+    background:var(--glass);
+    backdrop-filter:blur(18px);
+    -webkit-backdrop-filter:blur(18px);
+    border:1px solid var(--glass-border);
+    border-radius:var(--radius-lg);
+    padding:34px 30px 28px;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,0.55);
+  }
+ 
+  .card-title{
+    text-align:center;
+    color:var(--white);
+    font-size:18px;
+    font-weight:600;
+    margin-bottom:24px;
+  }
+ 
+  .field label{
+    display:block;
+    font-size:12.5px;
+    font-weight:400;
+    color:var(--sky);
+    margin-bottom:8px;
+    letter-spacing:0.02em;
+  }
+ 
+  .input-wrap{
+    position:relative;
+    display:flex;
+    align-items:center;
+  }
+ 
+  .input-wrap i.leading{
+    position:absolute;
+    left:16px;
+    font-size:14.5px;
+    color:rgba(255,255,255,0.55);
+    transition:color 0.25s ease;
+  }
+ 
+  .input-wrap input{
+    width:100%;
+    font-family:'Kanit', sans-serif;
+    font-size:14.5px;
+    font-weight:400;
+    color:var(--white);
+    background:rgba(255,255,255,0.08);
+    border:1.5px solid rgba(255,255,255,0.2);
+    border-radius:var(--radius-md);
+    padding:14px 15px 14px 44px;
+    outline:none;
+    transition:border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+  }
+ 
+  .input-wrap input::placeholder{
+    color:rgba(255,255,255,0.4);
+    font-weight:300;
+  }
+ 
+  .input-wrap input:focus{
+    border-color:var(--sky);
+    background:rgba(255,255,255,0.14);
+    box-shadow:0 0 0 4px rgba(169,203,234,0.18);
+  }
+ 
+  .input-wrap:has(input:focus) i.leading{
+    color:var(--sky);
+  }
+ 
+  .btn-login{
+    width:100%;
+    margin-top:26px;
+    font-family:'Kanit', sans-serif;
+    font-size:15px;
+    font-weight:600;
+    letter-spacing:0.02em;
+    color:var(--navy-deep);
+    background:linear-gradient(100deg, var(--white), var(--sky));
+    border:none;
+    border-radius:var(--radius-md);
+    padding:14px 0;
+    cursor:pointer;
+    position:relative;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:9px;
+    box-shadow:0 14px 28px -10px rgba(0,0,0,0.5);
+    transition:transform 0.18s ease, box-shadow 0.25s ease, filter 0.25s ease;
+  }
+ 
+  .btn-login::before{
+    content:"";
+    position:absolute;
+    top:0;
+    left:-60%;
+    width:40%;
+    height:100%;
+    background:linear-gradient(120deg, transparent, rgba(255,255,255,0.75), transparent);
+    transform:skewX(-20deg);
+    animation:shimmer 3s ease-in-out infinite;
+  }
+ 
+  @keyframes shimmer{
+    0%{left:-60%;}
+    50%{left:130%;}
+    100%{left:130%;}
+  }
+ 
+  .btn-login:hover{
+    filter:brightness(1.05);
+    box-shadow:0 18px 34px -10px rgba(0,0,0,0.6);
+    transform:translateY(-1px);
+  }
+ 
+  .btn-login:active{transform:translateY(0) scale(0.98);}
+ 
+  .ripple-el{
+    position:absolute;
+    border-radius:50%;
+    background:rgba(12,47,85,0.35);
+    transform:scale(0);
+    animation:rippleAnim 0.6s ease-out forwards;
+    pointer-events:none;
+  }
+  @keyframes rippleAnim{
+    to{transform:scale(3.4); opacity:0;}
+  }
+ 
+  .btn-login .btn-label,
+  .btn-login .btn-spinner{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    position:relative;
+    z-index:1;
+  }
+  .btn-login .btn-spinner{display:none;}
+  .btn-login.loading .btn-label{display:none;}
+  .btn-login.loading .btn-spinner{display:flex;}
+  .btn-login.loading{cursor:not-allowed;}
+ 
+  .spinner{
+    width:16px;
+    height:16px;
+    border:2.5px solid rgba(12,47,85,0.3);
+    border-top-color:var(--navy-deep);
+    border-radius:50%;
+    animation:spin 0.7s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+ 
+  .error-msg{
+    display:none;
+    align-items:center;
+    gap:8px;
+    background:rgba(220,80,80,0.15);
+    border:1px solid rgba(220,80,80,0.4);
+    color:#FFD9D9;
+    font-size:12.5px;
+    font-weight:400;
+    padding:10px 13px;
+    border-radius:10px;
+    margin-bottom:16px;
+  }
+  .error-msg.show{display:flex;}
+ 
+  .shake{animation:shakeErr 0.45s ease;}
+  @keyframes shakeErr{
+    0%,100%{transform:translateX(0);}
+    20%{transform:translateX(-8px);}
+    40%{transform:translateX(7px);}
+    60%{transform:translateX(-5px);}
+    80%{transform:translateX(4px);}
+  }
+ 
+  .datetime{
+    text-align:center;
+    margin-top:22px;
+    color:rgba(255,255,255,0.8);
+  }
+  .dt-time{font-size:18px; font-weight:500; color:var(--white); letter-spacing:0.03em; text-shadow:0 2px 10px rgba(0,0,0,0.5);}
+  .dt-date{font-size:11.5px; font-weight:300; color:rgba(255,255,255,0.65); margin-top:2px;}
+ 
+  .footnote{
+    text-align:center;
+    margin-top:16px;
+    font-size:11px;
+    font-weight:300;
+    color:rgba(255,255,255,0.55);
+  }
+ 
+  /* Loading overlay */
+  .loading-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(6,27,51,0.75);
+    backdrop-filter:blur(6px);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    gap:16px;
+    z-index:10;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity 0.35s ease;
+  }
+  .loading-overlay.show{opacity:1; pointer-events:all;}
+ 
+  .loading-card{
+    background:rgba(255,255,255,0.95);
+    border-radius:var(--radius-md);
+    padding:30px 38px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:12px;
+    box-shadow:0 24px 50px -14px rgba(0,0,0,0.5);
+    transform:scale(0.9);
+    transition:transform 0.35s cubic-bezier(.22,1,.36,1);
+  }
+  .loading-overlay.show .loading-card{transform:scale(1);}
+ 
+  .spinner-lg{
+    width:36px;
+    height:36px;
+    border:3.5px solid var(--gray-300);
+    border-top-color:var(--navy);
+    border-radius:50%;
+    animation:spin 0.7s linear infinite;
+  }
+  .loading-text{font-size:14px; font-weight:500; color:var(--navy);}
+  .loading-sub{font-size:12px; font-weight:300; color:var(--gray-500);}
+ 
+  @media (max-width:480px){
+    .card{padding:28px 22px 24px;}
+    .brand h1{font-size:18px;}
+    .hero-bg{background-position:center 15%;}
+  }
+ 
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important;}
+  }
+</style>
+</head>
+<body>
+ 
+  <div class="hero-bg"></div>
+  <div class="bg-gradient"></div>
+  <div class="overlay"></div>
+  <div class="grain"></div>
+ 
+  <div class="content">
+ 
+    <div class="brand">
+      <div class="brand-mark">
+        <i class="fa-solid fa-truck-fast"></i>
+      </div>
+      <h1>Insurance Management System</h1>
+      <p>ระบบบริหารงานประกันภัยกับคุณพลอย</p>
+    </div>
+ 
+    <div class="card">
+      <div class="card-title">ลงชื่อเข้าสู่ระบบ</div>
+ 
+      <div class="error-msg" id="errorMsg">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <span>กรุณากรอกชื่อผู้แจ้งก่อนเข้าสู่ระบบ</span>
+      </div>
+ 
+      <form id="loginForm" novalidate>
+        <div class="field">
+          <label for="fullname">ชื่อผู้ใช้งาน (ผู้แจ้ง)</label>
+          <div class="input-wrap">
+            <i class="fa-solid fa-user leading"></i>
+            <input type="text" id="fullname" name="fullname" placeholder="กรอกชื่อของคุณ" autocomplete="name" required>
+          </div>
+        </div>
+ 
+        <button type="submit" class="btn-login" id="btnLogin">
+          <span class="btn-label">
+            <i class="fa-solid fa-right-to-bracket"></i>
+            เข้าสู่ระบบ
+          </span>
+          <span class="btn-spinner">
+            <span class="spinner"></span>
+            กำลังเข้าสู่ระบบ...
+          </span>
+        </button>
+      </form>
+    </div>
+ 
+    <div class="datetime">
+      <div class="dt-time" id="dtTime">--:--:--</div>
+      <div class="dt-date" id="dtDate">-</div>
+    </div>
+ 
+    <div class="footnote">&copy; 2026 ประกันภัยกับคุณพลอย </div>
+  </div>
+ 
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-card">
+      <div class="spinner-lg"></div>
+      <div class="loading-text">กำลังเข้าสู่ระบบ...</div>
+      <div class="loading-sub" id="loadingSub"></div>
+    </div>
+  </div>
+ 
+<script>
+  const form = document.getElementById('loginForm');
+  const btnLogin = document.getElementById('btnLogin');
+  const fullnameInput = document.getElementById('fullname');
+  const card = document.querySelector('.card');
+  const errorMsg = document.getElementById('errorMsg');
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  const loadingSub = document.getElementById('loadingSub');
+ 
+  // Ripple effect ตอนกดปุ่ม
+  btnLogin.addEventListener('click', function (e) {
+    const rect = btnLogin.getBoundingClientRect();
+    const ripple = document.createElement('span');
+    const size = Math.max(rect.width, rect.height);
+    ripple.className = 'ripple-el';
+    ripple.style.width = ripple.style.height = size + 'px';
+    ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+    ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+    btnLogin.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 650);
+  });
+ 
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    errorMsg.classList.remove('show');
+ 
+    const name = fullnameInput.value.trim();
+ 
+    if (!name) {
+      showError('กรุณากรอกชื่อผู้แจ้งก่อนเข้าสู่ระบบ');
+      return;
+    }
+ 
+    btnLogin.classList.add('loading');
+    btnLogin.disabled = true;
+ 
+    // บันทึกชื่อผู้ใช้งานไว้ใน LocalStorage / SessionStorage
+    // ชื่อนี้จะถูกนำไปใช้เป็น "ผู้แจ้ง" ใน form_product.html และ form_car.html โดยอัตโนมัติ
+    localStorage.setItem('currentUser', name);
+    sessionStorage.setItem('currentUser', name);
+ 
+    loadingSub.textContent = name;
+    loadingOverlay.classList.add('show');
+ 
+    setTimeout(() => {
+      window.location.href = 'index.html';
+    }, 1200);
+  });
+ 
+  function showError(message) {
+    errorMsg.querySelector('span').textContent = message;
+    errorMsg.classList.add('show');
+    card.classList.remove('shake');
+    void card.offsetWidth;
+    card.classList.add('shake');
+  }
+ 
+  // แสดงวันและเวลาปัจจุบัน
+  function updateDateTime() {
+    const now = new Date();
+    const time = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const date = now.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    document.getElementById('dtTime').textContent = time;
+    document.getElementById('dtDate').textContent = date;
+  }
+  updateDateTime();
+  setInterval(updateDateTime, 1000);
+</script>
+ 
+</body>
+</html>
+ 

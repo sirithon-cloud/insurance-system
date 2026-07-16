@@ -1,44 +1,83 @@
 <!DOCTYPE html>
 <html lang="th">
-
+ 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ฟอร์มประกันสินค้า</title>
-
+ 
     <link rel="stylesheet" href="style.css">
-
+ 
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-
+ 
+    <style>
+        .installment-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+ 
+        .installment-options input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+ 
+        .installment-options label {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 20px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            user-select: none;
+            transition: all 0.15s ease-in-out;
+            background: #fff;
+            margin: 0;
+        }
+ 
+        .installment-options input[type="radio"]:checked + label {
+            border-color: #2d6cdf;
+            background: #2d6cdf;
+            color: #fff;
+        }
+ 
+        .installment-options label:hover {
+            border-color: #2d6cdf;
+        }
+    </style>
+ 
 </head>
-
+ 
 <body class="form-page">
-
+ 
 <div class="topbar">
     <button id="menuBtn">☰</button>
     <img src="logo.png" class="toplogo" alt="logo">
     <span class="apptitle">บันทึกข้อมูลประกันสินค้า</span>
 </div>
-
+ 
 <aside class="sidebar" id="sidebar">
     <ul>
         <li><a href="index.html" class="menu-link">🏠 หน้าหลัก</a></li>
         <li><a href="revenue.html" class="menu-link">📈 กราฟรายได้</a></li>
     </ul>
 </aside>
-
+ 
 <div id="overlay"></div>
-
+ 
 <main class="form-card">
-
+ 
         <h1 class="form-title">📦 ประกันสินค้า</h1>
         <p class="subtitle" style="margin-top:-20px;">กรอกข้อมูลให้ครบถ้วน ระบบจะบันทึกและคำนวณยอดค้างชำระให้อัตโนมัติ</p>
-
+ 
         <form id="productForm">
-
+ 
             <div class="section-title">🏢 ข้อมูลบริษัท</div>
-
+ 
             <label>บริษัทประกันภัย</label>
             <select id="company" required>
                 <option value="">-- เลือกบริษัท --</option>
@@ -48,128 +87,154 @@
                 <option value="AXA">AXA</option>
                 <option value="กรุงเทพ">กรุงเทพ</option>
             </select>
-
+ 
             <div class="section-title">👤 ข้อมูลผู้เอาประกัน</div>
-
+ 
             <label>ชื่อผู้แจ้ง</label>
             <input type="text" id="requestName" required>
-
+ 
             <label>ชื่อผู้เอาประกัน</label>
             <input type="text" id="name" required>
-
+ 
             <div class="form-group">
             <label>เบอร์โทรศัพท์</label>
             <input type="tel" id="phone" placeholder="08x-xxx-xxxx">
             </div>
-
+ 
             <label>ที่อยู่</label>
             <textarea id="address"></textarea>
-
+ 
             <div class="section-title">🚗 ข้อมูลรถ</div>
-
+ 
             <label>ยี่ห้อ</label>
             <input type="text" id="brand">
-
+ 
             <label>ทะเบียน</label>
             <input type="text" id="plate">
-
+ 
             <label>เลขตัวถัง</label>
             <input type="text" id="chassis">
-
+ 
             <div class="section-title">📅 ระยะเวลาคุ้มครอง</div>
-
+ 
             <div class="row">
                 <div>
                     <label>วันเริ่ม</label>
                     <input type="date" id="start">
                 </div>
-
+ 
                 <div>
                     <label>วันสิ้นสุด</label>
                     <input type="date" id="end">
                 </div>
             </div>
-
+ 
             <div class="section-title">💰 ข้อมูลการเงิน</div>
-
+ 
             <div class="row">
                 <div>
                     <label>ทุนประกัน</label>
                     <input type="number" id="sumInsured">
                 </div>
-
+ 
                 <div>
                     <label>รวม</label>
                     <input type="number" id="total">
                 </div>
             </div>
-
+ 
             <label>กลุ่มสินค้า</label>
-            <input type="text" id="group" placeholder="เช่น กลุ่ม 4  (ความเสียหายส่วนแรก 30% หรือขั้นต่ำ 20,000 บาท )">
-
+            <select id="group">
+                <option value="">-- เลือกกลุ่ม --</option>
+                <option value="กลุ่ม 1">กลุ่ม 1 (ค่าความเสียหายส่วนแรก 10% ของความเสียหาย หรือขั้นต่ำ 5,000 บาท แล้วแต่จำนวนใดจะสูงกว่า)</option>
+                <option value="กลุ่ม 2">กลุ่ม 2 (ค่าความเสียหายส่วนแรก 20% ของความเสียหาย หรือขั้นต่ำ 10,000 บาท แล้วแต่จำนวนใดจะสูงกว่า)</option>
+                <option value="กลุ่ม 3">กลุ่ม 3 (ค่าความเสียหายส่วนแรก 25% ของความเสียหาย หรือขั้นต่ำ 20,000 บาท แล้วแต่จำนวนใดจะสูงกว่า)</option>
+            </select>
+ 
+            <div class="section-title">จำนวนงวด</div>
+ 
+            <div class="installment-options" id="installmentCountGroup">
+                <input type="radio" name="installmentCount" id="installmentCount1" value="1">
+                <label for="installmentCount1">1 งวด</label>
+ 
+                <input type="radio" name="installmentCount" id="installmentCount2" value="2">
+                <label for="installmentCount2">2 งวด</label>
+ 
+                <input type="radio" name="installmentCount" id="installmentCount3" value="3">
+                <label for="installmentCount3">3 งวด</label>
+ 
+                <input type="radio" name="installmentCount" id="installmentCount4" value="4">
+                <label for="installmentCount4">4 งวด</label>
+            </div>
+ 
             <div class="section-title">💳 งวดชำระ</div>
-
+ 
             <div class="row">
                 <input type="number" id="installment1" placeholder="งวดที่ 1">
                 <input type="number" id="installment2" placeholder="งวดที่ 2">
                 <input type="number" id="installment3" placeholder="งวดที่ 3">
                 <input type="number" id="installment4" placeholder="งวดที่ 4">
             </div>
-
+ 
             <div class="button-group">
-
+ 
                 <button
                 type="button"
                 class="back-btn"
                 onclick="location.href='index.html'"> 
-
+ 
                 ← กลับ
-
+ 
                 </button>
-
-
+ 
+ 
                 <button
                 type="submit"
                 class="save-btn">
                     💾 บันทึกข้อมูล
                 </button>
-
-
+ 
+ 
                 <button type="button" class="edit-btn" onclick="editData()">
                     ✏️ แก้ไขข้อมูล
                 </button>
-
+ 
             </div>
-
+ 
         <button type="button"
                 class="document-btn"
                 onclick="openFiles()">
             📄 ไฟล์เอกสารทั้งหมด
         </button>
-
+ 
         </form>
-
+ 
     </main>
-
+ 
     <script type="module" src="script.js"></script>
-
+ 
     <script>
         /* แก้ไข: เดิมมีการประกาศ let editingId / editingIndex ซ้ำที่นี่
            ทั้งที่ script.js ประกาศตัวแปร editingId ไว้แล้ว การประกาศ let
            ชื่อเดียวกันซ้ำในหน้าเดียวกันทำให้เกิด SyntaxError และ <script>
            ก้อนนี้ทั้งก้อนไม่ทำงานเลย (ปุ่มบันทึก/ไฟล์เอกสาร/เมนูใช้ไม่ได้)
            จึงตัดออก ใช้ editingId ตัวที่ประกาศไว้ใน script.js แทน */
-
+ 
         let editingId = null;
-
+ 
+        function getInstallmentCount() {
+            const checked = document.querySelector('input[name="installmentCount"]:checked');
+            return checked ? checked.value : "";
+        }
+ 
         function collectFormData(type) {
-
+ 
         const record = {
     type: type,
-
+ 
     // วันที่กรอกฟอร์ม
             createDate: new Date().toLocaleDateString("th-TH"),
-
+ 
             company: document.getElementById("company")?.value,
             requestName: document.getElementById("requestName")?.value,
             customer: document.getElementById("name")?.value,
@@ -183,44 +248,50 @@
             sumInsured: document.getElementById("sumInsured")?.value,
             total: document.getElementById("total")?.value,
             group: document.getElementById("group")?.value,
+            installmentCount: getInstallmentCount(),
             installment1: document.getElementById("installment1")?.value,
             installment2: document.getElementById("installment2")?.value,
             installment3: document.getElementById("installment3")?.value,
             installment4: document.getElementById("installment4")?.value
         };
-
+ 
         // แนบ id เฉพาะตอนแก้ไขข้อมูลเดิม (id คือ document id จริงจาก Firestore)
         // ถ้าเป็นข้อมูลใหม่จะไม่มี id -> saveRecord() จะสร้างเอกสารใหม่ด้วย addDoc
         if (editingId) {
             record.id = editingId;
         }
-
+ 
         return record;
     }
-
+ 
         document.getElementById("productForm").addEventListener("submit", async function (e) {
     e.preventDefault();
-
+ 
+    if (!getInstallmentCount()) {
+        alert("กรุณาเลือกจำนวนงวด");
+        return;
+    }
+ 
     const record = collectFormData("product");
-
+ 
     // บันทึกลง Firestore (แหล่งข้อมูลกลางเดียว ทุกเครื่องเห็นตรงกัน)
     // saveRecord() จะ alert "บันทึกข้อมูลเรียบร้อย" ให้เองแล้ว
     await window.saveRecord(record);
-
+ 
     // เก็บไว้เฉพาะข้อมูลชั่วคราวสำหรับเปิดเอกสาร PDF ของรายการนี้ทันที
     localStorage.setItem(
         "pdfData",
         JSON.stringify(record)
     );
-
+ 
     // เคลียร์ข้อมูลแก้ไขชั่วคราว (ใช้แล้วหมดหน้าที่)
     localStorage.removeItem("editIndex");
     localStorage.removeItem("editData");
-
+ 
     location.href="report.html";
-
+ 
 });
-
+ 
     function openFiles() {
     const pdfData = collectFormData("product");
     if(!pdfData.company){
@@ -231,72 +302,89 @@
         "pdfData",
         JSON.stringify(pdfData)
     );
-
+ 
     window.location.href = "contract_print.html";
 }
-
+ 
         const menuBtn = document.getElementById("menuBtn");
         const sidebar = document.querySelector(".sidebar");
         const overlay = document.getElementById("overlay");
-
+ 
         if (menuBtn && sidebar && overlay) {
-
+ 
             menuBtn.addEventListener("click", function () {
                 sidebar.classList.toggle("show");
                 overlay.classList.toggle("show");
             });
-
+ 
             overlay.addEventListener("click", function () {
                 sidebar.classList.remove("show");
                 overlay.classList.remove("show");
             });
-
+ 
         }
-
+ 
         window.addEventListener("DOMContentLoaded", function(){
-
+ 
+    // ===== เพิ่มใหม่: ดึงชื่อผู้ Login จากระบบ Login เดิม (login.html) =====
+    // login.html บันทึกชื่อผู้ใช้งานไว้ที่ localStorage/sessionStorage key "currentUser"
+    // ถ้ามีการ Login อยู่ ให้เติมชื่อนี้ลงช่อง "ผู้แจ้ง" ทันทีที่เปิดหน้า
+    // ถ้ายังไม่ได้ Login (ไม่มีค่าใน storage) ให้ปล่อยช่องว่างไว้ตามเดิม
+    const currentUser = localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser');
+    if (currentUser) {
+        document.getElementById("requestName").value = currentUser;
+    }
+    // ===== จบส่วนที่เพิ่มใหม่ =====
+ 
     const oldData = JSON.parse(localStorage.getItem("editData"));
-
+ 
     console.log("รับข้อมูลแก้ไข:", oldData);
-
-
+ 
+ 
     if(oldData){
-
+ 
         editingId = oldData.id;
-
-
+ 
+ 
         document.getElementById("company").value = oldData.company || "";
         document.getElementById("requestName").value = oldData.requestName || "";
         document.getElementById("name").value = oldData.customer || "";
         document.getElementById("phone").value = oldData.phone || "";
         document.getElementById("address").value = oldData.address || "";
-
+ 
         document.getElementById("brand").value = oldData.brand || "";
         document.getElementById("plate").value = oldData.plate || "";
         document.getElementById("chassis").value = oldData.chassis || "";
-
+ 
         document.getElementById("start").value = oldData.start || "";
         document.getElementById("end").value = oldData.end || "";
-
+ 
         document.getElementById("sumInsured").value = oldData.sumInsured || "";
         document.getElementById("total").value = oldData.total || "";
         document.getElementById("group").value = oldData.group || "";
-
+ 
+        if (oldData.installmentCount) {
+            const radio = document.getElementById("installmentCount" + oldData.installmentCount);
+            if (radio) radio.checked = true;
+        }
+ 
         document.getElementById("installment1").value = oldData.installment1 || "";
         document.getElementById("installment2").value = oldData.installment2 || "";
         document.getElementById("installment3").value = oldData.installment3 || "";
         document.getElementById("installment4").value = oldData.installment4 || "";
-
+ 
     }
-
+ 
 },500);
     </script>
     
     
-
+ 
 </body>
-
+ 
 </html>
  
+
+
 
 

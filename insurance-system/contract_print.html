@@ -446,6 +446,30 @@ function companyMeta() {
 }
  
 /* ==========================================================
+   รายละเอียดความเสียหายส่วนแรกตามกลุ่มสินค้า (เพิ่มใหม่)
+========================================================== */
+const GROUP_DETAILS = {
+    "กลุ่ม 1": "( ค่าความเสียหายส่วนแรก 10% ของความเสียหาย หรือขั้นต่ำ 5,000 บาท แล้วแต่จำนวนใดจะสูงกว่า)",
+    "กลุ่ม 2": "( ค่าความเสียหายส่วนแรก 20% ของความเสียหาย หรือขั้นต่ำ 10,000 บาท แล้วแต่จำนวนใดจะสูงกว่า)",
+    "กลุ่ม 3": "( ค่าความเสียหายส่วนแรก 25% ของความเสียหาย หรือขั้นต่ำ 20,000 บาท แล้วแต่จำนวนใดจะสูงกว่า)"
+};
+ 
+function groupDeductibleText() {
+    return GROUP_DETAILS[data.group] || "( ค่าความเสียหายส่วนแรก 25% ของความเสียหาย หรือขั้นต่ำ 20,000 บาท แล้วแต่จำนวนใดจะสูงกว่า)";
+}
+ 
+/* ==========================================================
+   จำนวนงวด / ยอดต่องวด จากข้อมูลที่บันทึกจริง (เพิ่มใหม่)
+========================================================== */
+function getInstallmentPlan() {
+    let count = parseInt(data.installmentCount, 10);
+    if (!count || count < 1) count = 1;
+    const totalAmount = Number(data.total) || 0;
+    const perInstallment = count > 0 ? totalAmount / count : totalAmount;
+    return { count, perInstallment };
+}
+ 
+/* ==========================================================
    ตัวเลขเป็นข้อความไทย
 ========================================================== */
 function numberToThaiText(numStr) {
@@ -513,11 +537,11 @@ if (data) {
    RENDER: ใบรับเงิน
 ========================================================== */
 function renderReceipt(info, typeLabel) {
-    const receiptInstallments = [1, 2, 3, 4].map(i => Number(data["installment" + i]) || 0).filter(v => v > 0);
-    const instCount = receiptInstallments.length || 1;
-    const perInstallment = receiptInstallments.length ? receiptInstallments[0] : Number(data.total) || 0;
+    const instCount = Number(data.installmentCount || 1);
+    const perInstallment = Number(data.total || 0) / instCount;
     const productLabel = typeLabel.includes("รถยนต์") ? "ประกันรถยนต์" : "ประกันสินค้า";
     const receiptCompanyName = companyMeta().fullName;
+
     return `
         <!-- ส่วนหัว -->
         <div style="
@@ -990,6 +1014,7 @@ function renderviriyahMain() {
     padding-top:8px;
     display:flex;
     justify-content:space-between;
+    margin-left:20px;
 ">
                 <div>สำหรับเจ้าหน้าที่บริษัทฯ: ลงชื่อเจ้าหน้าที่รับประกัน <span class="field-line" style="min-width:150px;"> </span></div>
                 <div>สาขา <span class="field-line"> </span></div>
@@ -1007,25 +1032,19 @@ function renderviriyahMain() {
    RENDER: สัญญาวิริยะ - สัญญาคำขอแบ่งชำระค่าเบี้ยประกันภัย
 ========================================================== */
 function renderviriyahContract() {
-    const installmentsRaw = [
-        Number(data.installment1) || 0,
-        Number(data.installment2) || 0,
-        Number(data.installment3) || 0,
-        Number(data.installment4) || 0
-    ];
-    const installments = installmentsRaw.filter(v => v > 0);
+    const plan = getInstallmentPlan();
  
     const contractDate = new Date();
     let installmentRows = "";
-    installmentsRaw.forEach((amt, i) => {
+    for (let i = 0; i < plan.count; i++) {
         const due = new Date(contractDate);
         due.setDate(due.getDate() + 30 * (i + 1));
         installmentRows += `
             <div class="field-row" style="margin:8px 0;">
-                <div><span class="lbl">งวดที่ ${i + 1} ยอดที่ต้องชำระ</span><span class="field-line" style="min-width:140px;">${fmt(amt)} บาท</span></div>
+                <div><span class="lbl">งวดที่ ${i + 1} ยอดที่ต้องชำระ</span><span class="field-line" style="min-width:140px;">${fmt(plan.perInstallment)} บาท</span></div>
                 <div><span class="lbl">วันที่ครบกำหนด</span><span class="field-line" style="min-width:140px;">${toBuddhistDate(due)}</span></div>
             </div>`;
-    });
+    }
  
  return `
 <div style="margin-bottom:20px;padding-top:18px;">
@@ -1035,6 +1054,7 @@ function renderviriyahContract() {
         text-align:left;
         font-size:16px;
         line-height:1.6;
+        text-indent:40px;
     ">
         168/1 หมู่ที่ 1 ตำบลหนองไผ่ อำเภอชุมแพ จังหวัดขอนแก่น 40130
     </div>
@@ -1053,6 +1073,7 @@ function renderviriyahContract() {
         text-align:right;
         font-size:16px;
         margin-bottom:15px;
+        margin-right:40px;
     ">
         วันที่ ${toBuddhistDate(contractDate)}
     </div>
@@ -1088,7 +1109,7 @@ function renderviriyahContract() {
     </div>
     <div class="field-row" style="margin:10px 0 16px;">
         <div><span class="lbl">ค่าเบี้ยประกันภัย</span><span class="field-line" style="min-width:160px;">${fmt(data.total)} บาท</span></div>
-        <div><span class="lbl">จำนวนงวด</span><span class="field-line" style="min-width:100px;">${installments.length} งวด</span></div>
+        <div><span class="lbl">จำนวนงวด</span><span class="field-line" style="min-width:100px;">${plan.count} งวด</span></div>
     </div>
  
     <p style="
@@ -1203,7 +1224,7 @@ function renderviriyahContract() {
  
                 <!-- ลายเซ็น -->
                 <div style="
-                    margin-top:70px;
+                    margin-top:150px;
                     text-align:center;
                     line-height:2.2;
                 ">
@@ -1287,7 +1308,7 @@ function renderCarrierApplication(companyKey) {
                     ${safe(data.group)}
                 </span>
                 </div>
-                <div class="sub small" style="padding-left:24px;">( ค่าความเสียหายส่วนแรก 25% ของความเสียหาย หรือขั้นต่ำ 20,000 บาท แล้วแต่จำนวนใดจะสูงกว่า)</div>
+                <div class="sub small" style="padding-left:24px;">${groupDeductibleText()}</div>
                 <div class="sub small" style="padding-left:24px;">**ไม่คุ้มครองสิ่งมีชีวิต สินค้าใช้แล้ว สิ่งของส่งซ่อม ของมือสอง บุหรี่${isMuangthai ? " ยานพาหนะ รถยนต์ รถจักรยานยนต์" : ""} สินค้าที่ไม่ได้รับค่าตอบแทน**</div>
                 <div class="sub small" style="padding-left:24px;">**ขยายความคุ้มครองสำหรับสินค้า กรณียางแตก/ยางระเบิด สินค้าที่บรรทุกต้องไม่เกินกว่า 5,000 กิโลกรัม เงื่อนไขความคุ้มครองเป็นไปตามที่บริษัทกำหนด**</div>
             </div>
@@ -1919,25 +1940,19 @@ function renderPowerOfAttorney(companyFullName) {
 ========================================================== */
 function renderBrokerContract(companyFullName) {
  
-    const installmentsRaw = [
-        Number(data.installment1) || 0,
-        Number(data.installment2) || 0,
-        Number(data.installment3) || 0,
-        Number(data.installment4) || 0
-    ];
-    const installments = installmentsRaw.filter(v => v > 0);
+    const plan = getInstallmentPlan();
  
     const contractDate = new Date();
     let installmentRows = "";
-    installmentsRaw.forEach((amt, i) => {
+    for (let i = 0; i < plan.count; i++) {
         const due = new Date(contractDate);
         due.setDate(due.getDate() + 30 * (i + 1));
         installmentRows += `
             <div class="field-row" style="margin:8px 0;">
-                <div><span class="lbl">งวดที่ ${i + 1} ยอดที่ต้องชำระ</span><span class="field-line" style="min-width:140px;">${fmt(amt)} บาท</span></div>
+                <div><span class="lbl">งวดที่ ${i + 1} ยอดที่ต้องชำระ</span><span class="field-line" style="min-width:140px;">${fmt(plan.perInstallment)} บาท</span></div>
                 <div><span class="lbl">วันที่ครบกำหนด</span><span class="field-line" style="min-width:140px;">${toBuddhistDate(due)}</span></div>
             </div>`;
-    });
+    }
  
     return `
 <div style="margin-bottom:20px;padding-top:18px;">
@@ -1947,8 +1962,16 @@ function renderBrokerContract(companyFullName) {
         text-align:left;
         font-size:16px;
         line-height:1.6;
+        text-indent:40px;
     ">
         สำนักงานนายหน้าประกันวินาศภัย โดยคุณอรุณลักษณ์ มหาจตุพัฒน์<br>
+        <!-- ส่วนหัว -->
+    <div style="
+        text-align:left;
+        font-size:16px;
+        line-height:1.6;
+        text-indent:40px;
+    ">
         520 หมู่ที่ 5 ตำบลโนนสะอาด อำเภอชุมแพ จังหวัดขอนแก่น โทร.043-312788
     </div>
  
@@ -1966,6 +1989,7 @@ function renderBrokerContract(companyFullName) {
         text-align:right;
         font-size:16px;
         margin-bottom:15px;
+        margin-right:40px;
     ">
         วันที่ ${toBuddhistDate(contractDate)}
     </div>
@@ -2027,7 +2051,7 @@ function renderBrokerContract(companyFullName) {
     <div>
         <span class="lbl">จำนวนงวด</span>
         <span class="field-line" style="min-width:100px;">
-            ${installments.length} งวด
+            ${plan.count} งวด
         </span>
     </div>
 </div>
@@ -2039,7 +2063,7 @@ function renderBrokerContract(companyFullName) {
     margin-bottom:15px;
 ">
     โดยข้าพเจ้าตกลงแบ่งชำระเงินจำนวนดังกล่าวคืนให้นายหน้าประกัน
-    เป็นจำนวน <b>${installments.length}</b> งวด
+    เป็นจำนวน <b>${plan.count}</b> งวด
     กำหนดชำระทุก ๆ 30 วัน นับจากวันที่ทำสัญญาฉบับนี้
     จนครบเต็มจำนวน ตามรายละเอียดดังต่อไปนี้
 </p>
@@ -2172,7 +2196,7 @@ function renderBrokerContract(companyFullName) {
  
 <!-- ลายเซ็น -->
 <div style="
-    margin-top:70px;
+    margin-top:150px;
     text-align:center;
     line-height:2.2;
 ">
@@ -2408,21 +2432,3 @@ document.title = fileBase;
  
 </body>
 </html>
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
-
- 
-
- 
-
-
-
-
