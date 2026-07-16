@@ -159,7 +159,42 @@
                 font-weight:bold;
                 color:#002d72;
             }
- 
+
+           /* เพิ่มใหม่: ปุ่ม "← กลับ" ไปหน้า account_menu.html
+   ใช้ class เฉพาะของหน้านี้ ไม่แตะ style.css และไม่กระทบ UI ส่วนอื่น
+   แก้ไข: ลดขนาดปุ่มให้กะทัดรัดแต่ยังกดถนัดมือ (padding แนวตั้งพอสำหรับนิ้วกด)
+   และย้ายปุ่มขึ้นมาลอยชิดซ้าย ขนานกับหัวข้อ "รายงานข้อมูลประกันทั้งหมด" แทนที่จะอยู่แถวแยกด้านบน */
+.report-card{
+    position:relative;
+}
+
+.report-back-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+
+    background:#52525252;
+    color:#fff;
+
+    border:none;
+    padding:12px 30px;
+    border-radius:999px;
+
+    font-family:"Kanit",sans-serif;
+    font-weight:600;
+    font-size:12px;
+
+    cursor:pointer;
+    transition:.2s;
+
+    position:absolute;
+    left:20px;
+    top:90px;
+}
+
+.report-back-btn:hover{
+    background:#1E4FC4;
+}
             
  
  
@@ -194,6 +229,11 @@
  
  
         <div class="report-card">
+
+        <!-- เพิ่มใหม่: ปุ่มกลับไปหน้าเมนูบัญชี -->
+        <button class="report-back-btn" onclick="location.href='account_menu.html'">
+            ← กลับ
+        </button>
  
         <h1>
         📊 รายงานข้อมูลประกันทั้งหมด
@@ -267,6 +307,8 @@
  
         <thead>
         <tr>
+        <!-- แก้ไข: ย้ายคอลัมน์ "จัดการ" มาไว้หน้าคอลัมน์ "ลำดับ" เพื่อให้กดปุ่มจัดการง่ายขึ้น -->
+        <th>จัดการ</th>
         <th>ลำดับ</th>
         <th>ชื่อผู้แจ้ง</th>
         <th>วันที่แจ้งงาน</th>
@@ -287,7 +329,6 @@
         <th>งวด3</th>
         <th>งวด4</th>
         <th>ยอดค้าง</th>
-        <th>จัดการ</th>
         </tr>
  
         </thead>
@@ -356,14 +397,41 @@ const db = getFirestore(app);
  
         ];
 
+        /* เพิ่มใหม่: helper แปลงวันที่แจ้งงาน (createDate เช่น "16/07/2569") ที่ผู้ใช้กรอก/ระบบบันทึกไว้
+           ให้เป็นตัวเลข millisecond โดยแปลงปี พ.ศ. -> ค.ศ. (-543) ใช้เป็นตัวเรียงสำรอง
+           สำหรับข้อมูลที่ไม่มี createdAt (Firestore Timestamp) จะได้ไม่ต้องยุบรวมเป็น 0 ทั้งหมด */
+        function parseCreateDateMillis(createDate){
+
+            if(!createDate) return 0;
+
+            const parts = createDate.split("/");
+
+            if(parts.length !== 3) return 0;
+
+            const day = Number(parts[0]);
+            const month = Number(parts[1]);
+            const year = Number(parts[2]);
+
+            if(isNaN(day) || isNaN(month) || isNaN(year)) return 0;
+
+            const gregorianYear = year - 543;
+
+            const d = new Date(gregorianYear, month - 1, day);
+
+            return isNaN(d.getTime()) ? 0 : d.getTime();
+
+        }
+
         /* เพิ่มใหม่: helper แปลง createdAt (Firestore Timestamp) เป็นตัวเลข millisecond
            เพื่อเรียงข้อมูลตามลำดับการบันทึกจริง (เก่า -> ใหม่ อยู่ล่างสุด) และคงลำดับ
-           เดิมทุกครั้งที่รีเฟรชหน้า ข้อมูลเก่าที่ไม่มี field นี้จะได้ 0 (อยู่บนสุด ไม่หาย) */
+           เดิมทุกครั้งที่รีเฟรชหน้า
+           แก้ไข: เดิมข้อมูลที่ไม่มี field นี้จะได้ 0 ทั้งหมด (กองรวมกันไม่มีลำดับที่แน่นอน)
+           เปลี่ยนเป็น fallback ไปใช้วันที่กรอก (createDate) แทน เพื่อให้เรียงตามวันเวลาที่กรอกจริงเสมอ */
         function getSortMillis(item){
             if(item && item.createdAt && typeof item.createdAt.toMillis === "function"){
                 return item.createdAt.toMillis();
             }
-            return 0;
+            return parseCreateDateMillis(item && item.createDate);
         }
  
  
@@ -418,6 +486,12 @@ const db = getFirestore(app);
  
         function renderTable(){
  
+            // แก้บั๊ก: เดิม populateFilters() ถูกเรียก "หลัง" กรองข้อมูล ทำให้รอบแรกที่เปิดหน้า
+            // <select> ตัวกรองยังไม่มี <option> ค่า .value จึงเป็นค่าว่าง (ไม่ใช่ "all")
+            // ส่งผลให้ getFilteredData() กรองข้อมูลหายไปหมดตั้งแต่รอบแรก (ตารางว่างจนกว่าจะเลือกตัวกรอง)
+            // แก้โดยเรียก populateFilters() ก่อน เพื่อให้ทุกตัวกรองพร้อมค่า "all" ก่อนกรอง/แสดงข้อมูลเสมอ
+            populateFilters();
+ 
             // allData มาจาก Firestore แบบ realtime (onSnapshot) ไม่อ่านจาก localStorage แล้ว
             let tbody = document.querySelector("tbody");
  
@@ -428,9 +502,35 @@ const db = getFirestore(app);
  
  
                 tbody.innerHTML += `
- 
+
         <tr>
- 
+
+        <!-- แก้ไข: ย้ายปุ่มจัดการมาไว้คอลัมน์แรกของแถว เพื่อให้กดง่ายขึ้น -->
+        <td class="action-buttons">
+
+
+        <button 
+        class="edit-btn"
+        onclick="editItem('${item.id}')">
+        ✏️
+        </button>
+
+
+        <button 
+        class="doc-btn"
+        onclick="openDoc('${item.id}')">
+        📄
+        </button>
+
+
+        <button 
+        class="delete-btn"
+        onclick="deleteItem('${item.id}')">
+        🗑️
+        </button>
+
+        </td>
+
         <td>${i+1}</td>
         <td>${item.requestName || "-"}</td>
         <td>${item.createDate || "-"}</td>
@@ -491,40 +591,12 @@ const db = getFirestore(app);
         ).toLocaleString()
         }
         </td>
- 
- 
-<td class="action-buttons">
- 
- 
-        <button 
-        class="edit-btn"
-        onclick="editItem('${item.id}')">
-        ✏️
-        </button>
- 
- 
-        <button 
-        class="doc-btn"
-        onclick="openDoc('${item.id}')">
-        📄
-        </button>
- 
- 
-        <button 
-        class="delete-btn"
-        onclick="deleteItem('${item.id}')">
-        🗑️
-        </button>
- 
-        </td>
- 
+
         </tr>
- 
+
         `;
  
             });
- 
-            populateFilters();
  
         }
  
@@ -1188,3 +1260,9 @@ if(menuBtn && sidebar && overlay){
 </body>
  
 </html>
+
+
+
+
+
+

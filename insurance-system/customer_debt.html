@@ -133,14 +133,14 @@ tbody tr:not(.overdue):not(.not-overdue):not(.paid-complete):hover{
 
 /* แถบสีทั้งแถวตามสถานะ */
 tr.overdue td{
-    background:#FFE7E0;
-    color:#B94324;
+    background:#ff3737;
+    color:#ffffff;
     font-weight:600;
 }
 
 tr.not-overdue td{
-    background:#E1F7EF;
-    color:#178064;
+    background:#66ee61d5;
+    color:#025c0e;
     font-weight:600;
 }
 
@@ -186,18 +186,34 @@ tr.paid-complete td{
 
 }
 
+/* เพิ่มใหม่: แถวบนสุดรวมปุ่มกลับ + ยอดลูกหนี้รวม ให้อยู่แถวเดียวกัน */
+.debt-top-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:14px;
+    margin-top:18px;
+    margin-bottom:6px;
+}
+
+.debt-top-row .debt-total{
+    margin-top:0;
+    margin-bottom:0;
+}
 
 
+
+/* แก้ไข: ย้ายปุ่มกลับมาไว้ด้านบน ข้างยอดลูกหนี้รวม และเปลี่ยนเป็นโทนสีแดงเข้มขึ้น */
 .back-btn-debt{
 
-    margin-top:25px;
     display:inline-flex;
     align-items:center;
     gap:6px;
 
-    background:var(--blue-light);
+    background:#79797486;
 
-    color:var(--blue-dark);
+    color:#fff;
 
     border:none;
 
@@ -217,7 +233,7 @@ tr.paid-complete td{
 }
 
 .back-btn-debt:hover{
-    background:#DCE9FF;
+    background:#C62828;
 }
 
 
@@ -237,9 +253,16 @@ tr.paid-complete td{
 <h1>
 💰 รายงานลูกหนี้
 </h1>
-<p class="debt-subtitle">สรุปยอดค้างชำระของลูกค้าทั้งหมด เรียงตามจำนวนวันที่เกินกำหนดมากที่สุด</p>
 
-<div class="debt-total" id="debtTotal"></div>
+<!-- แก้ไข: ย้ายปุ่มกลับมาไว้ด้านบน ข้างยอดลูกหนี้รวม -->
+<div class="debt-top-row">
+    <button class="back-btn-debt"
+    onclick="location.href='account_menu.html'">
+    ← กลับเมนูบัญชี
+    </button>
+
+    <div class="debt-total" id="debtTotal"></div>
+</div>
 
 
 
@@ -308,13 +331,6 @@ tr.paid-complete td{
 
 </table>
 
-
-<button class="back-btn-debt"
-onclick="location.href='account_menu.html'">
-
-← กลับเมนูบัญชี
-
-</button>
 
 
 
@@ -613,3 +629,9 @@ onSnapshot(collection(db, "insuranceData"), (snapshot) => {
 </body>
 
 </html>
+
+
+
+
+
+
