@@ -76,11 +76,104 @@ table{
     text-align:center;
     color:#152A54;
     margin-bottom:14px;
-    font-size:16px;
+    font-size:clamp(14px, 3.6vw, 16px);
 }
 
 .finance-chart-box canvas{
     max-height:340px;
+}
+
+/* เพิ่มใหม่: กล่องเลื่อนดูกราฟแนวนอนบนมือถือ กันกราฟล้นจอ/ตัวอักษรบีบจนอ่านไม่ออก
+   กำหนดความสูงตายตัวไว้ (ปรับตาม breakpoint ด้านล่าง) เพื่อให้ Chart.js
+   (ตั้งค่า maintainAspectRatio:false ในสคริปต์) ควบคุมความสูงของกราฟได้แม่นยำ
+   ถ้าจอกว้างพอ (>=680px) กราฟจะเต็มความกว้างพอดีเหมือนเดิม ไม่มีสกอลล์แนวนอน */
+.finance-chart-scroll{
+    width:100%;
+    height:340px;
+    overflow-x:auto;
+    overflow-y:hidden;
+    -webkit-overflow-scrolling:touch;
+}
+
+.finance-chart-scroll canvas{
+    min-width:680px;
+    height:100% !important;
+}
+
+/* เพิ่มใหม่: กล่องเลื่อนดูตารางแนวนอนบนมือถือ กันตารางบีบจนอ่านไม่ได้ */
+.finance-table-scroll{
+    width:100%;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    touch-action:pan-x pan-y pinch-zoom;
+    border-radius:10px;
+}
+
+.finance-table-scroll table{
+    min-width:900px;
+}
+
+@media(max-width:768px){
+
+    /* กราฟ: ลดความสูงลงบนมือถือ ให้พอดีจอโดยไม่ล้น */
+    .finance-chart-box{
+        padding:12px;
+    }
+
+    .finance-chart-scroll{
+        height:240px;
+    }
+
+    .finance-chart-scroll canvas{
+        min-width:560px;
+    }
+
+    /* ตาราง: ลดขนาดฟอนต์และ padding ให้อ่านง่ายขึ้นในพื้นที่จำกัด */
+    .finance-table-scroll table{
+        min-width:760px;
+        font-size:11px;
+    }
+
+    .finance-table-scroll th,
+    .finance-table-scroll td{
+        padding:6px 8px;
+        white-space:nowrap;
+    }
+
+    /* ตัวกรอง: ปุ่ม/กล่องเลือกไม่ให้ทับกัน ให้เรียงชิดกันแบบยืดหยุ่น */
+    .finance-summary-filters{
+        gap:10px;
+    }
+
+    .finance-summary-filters select{
+        font-size:12px;
+        padding:5px 8px;
+    }
+
+    .back-btn{
+        width:100%;
+        max-width:280px;
+    }
+}
+
+@media(max-width:480px){
+
+    .finance-chart-box h3{
+        font-size:13px;
+    }
+
+    .finance-chart-scroll{
+        height:200px;
+    }
+
+    .finance-table-scroll table{
+        min-width:680px;
+        font-size:10px;
+    }
+
+    .finance-summary-total{
+        font-size:14px;
+    }
 }
 </style>
 
@@ -90,7 +183,25 @@ table{
 
 <body>
 
-<!-- SIDEBAR / TOPBAR ใช้ของเดิมได้ -->
+<!-- เพิ่มใหม่: TOPBAR + SIDEBAR เหมือนหน้าอื่นในระบบ (ใช้ class เดิมจาก style.css) -->
+<div class="topbar">
+    <button id="menuBtn">☰</button>
+    <img src="logo.png" class="toplogo" alt="logo">
+    <span class="apptitle">ระบบประกันรถยนต์กับคุณพลอย</span>
+</div>
+
+<aside class="sidebar" id="sidebar">
+    <img src="logo.png" class="logo">
+
+    <ul class="menu">
+        <li><a href="index.html" class="menu-link">🏠 หน้าหลัก</a></li>
+        <li><a href="account_menu.html" class="menu-link">📒 เมนูบัญชี</a></li>
+        <li><a href="report.html" class="menu-link">📊 รายงาน</a></li>
+        <li><a href="revenue.html" class="menu-link">📈 กราฟรายได้</a></li>
+    </ul>
+</aside>
+
+<div id="overlay"></div>
 
 <div class="main">
 
@@ -122,9 +233,14 @@ table{
 <!-- เพิ่มใหม่: กราฟรายได้รายเดือน (แยกตามบริษัท/พนักงานที่เลือกกรอง) -->
 <div class="finance-chart-box">
     <h3>📈 กราฟรายได้รายเดือน</h3>
-    <canvas id="revenueChart"></canvas>
+    <!-- เพิ่มใหม่: ห่อด้วยกล่องเลื่อนแนวนอน กันกราฟล้นจอบนมือถือ -->
+    <div class="finance-chart-scroll">
+        <canvas id="revenueChart"></canvas>
+    </div>
 </div>
 
+<!-- เพิ่มใหม่: ห่อด้วยกล่องเลื่อนแนวนอน กันตารางบีบจนอ่านไม่ได้บนมือถือ -->
+<div class="finance-table-scroll">
 <table>
 <thead>
 <tr>
@@ -136,6 +252,8 @@ table{
     <th>ทะเบียน</th>
     <th>วันเริ่ม</th>
     <th>รวม</th>
+    <!-- เพิ่มใหม่: คอลัมน์ผู้แจ้งงานจากระบบ login แบบง่าย (employeeName) -->
+    <th>ผู้แจ้งงาน</th>
 </tr>
 </thead>
 
@@ -144,6 +262,7 @@ table{
 </tbody>
 
 </table>
+</div>
 
     <div style="text-align:center; margin-top:30px;">
     <a href="index.html" class="back-btn">
@@ -191,7 +310,10 @@ const THAI_MONTHS = [
     "กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"
 ];
 
-const KNOWN_COMPANIES = ["วิริยะ","เมืองไทย","AIG"];
+// เพิ่มใหม่: บริษัทที่ต้องการให้ขึ้นเป็นตัวเลือกในตัวกรองเสมอ แม้ยังไม่มีรายการบันทึกของบริษัทนั้น
+// (บริษัทอื่นนอกเหนือจากนี้ที่พบใน insuranceData จริง จะถูกเพิ่มเข้ามาโดยอัตโนมัติเช่นเดิม
+// ดูฟังก์ชัน populateFilters() ด้านล่าง)
+const EXTRA_COMPANY_OPTIONS = ["วิริยะ","เมืองไทย","AIG","AXA","KWI","กรุงเทพ"];
 
 function formatDate(date){
 
@@ -238,11 +360,15 @@ function populateFilters(){
     const prevMonth = monthSelect.value || "all";
 
     // บริษัท
-    const companiesFromData = [...new Set(allData.map(i=>i.company).filter(Boolean))];
-    const extraCompanies = companiesFromData.filter(c=>!KNOWN_COMPANIES.includes(c));
-    const companies = [...KNOWN_COMPANIES, ...extraCompanies];
+    // แก้ไข: เดิมดึงรายชื่อบริษัทจากข้อมูลจริงอย่างเดียว ทำให้บริษัทที่ยังไม่มีรายการบันทึกเลย
+    // (เช่น AXA, KWI, กรุงเทพ ตอนที่ยังไม่มีใครบันทึกงานของบริษัทเหล่านี้) จะไม่ขึ้นในตัวกรอง
+    // เพิ่ม EXTRA_COMPANY_OPTIONS ให้ปุ่มเลือกบริษัทเหล่านี้ขึ้นเสมอ ไม่ว่าจะมีข้อมูลหรือยัง
+    // และยังคงรวมบริษัทอื่นๆ ที่มีข้อมูลจริงในระบบเข้ามาด้วยอัตโนมัติเหมือนเดิม (ไม่กำหนดตายตัวทั้งหมด)
+    const companiesFromData = allData.map(i=>i.company).filter(Boolean);
+    const companies = [...new Set([...EXTRA_COMPANY_OPTIONS, ...companiesFromData])]
+        .sort((a,b)=>a.localeCompare(b,"th"));
 
-    companySelect.innerHTML = `<option value="all">ทั้งหมด</option>` +
+    companySelect.innerHTML = `<option value="all">ทุกบริษัท</option>` +
         companies.map(c=>`<option value="${c}">${c}</option>`).join("");
     companySelect.value = companies.includes(prevCompany) ? prevCompany : "all";
 
@@ -319,6 +445,9 @@ function renderTable(){
             <td>${item.plate || "-"}</td>
             <td>${formatDate(item.start)}</td>
             <td>${Number(item.total || 0).toLocaleString()}</td>
+            <!-- เพิ่มใหม่: แสดงผู้แจ้งงานจาก field employeeName (ระบบ login ใหม่)
+                 รายการเก่าที่ยังไม่มี field นี้ จะ fallback ไปใช้ requestName แทน ไม่ error -->
+            <td>${item.employeeName || item.requestName || "-"}</td>
         </tr>
         `;
 
@@ -355,8 +484,17 @@ function renderChart(){
 
     const ctx = document.getElementById("revenueChart");
 
+    // เพิ่มใหม่: ปรับขนาดตัวอักษรบนกราฟให้เล็กลงอัตโนมัติเมื่อจอแคบลง (มือถือ)
+    // เพื่อให้ตัวเลข/ป้ายกำกับแกน X-Y ยังอ่านง่าย ไม่ล้นทับกัน
+    const isNarrowScreen = window.innerWidth <= 480;
+    const isMobileScreen = window.innerWidth <= 768;
+    const axisFontSize = isNarrowScreen ? 9 : (isMobileScreen ? 10.5 : 12);
+    const legendFontSize = isNarrowScreen ? 10 : (isMobileScreen ? 11 : 13);
+
     if(chartInstance){
         chartInstance.data.datasets[0].data = monthlyTotals;
+        chartInstance.options.scales.x.ticks.font.size = axisFontSize;
+        chartInstance.options.scales.y.ticks.font.size = axisFontSize;
         chartInstance.update();
         return;
     }
@@ -379,13 +517,27 @@ function renderChart(){
         },
         options: {
             responsive: true,
+            // เพิ่มใหม่: ปิด maintainAspectRatio เพื่อให้กราฟใช้ความสูงตาม CSS ของ
+            // .finance-chart-scroll (ปรับตามขนาดจอผ่าน media query) แทนการคำนวณสัดส่วนเอง
+            maintainAspectRatio: false,
             plugins: {
-                legend: { display: false }
+                legend: {
+                    display: false
+                }
             },
             scales: {
+                x: {
+                    ticks: {
+                        font: { size: axisFontSize },
+                        // เพิ่มใหม่: เอียงป้ายกำกับเดือนบนจอแคบ ป้องกันตัวอักษรทับกัน
+                        maxRotation: isMobileScreen ? 60 : 0,
+                        minRotation: isMobileScreen ? 45 : 0
+                    }
+                },
                 y: {
                     beginAtZero: true,
                     ticks: {
+                        font: { size: axisFontSize },
                         callback: function(value){
                             return Number(value).toLocaleString();
                         }
@@ -413,6 +565,35 @@ onSnapshot(collection(db, "insuranceData"), (snapshot) => {
     updateAll();
 });
 
+/* เพิ่มใหม่: เมื่อผู้ใช้หมุนจอหรือปรับขนาดหน้าต่าง ให้คำนวณขนาดฟอนต์ของกราฟใหม่
+   (debounce ด้วย setTimeout กันเรียกถี่เกินไประหว่างลาก resize) */
+let financeResizeTimer = null;
+window.addEventListener("resize", function(){
+    clearTimeout(financeResizeTimer);
+    financeResizeTimer = setTimeout(renderChart, 200);
+});
+
+</script>
+
+<!-- เพิ่มใหม่: สคริปต์เปิด/ปิด sidebar เหมือนหน้าอื่นในระบบ (ไม่ใช่ type="module"
+     เพราะปุ่มเมนูไม่เกี่ยวกับ Firestore ให้ทำงานได้ทันทีไม่ต้องรอโหลดข้อมูล) -->
+<script>
+const menuBtn = document.getElementById("menuBtn");
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("overlay");
+
+if(menuBtn && sidebar && overlay){
+
+    menuBtn.addEventListener("click", () => {
+        sidebar.classList.toggle("show");
+        overlay.classList.toggle("show");
+    });
+
+    overlay.addEventListener("click", () => {
+        sidebar.classList.remove("show");
+        overlay.classList.remove("show");
+    });
+}
 </script>
 
 </body>

@@ -126,6 +126,9 @@
          เพื่อให้บันทึกข้อมูลลง Firestore แหล่งเดียวกับทุกหน้า -->
     <script type="module" src="script.js"></script>
 
+    <!-- เพิ่มใหม่: โหลด auth.js เพื่อใช้ getEmployeeName() ตอนบันทึกข้อมูล -->
+    <script src="auth.js"></script>
+
     <script>
     function collectFormData(type) {
         return {
@@ -150,7 +153,11 @@
             installment1: document.getElementById("installment1")?.value,
             installment2: document.getElementById("installment2")?.value,
             installment3: document.getElementById("installment3")?.value,
-            installment4: document.getElementById("installment4")?.value
+            installment4: document.getElementById("installment4")?.value,
+
+            // เพิ่มใหม่: ชื่อพนักงานผู้แจ้งงานที่ล็อกอินอยู่ (จากระบบ login แบบง่าย auth.js)
+            // ข้อมูลเก่าที่ไม่มี field นี้จะยังใช้งานได้ตามปกติ
+            employeeName: (typeof getEmployeeName === "function") ? getEmployeeName() : ""
         };
     }
 

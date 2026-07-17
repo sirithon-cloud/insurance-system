@@ -167,7 +167,7 @@
                 <label for="installmentCount4">4 งวด</label>
             </div>
  
-            <div class="section-title">💳 งวดชำระ</div>
+            <div class="section-title">💳 งวดชำระแล้ว</div>
  
             <div class="row">
                 <input type="number" id="installment1" placeholder="งวดที่ 1">
@@ -212,6 +212,9 @@
     </main>
  
     <script type="module" src="script.js"></script>
+
+    <!-- เพิ่มใหม่: โหลด auth.js เพื่อใช้ getEmployeeName() ตอนบันทึกข้อมูล -->
+    <script src="auth.js"></script>
  
     <script>
         /* แก้ไข: เดิมมีการประกาศ let editingId / editingIndex ซ้ำที่นี่
@@ -252,7 +255,12 @@
             installment1: document.getElementById("installment1")?.value,
             installment2: document.getElementById("installment2")?.value,
             installment3: document.getElementById("installment3")?.value,
-            installment4: document.getElementById("installment4")?.value
+            installment4: document.getElementById("installment4")?.value,
+
+            // เพิ่มใหม่: ชื่อพนักงานผู้แจ้งงานที่ล็อกอินอยู่ (จากระบบ login แบบง่าย auth.js)
+            // ใช้ typeof เช็คกันไว้เผื่อ auth.js โหลดไม่ทันหรือไม่มีอยู่ จะได้ไม่ error
+            // ข้อมูลเก่าที่ไม่มี field นี้จะยังใช้งานได้ตามปกติ (ไม่มี field นี้เฉยๆ)
+            employeeName: (typeof getEmployeeName === "function") ? getEmployeeName() : ""
         };
  
         // แนบ id เฉพาะตอนแก้ไขข้อมูลเดิม (id คือ document id จริงจาก Firestore)
@@ -383,8 +391,3 @@
 </body>
  
 </html>
- 
-
-
-
-

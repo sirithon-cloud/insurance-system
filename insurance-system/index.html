@@ -10,6 +10,13 @@
 
     <link rel="stylesheet" href="style.css">
 
+    <!-- เพิ่มใหม่: ระบบ login แบบง่าย (ไม่มี username/password) -->
+    <script src="auth.js"></script>
+    <script>
+        // ตรวจสอบทันทีตั้งแต่ต้นหน้า: ถ้ายังไม่มีชื่อพนักงานผู้แจ้งงาน ให้เด้งไปหน้า login.html ก่อน
+        requireLogin();
+    </script>
+
 </head>
 
 <body>
@@ -19,6 +26,15 @@
         <button id="menuBtn">☰</button>
         <img src="logo.png" class="toplogo" alt="logo">
         <span class="apptitle">ระบบประกันรถยนต์กับคุณพลอย</span>
+
+        <!-- เพิ่มใหม่: แสดงชื่อพนักงานที่ล็อกอินอยู่ + ปุ่ม Logout
+             จัดชิดขวาแบบง่ายด้วย inline style เพื่อไม่แตะ style.css เดิม -->
+        <span id="employeeBadge" style="margin-left:auto; margin-right:10px; color:#152A54; font-size:13px; font-weight:600;"></span>
+        <button id="logoutBtn"
+            style="background:#EAF1FF; color:#1E4FC4; border:none; padding:8px 16px; border-radius:999px; font-family:'Kanit',sans-serif; font-weight:600; font-size:13px; cursor:pointer;"
+            onclick="logoutEmployee()">
+            ออกจากระบบ
+        </button>
     </div>
 
     <!-- SIDEBAR -->
@@ -58,6 +74,17 @@
 
     <!-- IMPORTANT: JS ต้องอยู่ล่างสุด -->
     <script type="module" src="script.js"></script>
+
+    <!-- เพิ่มใหม่: เติมชื่อพนักงานที่ล็อกอินอยู่ลงในป้ายด้านบน -->
+    <script>
+        (function () {
+            var badge = document.getElementById("employeeBadge");
+            var name = getEmployeeName();
+            if (badge && name) {
+                badge.innerText = "👤 " + name;
+            }
+        })();
+    </script>
 
 </body>
 

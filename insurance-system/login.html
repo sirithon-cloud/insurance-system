@@ -454,6 +454,9 @@
     </div>
   </div>
  
+<!-- เพิ่มใหม่: โหลด auth.js เพื่อใช้ฟังก์ชัน setEmployeeName() ร่วมกับหน้าอื่นๆ ในระบบ -->
+<script src="auth.js"></script>
+
 <script>
   const form = document.getElementById('loginForm');
   const btnLogin = document.getElementById('btnLogin');
@@ -494,6 +497,12 @@
     // ชื่อนี้จะถูกนำไปใช้เป็น "ผู้แจ้ง" ใน form_product.html และ form_car.html โดยอัตโนมัติ
     localStorage.setItem('currentUser', name);
     sessionStorage.setItem('currentUser', name);
+
+    // เพิ่มใหม่: บันทึกชื่อพนักงานผ่านระบบ auth.js (คีย์ "employeeName")
+    // ใช้ร่วมกันทุกหน้าเพื่อรู้ว่าใครเป็นผู้แจ้งงานในแต่ละรายการที่บันทึก
+    if (typeof setEmployeeName === "function") {
+        setEmployeeName(name);
+    }
  
     loadingSub.textContent = name;
     loadingOverlay.classList.add('show');
@@ -525,4 +534,3 @@
  
 </body>
 </html>
- 

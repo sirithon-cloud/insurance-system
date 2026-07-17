@@ -345,6 +345,8 @@
         <th>จัดการ</th>
         <th>ลำดับ</th>
         <th>ชื่อผู้แจ้ง</th>
+        <!-- เพิ่มใหม่: คอลัมน์ผู้แจ้งงานจากระบบ login แบบง่าย (employeeName) -->
+        <th>ผู้แจ้งงาน (Login)</th>
         <th>วันที่แจ้งงาน</th>
         <th>บริษัท</th>
         <th>ประเภทประกัน</th>
@@ -568,6 +570,9 @@ const db = getFirestore(app);
 
         <td>${i+1}</td>
         <td>${item.requestName || "-"}</td>
+        <!-- เพิ่มใหม่: แสดงผู้แจ้งงานจาก field employeeName (ระบบ login ใหม่)
+             รายการเก่าที่ยังไม่มี field นี้ จะ fallback ไปใช้ requestName แทน ไม่ error -->
+        <td>${item.employeeName || item.requestName || "-"}</td>
         <td>${item.createDate || "-"}</td>
         <td>${item.company || "-"}</td>
  
@@ -1295,35 +1300,3 @@ if(menuBtn && sidebar && overlay){
 </body>
  
 </html>
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
