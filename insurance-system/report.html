@@ -383,7 +383,10 @@ import {
     collection,
     onSnapshot,
     deleteDoc,
-    doc
+    doc,
+    query,
+    where,
+    Timestamp
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
  
 /* =========================
@@ -402,13 +405,82 @@ const firebaseConfig = {
  
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
- 
+
+/* =========================
+   [เพิ่มใหม่] ตั้งค่าลด Firestore Reads
+   - LOGIN_NAME_STORAGE_KEY: คีย์ localStorage ที่ระบบ login เก็บ "ชื่อพนักงานที่ล็อกอินอยู่"
+     *** สำคัญ: ถ้าระบบ login จริงของคุณเก็บชื่อผู้ใช้ไว้คนละคีย์ ให้แก้ค่านี้ให้ตรงกับของจริง ***
+   - EMPLOYEE_CACHE_KEY: ใช้เก็บ cache รายชื่อพนักงานที่เคย query เจอไว้ใน localStorage
+     เพื่อสร้าง dropdown "เลือกพนักงาน" โดยไม่ต้องโหลดข้อมูลทั้งหมดของ Firestore มาหาเอง
+========================= */
+const LOGIN_NAME_STORAGE_KEY = "employeeName";
+const EMPLOYEE_CACHE_KEY = "report_known_employees_v1";
+
+function getLoggedInEmployeeName(){
+    try{
+        return localStorage.getItem(LOGIN_NAME_STORAGE_KEY) || "";
+    }catch(e){
+        return "";
+    }
+}
+
+function loadKnownEmployees(){
+    try{
+        const raw = localStorage.getItem(EMPLOYEE_CACHE_KEY);
+        return raw ? JSON.parse(raw) : [];
+    }catch(e){
+        return [];
+    }
+}
+
+function saveKnownEmployees(list){
+    try{
+        localStorage.setItem(EMPLOYEE_CACHE_KEY, JSON.stringify(list));
+    }catch(e){
+        /* localStorage ใช้งานไม่ได้ ข้ามไป ไม่กระทบการทำงานหลัก */
+    }
+}
+
+/* สะสมรายชื่อพนักงานที่เจอจากผลลัพธ์ query แต่ละครั้งไว้ใน localStorage
+   เพื่อให้ dropdown "เลือกพนักงาน" ค่อย ๆ ครบขึ้นเรื่อย ๆ โดยไม่ต้องอ่านทั้ง collection */
+function addKnownEmployees(names){
+    const set = new Set(loadKnownEmployees());
+    let changed = false;
+    (names || []).forEach(n=>{
+        if(n && !set.has(n)){
+            set.add(n);
+            changed = true;
+        }
+    });
+    const list = [...set];
+    if(changed) saveKnownEmployees(list);
+    return list;
+}
+
+/* ปีปัจจุบัน (พ.ศ.) และเดือนปัจจุบัน ใช้สำหรับตั้งค่า filter เริ่มต้นตอนเปิดหน้า */
+function getCurrentBuddhistYear(){
+    return String(new Date().getFullYear() + 543);
+}
+
+function getCurrentMonthKey(){
+    return String(new Date().getMonth() + 1).padStart(2, "0");
+}
+
+const loggedInEmployee = getLoggedInEmployeeName();
+if(loggedInEmployee){
+    addKnownEmployees([loggedInEmployee]);
+}
+
 /* =========================
    STORAGE
-   (allData ตอนนี้มาจาก Firestore แบบ realtime ผ่าน onSnapshot ด้านล่าง ไม่ใช้ localStorage แล้ว)
+   (allData มาจาก Firestore แบบ realtime ผ่าน onSnapshot ด้านล่าง
+   [แก้ไข] เปลี่ยนจากการอ่านข้อมูลทั้ง collection มาเป็นการอ่านเฉพาะที่ตรงกับตัวกรอง
+   ที่เลือกอยู่ผ่าน Firestore Query (where) เพื่อลดจำนวน Firestore Reads)
 ========================= */
  
         let allData = [];
+        let filtersInitialized = false;
+        let unsubscribeSnapshot = null;
  
  
  
@@ -730,17 +802,19 @@ const db = getFirestore(app);
  
                 : "all";
 
-            /* เพิ่มใหม่: สร้างตัวเลือกรายชื่อพนักงาน (requestName) จากข้อมูลจริงแบบ Real-time
-               เป็นตัวเลือกเสริม ค่าเริ่มต้น "ทั้งหมด" */
-            const employeesFromData = [
+            /* เพิ่มใหม่: สร้างตัวเลือกรายชื่อพนักงาน (requestName) เป็นตัวเลือกเสริม ค่าเริ่มต้น "ทั้งหมด"
+               [แก้ไข] เดิมดึงจาก allData ทั้งหมด (ต้องโหลดข้อมูลทั้ง collection ก่อนถึงจะรู้รายชื่อ)
+               เปลี่ยนเป็นรวมจาก 3 แหล่ง: cache ที่เคย query เจอสะสมไว้ (localStorage)
+               + ข้อมูลชุดที่ query ได้ในรอบปัจจุบัน + ชื่อผู้ล็อกอินปัจจุบัน
+               เพื่อไม่ต้องอ่านข้อมูลทั้งหมดของ Firestore เพียงเพื่อสร้าง dropdown นี้ */
+            const namesFromCurrentData = allData
+                .map(item=>item.requestName)
+                .filter(e=>e);
 
-                ...new Set(
-                    allData
-                    .map(item=>item.requestName)
-                    .filter(e=>e)
-                )
-
-            ];
+            const employeesFromData = addKnownEmployees([
+                ...namesFromCurrentData,
+                ...(loggedInEmployee ? [loggedInEmployee] : [])
+            ]);
 
             employeeSelect.innerHTML =
 
@@ -772,32 +846,54 @@ const db = getFirestore(app);
             populateYearOptions();
  
             populateMonthOptions();
- 
+
+            /* [แก้ไข] ตั้งค่าตัวกรองเริ่มต้น "ครั้งแรกที่เปิดหน้า" เท่านั้น
+               ตามที่ต้องการ: แสดงเฉพาะ "ชื่อผู้แจ้ง" กับ "เดือน" ขึ้นมาก่อน
+               ส่วนบริษัทและปี ยังคงเป็น "ทั้งหมด" ตามค่าเริ่มต้นปกติ (ไม่ auto-select ปี)
+               - เดือน = เดือนปัจจุบัน
+               - ผู้แจ้งงาน = ผู้ใช้ที่ล็อกอินอยู่ (ถ้าระบบ login มีค่านี้)
+               ใช้ flag filtersInitialized กันไม่ให้ค่าที่ผู้ใช้เลือกเองภายหลังถูก reset ทับ */
+            if(!filtersInitialized){
+
+                filtersInitialized = true;
+
+                const currentMonth = getCurrentMonthKey();
+                if([...monthSelect.options].some(o=>o.value === currentMonth)){
+                    monthSelect.value = currentMonth;
+                }
+
+                if(
+                    loggedInEmployee &&
+                    [...employeeSelect.options].some(o=>o.value === loggedInEmployee)
+                ){
+                    employeeSelect.value = loggedInEmployee;
+                }
+
+            }
+
+/* [แก้ไข] เดิมเมื่อเปลี่ยนตัวกรองจะแค่กรอง allData (ที่โหลดมาทั้งหมดแล้ว) ด้วย JS แล้ว render ใหม่
+   เปลี่ยนเป็นเรียก subscribeToData() เพื่อสร้าง Firestore Query (where) ใหม่ตามตัวกรองล่าสุด
+   แล้ว query ข้อมูลจาก Firestore เฉพาะส่วนที่ตรงเงื่อนไขเท่านั้น (ลด Reads ตามเงื่อนไขข้อ 3 และ 5) */
 companySelect.onchange = function(){
-    updateSummary();
-    renderTable();
+    subscribeToData();
 };
  
  
 yearSelect.onchange = function(){
-    updateSummary();
-    renderTable();
+    subscribeToData();
 };
  
  
 monthSelect.onchange = function(){
-    updateSummary();
-    renderTable();
+    subscribeToData();
 };
 
 employeeSelect.onchange = function(){
-    updateSummary();
-    renderTable();
+    subscribeToData();
 };
 
 document.getElementById("filterType").onchange = function(){
-    updateSummary();
-    renderTable();
+    subscribeToData();
 };
  
  
@@ -1144,24 +1240,131 @@ function getFilteredData(){
  
         
 /* =========================
-   เริ่มทำงาน
+   [เพิ่มใหม่] สร้างช่วงวันที่ (createdAt) จากปี/เดือน พ.ศ. ที่เลือกอยู่
+   ใช้สำหรับทำ Firestore range query บนฟิลด์ createdAt (Timestamp) เพื่อกรองข้อมูล
+   ตั้งแต่ต้นทางที่ Firestore แทนการโหลดมาทั้งหมดแล้วกรองด้วย JavaScript
+
+   หมายเหตุ: ถ้าเลือกปี = "ทั้งหมด" จะไม่ใส่ตัวกรองช่วงวันที่ในระดับ query เพราะ Firestore
+   ไม่สามารถ range-query "เดือนเดียวกันแต่ทุกปี" ในคำสั่งเดียวได้อย่างมีประสิทธิภาพ
+   กรณีนี้ (และกรณีเอกสารเก่าที่ไม่มีฟิลด์ createdAt) ระบบจะยังกรองซ้ำที่ฝั่ง client
+   ด้วยฟังก์ชัน getFilteredData() ที่มีอยู่เดิม เพื่อไม่ให้ข้อมูลเดิมตกหล่น
 ========================= */
- 
- 
-/* ฟังข้อมูลจาก Firestore แบบ realtime
-   เมื่อมีใครเพิ่ม/แก้ไข/ลบข้อมูล จากเครื่องไหนก็ตาม ตารางนี้จะอัปเดตอัตโนมัติ
-   เปิดหน้าแล้วแสดงข้อมูลทั้งหมดทันที (ตัวกรองทั้งหมด default = "ทั้งหมด") */
-onSnapshot(collection(db, "insuranceData"), (snapshot) => {
- 
-    allData = snapshot.docs.map(d => ({
-        id: d.id,
-        ...d.data()
-    }));
- 
-    renderTable();
-    updateSummary();
- 
-});
+function buildDateRange(selectedYear, selectedMonth){
+
+    if(selectedYear === "all"){
+        return null;
+    }
+
+    const gregorianYear = Number(selectedYear) - 543;
+
+    if(isNaN(gregorianYear)){
+        return null;
+    }
+
+    if(selectedMonth === "all"){
+        return {
+            start: new Date(gregorianYear, 0, 1),
+            end: new Date(gregorianYear + 1, 0, 1)
+        };
+    }
+
+    const m = Number(selectedMonth);
+
+    if(isNaN(m)){
+        return null;
+    }
+
+    return {
+        start: new Date(gregorianYear, m - 1, 1),
+        end: new Date(gregorianYear, m, 1)
+    };
+
+}
+
+/* =========================
+   [เพิ่มใหม่] สร้าง Firestore Query ตามตัวกรอง (บริษัท/พนักงาน/ประเภท/ปี-เดือน) ที่เลือกอยู่ปัจจุบัน
+   ใช้ where() ตั้งแต่ต้นทาง (เงื่อนไขข้อ 5) เพื่อให้ Firestore ส่งกลับมาเฉพาะเอกสารที่ตรงเงื่อนไข
+   แทนที่จะอ่านทั้ง collection แล้วมากรองด้วย JavaScript (เงื่อนไขข้อ 4)
+========================= */
+function buildFirestoreQuery(){
+
+    const selectedCompany = document.getElementById("filterCompany").value || "all";
+    const selectedEmployee = document.getElementById("filterEmployee").value || "all";
+    const selectedYear = document.getElementById("filterYear").value || "all";
+    const selectedMonth = document.getElementById("filterMonth").value || "all";
+    const selectedType = document.getElementById("filterType").value || "all";
+
+    const base = collection(db, "insuranceData");
+    const constraints = [];
+
+    if(selectedCompany !== "all"){
+        constraints.push(where("company", "==", selectedCompany));
+    }
+
+    /* ผู้แจ้งงาน: ใช้ฟิลด์ requestName ให้ตรงกับตัวกรอง "เลือกพนักงาน" เดิม
+       *** ถ้าระบบ login จริงของคุณต้องการอิงจากฟิลด์ employeeName (ผู้แจ้งงานจาก Login) แทน
+       ให้เปลี่ยน "requestName" ด้านล่างนี้เป็น "employeeName" ให้ตรงกับข้อมูลจริง *** */
+    if(selectedEmployee !== "all"){
+        constraints.push(where("requestName", "==", selectedEmployee));
+    }
+
+    if(selectedType !== "all"){
+        constraints.push(where("type", "==", selectedType));
+    }
+
+    const range = buildDateRange(selectedYear, selectedMonth);
+
+    if(range){
+        constraints.push(where("createdAt", ">=", Timestamp.fromDate(range.start)));
+        constraints.push(where("createdAt", "<", Timestamp.fromDate(range.end)));
+    }
+
+    return constraints.length ? query(base, ...constraints) : base;
+
+}
+
+/* =========================
+   [เพิ่มใหม่] Subscribe ข้อมูลจาก Firestore ตาม Query ปัจจุบัน (realtime)
+   ทุกครั้งที่ผู้ใช้เปลี่ยนตัวกรอง (พนักงาน/บริษัท/ปี/เดือน/ประเภท) ฟังก์ชันนี้จะถูกเรียกใหม่
+   (เงื่อนไขข้อ 3) โดยจะยกเลิก listener เดิมก่อน แล้วค่อย query Firestore รอบใหม่ตามเงื่อนไขล่าสุด
+========================= */
+function subscribeToData(){
+
+    if(unsubscribeSnapshot){
+        unsubscribeSnapshot();
+        unsubscribeSnapshot = null;
+    }
+
+    const q = buildFirestoreQuery();
+
+    unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
+
+        allData = snapshot.docs.map(d => ({
+            id: d.id,
+            ...d.data()
+        }));
+
+        /* สะสมชื่อพนักงานที่เจอไว้ใช้สร้าง dropdown ในครั้งถัดไป โดยไม่ต้องโหลดข้อมูลทั้งหมด */
+        addKnownEmployees(allData.map(item => item.requestName).filter(Boolean));
+
+        renderTable();
+        updateSummary();
+
+    });
+
+}
+
+/* =========================
+   เริ่มทำงาน
+   [แก้ไข] เดิม subscribe อ่านข้อมูลทั้ง collection "insuranceData" ครั้งเดียว แล้วกรองทุกอย่างด้วย JS
+   เปลี่ยนเป็น 2 ขั้นตอน:
+   1) เรียก populateFilters() ก่อน เพื่อตั้งค่าตัวกรองเริ่มต้น
+      (ผู้แจ้งงาน = ผู้ล็อกอิน, เดือน = ปัจจุบัน ส่วนบริษัท/ปี ยังคงเป็น "ทั้งหมด")
+   2) เรียก subscribeToData() เพื่อ query Firestore เฉพาะข้อมูลที่ตรงกับตัวกรองเริ่มต้นนั้นทันที
+      ตามเงื่อนไขข้อ 2
+========================= */
+populateFilters();
+subscribeToData();
  
  
  

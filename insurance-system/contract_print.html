@@ -278,6 +278,19 @@ table.grid th{ background:#f0f2f5; }
 }
 .viriyah-only-form .form-top .small{ font-size:12px !important; }
  
+/* เพิ่มใหม่: ย่อพื้นที่เนื้อหาทั้งหมดของหน้า "ใบคำขอเอาประกันภัยวิริยะ" (main) เข้ามาเท่า ๆ กันทุกด้าน
+   เพื่อให้มีขอบกระดาษมากขึ้นเวลา Export PDF/JPG โดยไม่ใช้ transform/scale ไม่ลดขนาดตัวอักษร
+   และไม่เปลี่ยนตำแหน่งของแต่ละส่วนที่สัมพันธ์กัน (ปรับเฉพาะ width/max-width/padding/margin)
+   ใช้ scope เฉพาะ .viriyah-main-shrink ซึ่งครอบเฉพาะหน้านี้เท่านั้น จึงไม่กระทบหน้าเอกสารอื่น */
+.viriyah-main-shrink{
+    box-sizing:border-box;
+    width:100%;
+    max-width:100%;
+    height:100%;
+    margin:0 auto;
+    padding:12mm;
+}
+ 
 /* หน้าใบคำขอเอาประกันภัยความรับผิดของผู้ขนส่ง */
 .carrier-app-form,
 .carrier-app-form *{
@@ -299,16 +312,20 @@ table.grid th{ background:#f0f2f5; }
 }
 
 .carrier-app-form .claim-box > .tt{
-    font-size:18px !important;
+    font-size:20px !important;
 }
 
 .carrier-app-form .claim-box > .ph{
-    font-size:16px !important;
+    font-size:18px !important;
 }
 
 
 .carrier-app-form .num-block{ margin-bottom:8px; }
 .carrier-app-form .num-block .sub{ margin-top:3px; }
+.carrier-app-form .num-block > .head,
+.carrier-app-form .num-block > .head .no{ font-size:11.5px !important; }
+.carrier-app-form .num-block > .sub{ font-size:11.5px !important; }
+.carrier-app-form .num-block > .sub.sub-keep{ font-size:10px !important; }
 .carrier-app-form .qr-corner .cap{ font-size:9px !important; }
 .carrier-app-form .qr-corner div[style*="color:red"]{ font-size:10px !important; }
 .carrier-app-form .field-line{ min-width:0; }
@@ -335,6 +352,131 @@ table.grid th{ background:#f0f2f5; }
     .document-page > .app-box{
         min-height:100%;
     }
+}
+ 
+/* ==========================================================
+   AXA (แอกซ่า) - เอกสารต้นฉบับ 3 หน้าเต็ม (ใบเสนอราคา/ใบขอเอาประกันภัย)
+   สโคปทั้งหมดไว้ใต้ .axa3 เพื่อไม่กระทบดีไซน์ของเอกสารบริษัทอื่น ๆ
+   (ก็อปปี้ดีไซน์ต้นฉบับมาแบบคำต่อคำ เปลี่ยนเฉพาะสิ่งที่จำเป็นเพื่อให้ทำงานร่วมกับแอปได้:
+   - เปลี่ยน .page เดิม เป็นใช้กลไก .document-page/.page-scale ของแอปแทน (ไม่ซ้ำซ้อนกรอบหน้า)
+   - เปลี่ยนชื่อคลาส .chk เดิม เป็น .axa-chk เพื่อไม่ชนกับคลาส .chk ของแอป
+   - เพิ่ม !important/สโคปให้ชนะกฎ font-size สากลของแอปที่ (.document-page *) ================= */
+.axa3, .axa3 *{
+    font-size:11px !important;
+    line-height:1.65 !important;
+    box-sizing:border-box;
+}
+.axa3{
+    font-family:"Sarabun","TH Sarabun New",Tahoma,sans-serif;
+    color:#1a1a1a;
+    position:relative;
+    width:100%;
+    height:100%;
+    padding:26px 28px 3px 28px;
+    display:flex;
+    flex-direction:column;
+}
+.axa3 .producer-code{
+    position:absolute; top:22px; right:32px;
+    font-style:italic; font-size:10px !important;
+}
+.axa3 .producer-code .line{
+    display:inline-block; border-bottom:1px solid #1a1a1a; width:120px; margin-left:4px;
+}
+.axa3 .axa-logo{ position:absolute; top:20px; left:32px; height:44px; width:auto; }
+#page1 .axa-logo{ height:60px !important; }
+.axa3 .doc-title{ text-align:center; font-weight:700; font-size:18.5px !important; margin:8px 0 2px 0; }
+.axa3 .doc-subtitle{ text-align:center; font-weight:700; font-size:17px !important; margin:0 0 6px 0; }
+.axa3 .claim-notice{ text-align:center; color:#c0392b; font-weight:700; margin:2px 0 6px 0; font-size:14px !important; }
+.axa3 .meta-row{ display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px; font-size:11px !important; margin-bottom:2px; }
+.axa3 .valid-note{ text-align:center; font-weight:700; text-decoration:underline; margin:3px 0 5px 0; font-size:11px !important; }
+.axa3 table.info{ width:100%; table-layout:fixed; border-collapse:collapse; margin-bottom:0; }
+.axa3 table.info td{ border:1px solid #333; vertical-align:top; padding:4px 8px; word-wrap:break-word; overflow-wrap:break-word; }
+.axa3 table.info, .axa3 table.info *{ line-height:1.35 !important; }
+.axa3 table.info td.label{ width:150px; font-weight:600; font-size:11px !important; }
+.axa3 table.info td.colon{ width:20px; text-align:center; }
+.axa3 .sub{ font-size:10.5px !important; color:#444; text-align:left; margin-top:1px; }
+.axa3 .indent{ margin:2px 0 2px 12px; }
+.axa3 .period-options{ display:flex; gap:22px; align-items:center; flex-wrap:wrap; }
+.axa3 .period-options label{ display:inline-flex; align-items:center; gap:4px; font-weight:600; }
+.axa3 .period-dates{ display:flex; gap:24px; margin-top:6px; align-items:baseline; flex-wrap:wrap; }
+.axa3 .vehicle-fields{ display:flex; gap:18px; margin-top:6px; flex-wrap:wrap; }
+.axa3 ol.limits{ margin:0; padding-left:15px; }
+.axa3 ol.limits li{ margin-bottom:3px; }
+.axa3 .amt-line{ display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:4px 10px; }
+.axa3 .fill-line{ text-decoration:underline; font-weight:600; }
+.axa3 .fill-line-block{ display:block; border-bottom:1px solid #000; font-weight:600; min-height:17px; width:100%; }
+.axa3 .amt-fill{ text-decoration:underline; font-weight:600; min-width:90px; text-align:right; padding-right:4px; white-space:nowrap; }
+.axa3 table.premium{ width:100%; border-collapse:collapse; font-size:11px !important; table-layout:fixed; margin-top:0; margin-bottom:6px; }
+.axa3 table.premium, .axa3 table.premium *{ line-height:1.2 !important; }
+.axa3 table.premium th, .axa3 table.premium td{ border:1px solid #333; padding:3px 3px; text-align:center; vertical-align:middle; word-break:break-word; }
+.axa3 table.premium th{ font-weight:700; background:#fafafa; }
+.axa3 table.premium td.axa-chk-amt{ text-align:center; font-weight:600; }
+.axa3 table.premium td.axa-chk-amt .axa-box{ vertical-align:middle; margin-right:4px; }
+/* กล่องติ๊กแบบขีดถูก (ใช้แทน input checkbox เดิม เพื่อให้แสดงผลถูกต้องตอน Export PDF/JPG) */
+.axa3 .axa-box{
+    display:inline-block;
+    width:11px;
+    height:11px;
+    border:1px solid #000;
+    position:relative;
+    top:1px;
+    margin-right:3px;
+    vertical-align:middle;
+    cursor:pointer;
+}
+.axa3 .axa-box.on::after{
+    content:"✓";
+    position:absolute;
+    left:-1px;
+    top:-4px;
+    font-size:11px;
+    line-height:1;
+}
+.axa3 .footer-company{ margin-top:auto !important; padding-top:6px; font-size:10px !important; line-height:1.3 !important; color:#002d72; }
+#page1 .footer-company{ margin-bottom:18px !important; }
+.axa3 .footer-company *{ font-size:10px !important; line-height:1.3 !important; color:#002d72; }
+.axa3 .footer-company .th-name{ font-weight:700; }
+.axa3 .page-num{ margin-top:auto; padding-top:10px; font-size:10px !important; color:#555; text-align:right; }
+.axa3 table.detail{ width:100%; table-layout:fixed; border-collapse:collapse; margin-top:70px; }
+.axa3 table.detail td{ border:1px solid #333; vertical-align:top; padding:7px 9px; word-wrap:break-word; overflow-wrap:break-word; }
+.axa3 table.detail td.label{ width:150px; font-weight:600; font-size:11px !important; }
+.axa3 table.detail td.colon{ width:20px; text-align:center; }
+.axa3 table.detail p{ margin:0 0 5px 0; }
+.axa3 table.detail p:last-child{ margin-bottom:0; }
+.axa3 .group-line{ margin:2px 0; }
+.axa3 .group-label{ font-weight:600; }
+.axa3 .glrow{ display:flex; align-items:flex-start; margin:3px 0; }
+.axa3 .glrow .gl-label{ flex:0 0 auto; font-weight:600; white-space:nowrap; padding-right:6px; }
+.axa3 .glrow .gl-colon{ flex:0 0 10px; }
+.axa3 .glrow .gl-desc{ flex:1 1 auto; }
+.axa3 .red-note{ color:#c0392b; font-weight:600; }
+.axa3 .underline-strong{ text-decoration:underline; font-weight:700; }
+.axa3 .signature-block{ margin-top:16px; }
+.axa3 .signature-title{ text-align:center; font-weight:700; margin-bottom:10px; }
+.axa3 .sign-name-box{ text-align:center; margin-top:60px; }
+.axa3 .doc-list{ margin:6px 0 0 0; padding-left:16px; }
+.axa3 .legal-footer{ margin-top:auto; padding-top:10px; border-top:1px solid #999; font-size:10px !important; color:#444; line-height:1.6 !important; }
+.axa3 .legal-footer .link{ color:#1a5fb4; }
+.axa3 .legal-footer p{ margin:4px 0; }
+
+/* ขยายบรรทัดให้เท่ากันทั้ง 3 หน้าของ AXA (ใบเสนอราคา - ใบขอเอาประกันภัย) โดยไม่เพิ่มขนาดตัวอักษร */
+#page1, #page1 *,
+#page2, #page2 *,
+#page3, #page3 *{
+    line-height:2 !important;
+}
+
+/* ยกเว้นไม่ขยายบรรทัด: ส่วนท้ายชื่อบริษัท/ที่อยู่ และคำชี้แจงทางกฎหมายด้านล่างสุด */
+#page1 .footer-company, #page1 .footer-company *,
+#page2 .footer-company, #page2 .footer-company *,
+#page3 .footer-company, #page3 .footer-company *{
+    line-height:1.3 !important;
+}
+#page1 .legal-footer, #page1 .legal-footer *,
+#page2 .legal-footer, #page2 .legal-footer *,
+#page3 .legal-footer, #page3 .legal-footer *{
+    line-height:1.6 !important;
 }
  
 </style>
@@ -451,7 +593,7 @@ function companyMeta() {
 const GROUP_DETAILS = {
     "กลุ่ม 1": "( ค่าความเสียหายส่วนแรก 10% ของความเสียหาย หรือขั้นต่ำ 5,000 บาท แล้วแต่จำนวนใดจะสูงกว่า)",
     "กลุ่ม 2": "( ค่าความเสียหายส่วนแรก 20% ของความเสียหาย หรือขั้นต่ำ 10,000 บาท แล้วแต่จำนวนใดจะสูงกว่า)",
-    "กลุ่ม 3": "( ค่าความเสียหายส่วนแรก 25% ของความเสียหาย หรือขั้นต่ำ 20,000 บาท แล้วแต่จำนวนใดจะสูงกว่า)"
+    "กลุ่ม 3": "( ค่าความเสียหายส่วนแรก 25% ของความเสียหาย หรือขั้นต่ำ 20,000 บาท แล้วแต่จำนวนใดจะสูงกว่า) บรรทุกเกินน้ำหนัก"
 };
  
 function groupDeductibleText() {
@@ -504,9 +646,31 @@ function numberToThaiText(numStr) {
 function fmt(n) { return Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }); }
 function safe(v) { return (v === undefined || v === null || v === "") ? "-" : v; }
 function chk(isOn){ return `<span class="chk"><span class="box${isOn?" on":""}"></span>${isOn?"":""}</span>`; }
+
+/* ใช้เฉพาะหน้าแรกของ AXA: เมื่อกดติ๊กแถวจำนวนเงินในตารางเบี้ยประกัน
+   ให้ยกเลิกติ๊กแถวอื่น (เลือกได้ทีละแถวเหมือนปุ่มตัวเลือก) และอัปเดตตัวเลข
+   ในช่อง "จำนวนเงินจำกัดความรับผิดสำหรับค่าสินไหมทดแทน" ข้อ 1-3 ด้านบนให้ตรงกัน */
+function axaSelectAmtBox(box, amount) {
+    const willTurnOn = !box.classList.contains("on");
+    document.querySelectorAll(".axa-amt-box").forEach(b => b.classList.remove("on"));
+    const el1 = document.getElementById("axaLimit1");
+    const el2 = document.getElementById("axaLimit2");
+    const el3 = document.getElementById("axaLimit3");
+    if (willTurnOn) {
+        box.classList.add("on");
+        const amtStr = fmt(amount) + " บาท";
+        if (el1) el1.textContent = amtStr;
+        if (el2) el2.textContent = amtStr;
+        if (el3) el3.textContent = amtStr;
+    } else {
+        if (el1) el1.textContent = "- บาท";
+        if (el2) el2.textContent = "- บาท";
+        if (el3) el3.textContent = "- บาท";
+    }
+}
  
 const today = new Date();
-const todayThai = today.toLocaleDateString("th-TH", { year:"numeric", month:"2-digit", day:"2-digit" });
+const todayThai = toBuddhistDate(today);
 const nowThai = today.toLocaleTimeString("th-TH", { hour:"2-digit", minute:"2-digit" });
  
 function toBuddhistDate(d) {
@@ -515,10 +679,52 @@ function toBuddhistDate(d) {
     const yyyy = d.getFullYear() + 543;
     return `${dd}/${mm}/${yyyy}`;
 }
+
+/* แปลงวันที่ที่กรอกเป็นสตริง (เช่น data.start / data.end) ให้เป็น พ.ศ. เสมอ
+   รองรับรูปแบบ DD/MM/YYYY และ YYYY-MM-DD; ถ้าปีดูเหมือนเป็น พ.ศ. อยู่แล้ว (>=2400) จะไม่บวกซ้ำ */
+function toBEDateStr(v) {
+    if (!v || v === "-") return v;
+    const s = String(v).trim();
+    let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{3,4})$/);
+    if (m) {
+        const dd = m[1].padStart(2, "0");
+        const mo = m[2].padStart(2, "0");
+        let yyyy = parseInt(m[3], 10);
+        if (yyyy < 2400) yyyy += 543;
+        return `${dd}/${mo}/${yyyy}`;
+    }
+    m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (m) {
+        let yyyy = parseInt(m[1], 10);
+        const mo = m[2].padStart(2, "0");
+        const dd = m[3].padStart(2, "0");
+        if (yyyy < 2400) yyyy += 543;
+        return `${dd}/${mo}/${yyyy}`;
+    }
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) return toBuddhistDate(d);
+    return s;
+}
  
 const THAI_MONTHS = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
 function toThaiFullDate(d) {
     return `${d.getDate()} ${THAI_MONTHS[d.getMonth()]} ${d.getFullYear() + 543}`;
+}
+
+/* ใช้เฉพาะหน้าใบคำขอเอาประกันภัยความรับผิดของผู้ขนส่ง (renderCarrierApplication) เท่านั้น
+   แปลงวันที่เป็น พ.ศ. แบบไม่เติมเลข 0 นำหน้าวัน/เดือน เช่น 17/7/2569
+   ไม่แก้ไข toBuddhistDate/toBEDateStr เดิม เพื่อไม่ให้กระทบหน้าเอกสารอื่น */
+function toBEDateStrShort(v) {
+    const s = toBEDateStr(v);
+    if (!s || s === "-") return s;
+    const parts = s.split("/");
+    if (parts.length === 3) {
+        return `${parseInt(parts[0], 10)}/${parseInt(parts[1], 10)}/${parts[2]}`;
+    }
+    return s;
+}
+function toBuddhistDateShort(d) {
+    return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear() + 543}`;
 }
  
 /* ==========================================================
@@ -551,6 +757,7 @@ function renderReceipt(info, typeLabel) {
             border-bottom:2px solid #000;
             padding-bottom:12px;
             margin-bottom:18px;
+            padding-top:30px;
         ">
             <div style="padding-left:40px;">
     <div style="font-size:22px;font-weight:bold;">
@@ -574,11 +781,13 @@ function renderReceipt(info, typeLabel) {
         font-size:42px;
         font-weight:900;
         margin:1;
-        line-height:1;
+        line-height:1
+        ;
         
     ">
-                <h1 style="margin:0;">ใบรับเงิน</h1>
-                <div class="small">
+                <h1 style="margin:0;padding-left:50px;">ใบรับเงิน</h1>
+                
+               <div class="small" style="padding-right:30px;">
                     วันที่ ${todayThai} ${nowThai} น.
                 </div>
             </div>
@@ -779,7 +988,7 @@ function renderCancelLetter(companyFullName) {
         </span>
         โดยมีผลให้เริ่มคุ้มครองตั้งแต่วันที่
         <span style="border-bottom:1px dotted #000;padding:0 15px;font-weight:bold;">
-            ${safe(data.start)}
+            ${toBEDateStr(safe(data.start))}
         </span>
         รายละเอียดปรากฏตามกรมธรรม์ประกันภัยที่อ้างถึงนั้น
     </p>
@@ -850,6 +1059,7 @@ function renderviriyahMain() {
         ["7","ผักสด ผลไม้สด ต้นไม้ ดอกไม้ อาหารสด อาหารทะเลสด เป็นต้น (ไม่คุ้มครองสินค้ากลุ่มที่ 3, 5, 6)"]
             ];
             return `
+            <div class="viriyah-main-shrink">
                        <div class="form-top" style="
                                 position:relative;
                                 display:flex;
@@ -929,8 +1139,8 @@ function renderviriyahMain() {
             <div class="num-block">
                 <div class="head"><span class="no">4.</span> ระยะเวลาประกันภัย</div>
                 <div class="sub small">
-                    แบบกำหนดเวลา &nbsp; เริ่มวันที่ <span class="field-line">${safe(data.start)}</span> เวลา <span class="field-line">${nowThai}</span> น.
-                    &nbsp; สิ้นสุดวันที่ <span class="field-line">${safe(data.end)}</span> เวลา 16.30 น.
+                    แบบกำหนดเวลา &nbsp; เริ่มวันที่ <span class="field-line">${toBEDateStr(safe(data.start))}</span> เวลา <span class="field-line">${nowThai}</span> น.
+                    &nbsp; สิ้นสุดวันที่ <span class="field-line">${toBEDateStr(safe(data.end))}</span> เวลา 16.30 น.
                 </div>
                 <div class="sub small">แบบขนส่งเฉพาะเที่ยว &nbsp; เริ่มวันที่ <span class="field-line"> </span> เวลา <span class="field-line"> </span> น. สิ้นสุดวันที่ <span class="field-line"> </span> เวลา 16.30 น.</div>
                 <div class="sub small">(ขอบเขตเส้นทางการขนส่ง ต้นทางจาก <span class="field-line"> </span> ถึงปลายทาง <span class="field-line"> </span> )</div>
@@ -1022,6 +1232,7 @@ function renderviriyahMain() {
             </div>
  
         </div>
+            </div>
     `;
 }
  
@@ -1055,6 +1266,7 @@ function renderviriyahContract() {
         font-size:16px;
         line-height:1.6;
         text-indent:40px;
+        padding-top:20px; 
     ">
         168/1 หมู่ที่ 1 ตำบลหนองไผ่ อำเภอชุมแพ จังหวัดขอนแก่น 40130
     </div>
@@ -1285,32 +1497,23 @@ function renderCarrierApplication(companyKey) {
             </div>
  
             <div class="num-block" style="margin-top:65px;">
-                <div class="head" style="color:#000;flex-wrap:wrap;margin-left:26px;"><span class="no" style="display:inline-block;min-width:20px;">1</span> ชื่อผู้ขอเอาประกันภัย <span class="field-line" style="min-width:220px;color:#0d6efd;">${safe(data.customer)}</span> ${isMuangthai?"และ/หรือ รถร่วมขนส่ง":""}</div>
+                <div class="head" style="color:#000;flex-wrap:wrap;margin-left:26px;"><span class="no" style="display:inline-block;min-width:20px;">1</span> ชื่อผู้ขอเอาประกันภัย <span class="field-line" style="min-width:280px;color:#0d6efd;">${safe(data.customer)}</span> ${isMuangthai?"และ/หรือ รถร่วมขนส่ง":""}</div>
                 <div class="sub small" style="padding-left:24px;">(ไม่คุ้มครองสินค้าของผู้เอาประกันภัย หรือที่ผู้เอาประกันภัยเป็นเจ้าของร่วม)</div>
-                <div class="sub small" style="padding-left:24px;">ที่อยู่ (ตามใบจดทะเบียนภาษีมูลค่าเพิ่ม) <span class="field-line" style="min-width:300px;color:#0d6efd;">${safe(data.address)}</span></div>
-                <div class="sub small" style="padding-left:24px;">
-                โทรศัพท์
-                <span class="field-line" style="min-width:100px;color:#0d6efd;">${safe(data.phone)}</span>
- 
-                เบอร์ต่อ
-                <span class="field-line" style="min-width:100px;"></span>
- 
-                โทรสาร
-                <span class="field-line" style="min-width:140px;"></span>
-                </div>
+                <div class="sub small" style="padding-left:24px;">ที่อยู่ <span class="field-line" style="min-width:500px;color:#0d6efd;">${safe(data.address)}</span></div>
             </div>
  
             <div class="num-block">
                 <div class="head" style="color:#000;margin-left:26px;">
                 <span class="no" style="display:inline-block;min-width:20px;">2</span>
                 ประเภทของสินค้าโดยส่วนมากที่รับขนส่ง
-                <span class="field-line" style="min-width:300px;color:#0d6efd;">
+                <span class="field-line" style="min-width:306px;color:#0d6efd;">
                     ${safe(data.group)}
                 </span>
                 </div>
-                <div class="sub small" style="padding-left:24px;">${groupDeductibleText()}</div>
-                <div class="sub small" style="padding-left:24px;">**ไม่คุ้มครองสิ่งมีชีวิต สินค้าใช้แล้ว สิ่งของส่งซ่อม ของมือสอง บุหรี่${isMuangthai ? " ยานพาหนะ รถยนต์ รถจักรยานยนต์" : ""} สินค้าที่ไม่ได้รับค่าตอบแทน**</div>
-                <div class="sub small" style="padding-left:24px;">**ขยายความคุ้มครองสำหรับสินค้า กรณียางแตก/ยางระเบิด สินค้าที่บรรทุกต้องไม่เกินกว่า 5,000 กิโลกรัม เงื่อนไขความคุ้มครองเป็นไปตามที่บริษัทกำหนด**</div>
+                <div class="sub small sub-keep" style="padding-left:24px;">${groupDeductibleText()}</div>
+                <div class="sub small sub-keep" style="padding-left:24px;">**ไม่คุ้มครองสิ่งมีชีวิต สินค้าใช้แล้ว สิ่งของส่งซ่อม ของมือสอง บุหรี่${isMuangthai ? " ยานพาหนะ รถยนต์ รถจักรยานยนต์" : ""} สินค้าที่ไม่ได้รับค่าตอบแทน**</div>
+                <div class="sub small sub-keep" style="padding-left:24px;">**ขยายความคุ้มครองสำหรับสินค้า กรณียางแตก/ยางระเบิด สินค้าที่บรรทุกต้องไม่เกินกว่า 5,000 กิโลกรัม </div>
+                <div class="sub small sub-keep" style="padding-left:24px;">  เงื่อนไขความคุ้มครองเป็นไปตามที่บริษัทกำหนด**</div>
             </div>
  
             <div class="num-block">
@@ -1318,7 +1521,7 @@ function renderCarrierApplication(companyKey) {
                 <span class="no" style="display:inline-block;min-width:20px;">3</span>
                 ลักษณะการบรรจุภัณฑ์
                 <span class="field-line" style="min-width:400px;color:#0d6efd;">
-                ${data.packaging ? safe(data.packaging) : "สินค้าเทกอง และ/หรือมีบรรจุภัณฑ์ ไม่มีบรรจุภัณฑ์"}
+                ${data.packaging ? safe(data.packaging) : "สินค้าทั่วไป, สินค้าเทกอง, อาหารสด, อาหารทะเล, ผักสด, ผลไม้, ตามกลุ่มสินค้าที่เลือกเอาประกัน"}
                 </span>
                 </div>
             </div>
@@ -1327,12 +1530,12 @@ function renderCarrierApplication(companyKey) {
                 <div class="head" style="color:#000;margin-left:26px;">
                     <span class="no" style="display:inline-block;min-width:20px;">4</span>
                     ระยะเวลาที่ขอเอาประกันภัย 1 ปี เริ่มวันที่
-                    <span class="field-line" style="min-width:110px;color:#0d6efd;">
-                        ${safe(data.start)}
+                    <span class="field-line" style="min-width:125px;color:#0d6efd;">
+                        ${toBEDateStrShort(safe(data.start))}
                     </span>
                     สิ้นสุดวันที่
-                    <span class="field-line" style="min-width:120px;color:#0d6efd;">
-                        ${safe(data.end)}
+                    <span class="field-line" style="min-width:128px;color:#0d6efd;">
+                        ${toBEDateStrShort(safe(data.end))}
                     </span>
                 </div>
             </div>
@@ -1349,15 +1552,15 @@ function renderCarrierApplication(companyKey) {
  
             <div class="num-block">
                 <div class="head" style="color:#000;margin-left:26px;"><span class="no" style="display:inline-block;min-width:20px;">6</span> จำนวนเงินความรับผิดสำหรับค่าสินไหมทดแทนที่ขอเอาประกันภัย</div>
-                <div class="sub small" style="padding-left:24px;">จำนวนเงินจำกัดความรับผิดรวม <span class="field-line" style="color:#0d6efd;">${fmt(data.sumInsured)}</span> บาท (ตลอดระยะเวลาเอาประกันภัย)</div>
-                <div class="sub small" style="padding-left:24px;">จำนวนเงินจำกัดความรับผิดต่อการเรียกร้องหรือต่ออุบัติเหตุแต่ละครั้ง <span class="field-line" style="color:#0d6efd;">${fmt(data.sumInsured)}</span> บาท</div>
-                <div class="sub small" style="padding-left:24px;">จำนวนเงินจำกัดความรับผิดต่อหนึ่งยานพาหนะ <span class="field-line" style="color:#0d6efd;">${fmt(data.sumInsured)}</span> บาท</div>
+                <div class="sub small" style="padding-left:24px;">จำนวนเงินจำกัดความรับผิดรวม <span class="field-line" style="color:#0d6efd;min-width:328px;display:inline-block;text-align:right;">${fmt(data.sumInsured)}</span> บาท (ตลอดระยะเวลาเอาประกันภัย)</div>
+                <div class="sub small" style="padding-left:24px;">จำนวนเงินจำกัดความรับผิดต่อการเรียกร้องหรือต่ออุบัติเหตุแต่ละครั้ง <span class="field-line" style="color:#0d6efd;min-width:160px;display:inline-block;text-align:right;">${fmt(data.sumInsured)}</span> บาท</div>
+                <div class="sub small" style="padding-left:24px;">จำนวนเงินจำกัดความรับผิดต่อหนึ่งยานพาหนะ <span class="field-line" style="color:#0d6efd;min-width:260px;display:inline-block;text-align:right;">${fmt(data.sumInsured)}</span> บาท</div>
             </div>
  
             <div class="num-block">
                 <div class="head" style="color:#000;margin-left:26px;"><span class="no" style="display:inline-block;min-width:20px;">7</span> ยานพาหนะที่ใช้ในการขนส่ง (โปรดให้รายละเอียดเบื้องต้นตามรายการด้านล่าง)</div>
-                <div class="sub small" style="padding-left:24px;">ยี่ห้อรถ <span class="field-line" style="color:#0d6efd;">${safe(data.brand)}</span> ทะเบียน <span class="field-line" style="color:#0d6efd;">${safe(data.plate)}</span> เลขตัวถัง <span class="field-line" style="color:#0d6efd;">${safe(data.chassis)}</span></div>
-                <div class="sub small" style="padding-left:24px;">ประเภทรถ 4 ล้อ (แบบมีคอก/ไม่มีคอก/ตู้ทึบ) จำนวน 1 คัน &nbsp; 6 ล้อ จำนวน คัน &nbsp; 10 ล้อ จำนวน คัน &nbsp; รถลากจูง จำนวน คัน &nbsp; อื่นๆ</div>
+                <div class="sub small" style="padding-left:24px;">ยี่ห้อรถ <span class="field-line" style="color:#0d6efd;margin-right:25px;min-width:150px; margin-right:10px;">${safe(data.brand)}</span> ทะเบียน <span class="field-line" style="color:#0d6efd;min-width:150px; margin-right:10px;">${safe(data.plate)}</span> เลขตัวถัง <span class="field-line" style="color:#0d6efd;min-width:150px; margin-right:25px;">${safe(data.chassis)}</span></div>
+                <div class="sub small" style="padding-left:24px;">ประเภทรถ 4 ล้อ (แบบมีคอก/ไม่มีคอก/ตู้ทึบ) จำนวน ............ คัน &nbsp; 6 ล้อ จำนวน ............ คัน &nbsp; 10 ล้อ จำนวน ............ คัน &nbsp; รถลากจูง จำนวน ............ คัน &nbsp; อื่นๆ จำนวน .......... คัน</div>
             </div>
  
             <div class="num-block">
@@ -1390,8 +1593,8 @@ function renderCarrierApplication(companyKey) {
     <!-- กรอบประทับตรา -->
     <div style="
         border:1px dashed #555;
-        width:360px;
-        height:70px;
+        width:350px;
+        height:60px;
         margin:0 auto 10px;
     "></div>
  
@@ -1416,17 +1619,12 @@ function renderCarrierApplication(companyKey) {
     </div>
  
     <div class="small" style="margin-top:4px;">
-        วันที่ ${todayThai} ${nowThai} น. 
-        
-        <div class="small">
-        (ประทับตราบริษัท)
-        </div>
- 
+        วันที่ ${toBuddhistDateShort(today)} ${nowThai} น. 
     </div>
  
 </div>
  
-           <div style="display:flex;justify-content:space-between;align-items:flex-start;width:100%;margin-top:60px;">
+           <div style="display:flex;justify-content:space-between;align-items:flex-start;width:100%;margin-top:30px;">
  
     <!-- ฝั่งซ้าย -->
     <div class="small" style="color:#000;line-height:2.1;text-align:left;">
@@ -1444,15 +1642,15 @@ function renderCarrierApplication(companyKey) {
  
     <!-- ฝั่งขวา -->
     <div class="claim-box" style="text-align:center;">
-        <div class="tt" style="font-size:24px;font-weight:bold;">
+        <div class="tt" style="font-size:30px;font-weight:bold;">
             แจ้งอุบัติเหตุ
         </div>
 
-        <div class="ph" style="font-size:18px;">
+        <div class="ph" style="font-size:20px;">
             📞 ${agent.claimPhone || "-"}
         </div>
 
-        <div class="ph" style="font-size:18px;">
+        <div class="ph" style="font-size:20px;">
             📞 ${agent.claimPhone2 || "-"}
         </div>
     </div>
@@ -1460,7 +1658,7 @@ function renderCarrierApplication(companyKey) {
 </div>
  
             ${(meta.footer || meta.iso) ? `
-            <div style="margin-top:20px;display:flex;align-items:center;gap:14px;">
+            <div style="margin-top:0px;display:flex;align-items:center;gap:0px;">
                 ${meta.footer ? `<img src="${meta.footer}" style="height:${isMuangthai ? 80 : 70}px;" onerror="this.style.display='none'">` : ""}
                 ${meta.iso ? `<img src="${meta.iso}" style="height:50px;" onerror="this.style.display='none'">` : ""}
             </div>` : ""}
@@ -1469,91 +1667,382 @@ function renderCarrierApplication(companyKey) {
         </div>
     `;
 }
+
 function renderMuangthaiMain() { return renderCarrierApplication("เมืองไทย"); }
 function renderAigMain() { return renderCarrierApplication("AIG"); }
  
  
- 
+
 /* ==========================================================
-   RENDER: แอกซ่า (AXA) - ตารางเต็มรูปแบบตามต้นฉบับ
+   RENDER: แอกซ่า (AXA) - เอกสารต้นฉบับ 3 หน้าเต็ม (แบบคำต่อคำ)
+   คืนค่าเป็น "อาร์เรย์ของ 3 หน้า" (แทนที่จะเป็นสตริงหน้าเดียว) เพื่อให้ระบบสร้างเอกสาร
+   แสดงผลเป็น 3 หน้าจริงแยกกัน ไม่ถูกบีบย่อลงมาเหลือหน้าเดียว
+   เนื้อหา/ดีไซน์ของแต่ละหน้าคงไว้ตามต้นฉบับทุกประการ (ดู .axa3 ใน <style> ด้านบน)
+   จุดที่ปรับเพื่อ "ให้ทำงานร่วมกับแอปได้" เท่านั้น (ไม่กระทบเนื้อหา/ดีไซน์):
+     - ใส่ค่าจากข้อมูลลูกค้า (data.*) แทนช่องว่างที่เดิมเว้นไว้ให้กรอกด้วยมือ
+       (ชื่อ/ที่อยู่/วันที่เริ่ม-สิ้นสุด/ยี่ห้อ-ทะเบียน-เลขตัวถัง/จำนวนเงินจำกัดความรับผิด/ลายเซ็น)
+     - ใช้โลโก้จริงของแอป (meta.logo) แทนพาธรูปภาพในเครื่องของไฟล์ต้นฉบับ
+     - ตารางอัตราเบี้ยประกัน (rate card) และข้อความเงื่อนไข/ข้อยกเว้นทั้งหมด คงไว้แบบคำต่อคำ
+       เพราะเป็นข้อมูลอ้างอิงคงที่ ไม่ได้ผูกกับข้อมูลลูกค้ารายใดรายหนึ่ง
 ========================================================== */
 function renderAxaMain() {
     const meta = COMPANY_META["แอกซ่า"];
-    return `
-        <div class="app-box">
-            <div class="form-top">
-                <img class="logo-img" src="${meta.logo}" onerror="this.style.display='none'">
-                <div class="ttl">
-                    <h1>ใบคำขอเอาประกันภัยความรับผิดของผู้ขนส่ง</h1>
-                    <div class="small">Carrier's Liability Insurance Application Form</div>
-                </div>
+
+    /* ---------- ตัวช่วยเฉพาะหน้าแรกของ AXA เท่านั้น (ไม่กระทบเอกสารหน้าอื่น) ----------
+       1) แปลงวันที่ให้แสดงแบบเต็ม "18 กรกฎาคม 2569" แทน "18/07/2569"
+       2) คำนวณว่าควรติ๊กช่อง "1 เดือน / 3 เดือน / 1 ปี" ช่องไหน จากช่วงวันที่เริ่ม-สิ้นสุด
+       3) คำนวณว่าควรติ๊กแถวจำนวนเงินจำกัดความรับผิดแถวไหน จากยอด data.sumInsured */
+    function axaParseDate(v) {
+        if (!v) return null;
+        const s = String(v).trim();
+        let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{3,4})$/);
+        if (m) {
+            let yyyy = parseInt(m[3], 10);
+            if (yyyy > 2400) yyyy -= 543;
+            return new Date(yyyy, parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+        }
+        m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+        if (m) {
+            let yyyy = parseInt(m[1], 10);
+            if (yyyy > 2400) yyyy -= 543;
+            return new Date(yyyy, parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+        }
+        const d = new Date(s);
+        return isNaN(d.getTime()) ? null : d;
+    }
+    function axaFullDate(v) {
+        if (!v || v === "-") return v;
+        const d = axaParseDate(v);
+        return d ? toThaiFullDate(d) : String(v);
+    }
+    function axaBox(isOn) {
+        return `<span class="axa-box${isOn ? " on" : ""}" onclick="this.classList.toggle('on')"></span>`;
+    }
+    function axaAmtBox(isOn, amount) {
+        return `<span class="axa-box axa-amt-box${isOn ? " on" : ""}" onclick="axaSelectAmtBox(this, ${amount})"></span>`;
+    }
+
+    const _axaStart = axaParseDate(data.start);
+    const _axaEnd = axaParseDate(data.end);
+    const _axaDays = (_axaStart && _axaEnd) ? Math.round((_axaEnd - _axaStart) / 86400000) : null;
+    const isMonth1 = _axaDays !== null && _axaDays <= 45;
+    const isMonth3 = _axaDays !== null && _axaDays > 45 && _axaDays <= 120;
+    const isYear1 = !(isMonth1 || isMonth3);
+
+    const _axaSumInsured = Number(data.sumInsured) || 0;
+    const isAmt = (v) => _axaSumInsured === v;
+
+    const page1 = `
+        <div class="axa3" id="page1">
+            <img class="axa-logo" src="${meta.logo}" alt="AXA" onerror="this.style.display='none'">
+            <div class="producer-code">PRODUCER CODE<span class="line"></span></div>
+
+            <div class="doc-title">ใบเสนอราคา - ใบขอเอาประกันภัย</div>
+            <div class="doc-subtitle">การประกันภัยความรับผิดของผู้ขนส่ง</div>
+
+            <div class="claim-notice">
+                แจ้งอุบัติเหตุ &nbsp; 📞 ${meta.agent.claimPhone || "-"} &nbsp; 📞 ${meta.agent.claimPhone2 || "-"}
             </div>
- 
-            <table class="info-table">
-                <tr><td class="lbl">ชื่อผู้เอาประกันภัย</td><td>${safe(data.customer)} <span class="small">(ผู้รับจ้างขนส่ง)</span></td></tr>
-                <tr><td class="lbl">ที่อยู่</td><td>${safe(data.address)}</td></tr>
-                <tr><td class="lbl">ระยะเวลาประกันภัย</td><td>เริ่มต้นวันที่ ${safe(data.start)} &nbsp; สิ้นสุดวันที่ ${safe(data.end)}</td></tr>
-                <tr><td class="lbl">เงื่อนไขความคุ้มครอง</td><td class="small">ตามความคุ้มครองของกรมธรรม์ประกันภัยความรับผิดของผู้ขนส่งหมวดที่ 2 ข้อ 1 ยกเว้นความสูญหายหรือความเสียหายจากการส่งมอบชักช้า</td></tr>
+
+            <div class="meta-row">
+                <div>Quotation No. <span class="fill-line" style="display:inline-block;min-width:110px;">&nbsp;</span></div>
+                <div>วันที่ <strong>${toThaiFullDate(today)}</strong></div>
+            </div>
+
+            <div class="valid-note">ข้อเสนอฉบับนี้มีผลบังคับใช้ถึงวันที่ <span style="color:#c0392b;">31 ธันวาคม 2569</span></div>
+
+            <table class="info">
                 <tr>
-                    <td class="lbl">ประเภทยานพาหนะ</td>
-                    <td>ยี่ห้อ ${safe(data.brand)} &nbsp; ทะเบียน ${safe(data.plate)} &nbsp; เลขตัวถัง ${safe(data.chassis)}</td>
+                    <td class="label">ชื่อผู้เอาประกันภัย<br>(ผู้รับจ้างขนส่ง)</td>
+                    <td class="colon">:</td>
+                    <td>
+                        <div class="fill-line-block">${safe(data.customer)}</div>
+                        <div class="sub">(ผู้เอาประกันภัยจะต้องไม่เป็นลูกค้าปัจจุบันของบริษัทฯ ผ่านผู้ส่งงานรายอื่น)</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="label">ที่อยู่</td>
+                    <td class="colon">:</td>
+                    <td><div class="fill-line">${safe(data.address)}</div></td>
+                </tr>
+                <tr>
+                    <td class="label">ระยะเวลาประกันภัย</td>
+                    <td class="colon">:</td>
+                    <td>
+                        <div class="period-options">
+                            <label>${axaBox(isMonth1)} 1 เดือน</label>
+                            <label>${axaBox(isMonth3)} 3 เดือน</label>
+                            <label>${axaBox(isYear1)} 1 ปี</label>
+
+                            <div class="indent">เริ่มคุ้มภัย</div>
+
+                            <span>วันที่เริ่ม <span class="fill-line" style="display:inline-block;min-width:50px;">${axaFullDate(safe(data.start))}</span></span>
+                            <span>วันสิ้นสุด <span class="fill-line" style="display:inline-block;min-width:50px;">${axaFullDate(safe(data.end))}</span></span>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="label">ข้อมูลรถยนต์ที่เอาประกัน</td>
+                    <td class="colon">:</td>
+                    <td>
+                        <div class="vehicle-fields">
+                            <span>ยี่ห้อ <span class="fill-line" style="display:inline-block;min-width:90px;">${safe(data.brand)}</span></span>
+                            <span>ทะเบียน <span class="fill-line" style="display:inline-block;min-width:90px;">${safe(data.plate)}</span></span>
+                            <span>เลขตัวถัง <span class="fill-line" style="display:inline-block;min-width:90px;">${safe(data.chassis)}</span></span>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="label">เงื่อนไขความคุ้มครอง</td>
+                    <td class="colon">:</td>
+                    <td>
+                        <p style="margin:0;">ตามความคุ้มครองของกรมธรรม์ประกันภัยความรับผิดของผู้ขนส่งหมวดที่ 2 ข้อ 1<br>
+                        <span class="underline-strong">ยกเว้นความสูญหายหรือเสียหายจากการส่งมอบชักช้า</span></p>
+                        <div class="indent">- เอกสารแนบท้ายว่าด้วยข้อยกเว้นโรคระบาดไวรัส</div>
+                        <div class="indent">- ข้อกำหนดการจำกัดความรับผิดและข้อยกเว้นสำหรับมาตรการก่อวินาศกรรม</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="label">ประเภทยานพาหนะ</td>
+                    <td class="colon">:</td>
+                    <td>
+                        ยานพาหนะขนส่งตามความคุ้มครองของกรมธรรม์ประกันภัยความรับผิดของผู้ขนส่งหมวดที่ 2 ข้อ 2<br>
+                        (เกี่ยวข้อ 2.3) ที่ได้จดทะเบียนถูกต้องตามกฎหมาย
+                        <br><span class="red-note">(รายละเอียดยานพาหนะที่เอาประกันภัย จะต้องแจ้งให้บริษัทฯทราบก่อนออกกรมธรรม์)</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="label">จำนวนเงินจำกัดความรับผิดสำหรับค่าสินไหมทดแทน</td>
+                    <td class="colon">:</td>
+                    <td>
+                        <ol class="limits">
+                            <li class="amt-line"><span>1. จำนวนเงินจำกัดความรับผิดรวม</span><span class="amt-fill" id="axaLimit1">${fmt(data.sumInsured)} บาท</span></li>
+                            <li class="amt-line"><span>2. จำนวนเงินจำกัดความรับผิดต่อการเรียกร้องหรือความเสียหายแต่ละครั้ง</span><span class="amt-fill" id="axaLimit2">${fmt(data.sumInsured)} บาท</span></li>
+                            <li class="amt-line"><span>3. จำนวนเงินจำกัดความรับผิดต่อหนึ่งยานพาหนะ</span><span class="amt-fill" id="axaLimit3">${fmt(data.sumInsured)} บาท</span></li>
+                            <li class="amt-line"><span>4. จำนวนเงินจำกัดความรับผิดเพื่อการส่งมอบชักช้าต่อการเรียกร้อง<br>หรือต่ออุบัติเหตุแต่ละครั้งหรือต่อหนึ่งยานพาหนะ</span><span class="amt-fill">ไม่คุ้มครอง บาท</span></li>
+                        </ol>
+                    </td>
                 </tr>
             </table>
-            <p class="small">ยานพาหนะขนส่งตามความคุ้มครองของกรมธรรม์ประกันภัยความรับผิดของผู้ขนส่งหมวดที่ 2 ข้อ 2 (ยกเว้นข้อ 2.3) ที่ได้มาตรฐานของกรมการขนส่งทางบกและจดทะเบียนถูกต้องตามกฎหมาย</p>
- 
-            <div class="section-head" style="margin-top:8px;">จำนวนเงินจำกัดความรับผิดสำหรับรถ 1 คัน (บาท)</div>
-            <table class="grid">
-                <tr>
-                    <th>สุทธิ/รวม</th><th>เบี้ยประกันภัย</th><th>เปียกน้ำ</th>
-                    <th>พลัดตก/กระแทก/ร่วงหล่น</th><th>บรรจุภัณฑ์</th><th>ค่าบรรเทาภัย</th>
-                </tr>
-                <tr>
-                    <td>${fmt(data.sumInsured)}</td>
-                    <td>${fmt(data.total)}</td>
-                    <td>${fmt(data.subLimitWet)}</td>
-                    <td>${fmt(data.subLimitDrop)}</td>
-                    <td>${fmt(data.subLimitPackaging)}</td>
-                    <td>${fmt(data.subLimitSalvage)}</td>
-                </tr>
+
+            <table class="premium">
+                <colgroup>
+                    <col style="width:20.5%;">
+                    <col style="width:7%;">
+                    <col style="width:7%;">
+                    <col style="width:7%;">
+                    <col style="width:7%;">
+                    <col style="width:7.5%;">
+                    <col style="width:8%;">
+                    <col style="width:7%;">
+                    <col style="width:19.5%;">
+                    <col style="width:10%;">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th rowspan="3" style="width:110px;">จำนวนเงินจำกัดความรับผิดสำหรับรถ 1 คัน<br>(บาท)</th>
+                        <th colspan="4">เบี้ยประกันภัย (บาท)</th>
+                        <th colspan="5">จำนวนเงินจำกัดความรับผิดย่อย<br>(รวมอยู่ในจำนวนเงินจำกัดความรับผิดสำหรับรถ 1 คัน <br>โดยไม่ทับความเสียหายส่วนแรก)</th>
+                    </tr>
+                    <tr>
+                        <th colspan="2">1 เดือน<br>(25MR07)</th>
+                        <th colspan="2">3 เดือน<br>(25MR08)</th>
+                        <th colspan="4"> สาเหตุของความเสียหายที่อยู่นอกเงื่อนไขมาตรฐาน</th>
+                        <th rowspan="2"> ค่าบรรทุกภัย</th>
+                    </tr>
+                    <tr>
+                        <th>สุทธิ</th><th>รวม</th><th>สุทธิ</th><th>รวม</th>
+                        <th>เปียกน้ำ</th>
+                        <th>พลัดตก,<br>กระแทก,<br>ร่วงหล่น</th>
+                        <th>บรรจุภัณฑ์</th>
+                        <th>อาหารสด/อาหารทะเล<br>ที่ไม่ได้ขนส่งโดยยานพาหนะ<br>ที่มีเครื่องทำความเย็น<br>ควบคุมอุณหภูมิ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="axa-chk-amt">${axaAmtBox(isAmt(100000), 100000)}100,000.00</td>
+                        <td>1,395.00</td><td>1,499.07</td><td>2,791.00</td><td>2,999.21</td>
+                        <td>10,000.00</td><td>10,000.00</td><td>2,000.00</td><td>50,000.00</td><td>30,000.00</td>
+                    </tr>
+                    <tr>
+                        <td class="axa-chk-amt">${axaAmtBox(isAmt(300000), 300000)}300,000.00</td>
+                        <td>2,187.00</td><td>2,349.72</td><td>4,374.00</td><td>4,699.44</td>
+                        <td>30,000.00</td><td>30,000.00</td><td>2,000.00</td><td>50,000.00</td><td>30,000.00</td>
+                    </tr>
+                    <tr>
+                        <td class="axa-chk-amt">${axaAmtBox(isAmt(500000), 500000)}500,000.00</td>
+                        <td>2,512.00</td><td>2,699.61</td><td>5,025.00</td><td>5,399.22</td>
+                        <td>50,000.00</td><td>50,000.00</td><td>2,000.00</td><td>50,000.00</td><td>30,000.00</td>
+                    </tr>
+                    <tr>
+                        <td class="axa-chk-amt">${axaAmtBox(isAmt(1000000), 1000000)}1,000,000.00</td>
+                        <td>3,723.00</td><td>3,999.66</td><td>7,446.00</td><td>7,999.32</td>
+                        <td>50,000.00</td><td>50,000.00</td><td>2,000.00</td><td>50,000.00</td><td>30,000.00</td>
+                    </tr>
+                </tbody>
             </table>
- 
-            <div class="section-head">ขอบเขต / เส้นทางการขนส่ง</div>
-            <p class="small">ภายในอาณาเขตประเทศไทย ขยายความคุ้มครองการขนส่งข้ามแดนไปยังประเทศลาว กัมพูชา มาเลเซีย เวียดนาม ไม่เกิน 10 กิโลเมตรจากด่านชายแดนไทย ตามเส้นทางปกตินิยม</p>
- 
-            <div class="section-head">ความเสียหายส่วนแรก</div>
-            <p class="small">
-                สินค้ากลุ่ม 1, 2, 3 : ผู้เอาประกันภัยรับผิดชอบ 25% ของความสูญเสียหรือเสียหาย ขั้นต่ำ 20,000 บาท แล้วแต่จำนวนใดสูงกว่า ต่ออุบัติเหตุแต่ละครั้ง<br>
-                สินค้ากลุ่ม 4 : ผู้เอาประกันภัยรับผิดชอบ 10% ของความสูญเสียหรือเสียหาย ขั้นต่ำ 5,000 บาท แล้วแต่จำนวนใดสูงกว่า<br>
-                สำหรับค่าบรรเทาภัย: กรณีเกิดเหตุและสินค้าไม่เสียหาย บริษัทฯ ไม่หักความเสียหายส่วนแรก
-            </p>
- 
-            <div class="section-head">ข้อตกลงและข้อยกเว้นเพิ่มเติม (สรุป)</div>
-            <p class="small" style="line-height:1.8;">
-                1. คุ้มครองทรัพย์สินใหม่เท่านั้น แบ่งเป็นสินค้ากลุ่ม 1–4 ตามประเภทสินค้า<br>
-                2. ไม่คุ้มครอง: เงินแท่ง/ทองคำ/อัญมณี, เงินตรา/ตั๋วเงิน/พันธบัตร, ศิลปวัตถุ/โบราณวัตถุมูลค่าสูง, ของผิดกฎหมาย, วัตถุอันตราย/อาวุธ, สัตว์มีชีวิต, แม่พิมพ์/แบบแปลน, เอกสารต้นฉบับ/ข้อมูลคอมพิวเตอร์, ทรัพย์ของผู้เอาประกันภัยเอง<br>
-                3. กรณียางแตก/ยางระเบิด: น้ำหนักบรรทุกไม่เกิน 5,000 กก. ขยายความคุ้มครองให้ (ชดใช้สูงสุดไม่เกิน 50% ของจำนวนเงินจำกัดความรับผิด); เกิน 5,000 กก. ไม่คุ้มครอง<br>
-                4. การขนส่งสินค้าประเภทอื่นนอกเหนือจากกลุ่ม 1–4 พิจารณาชดใช้ไม่เกิน 3,000 บาท (ไม่หักความเสียหายส่วนแรก)
-            </p>
- 
-            <p class="small">เอกสารประกอบการออกกรมธรรม์: ข้อเสนอที่ลงนาม, สำเนาบัตรประชาชน/หนังสือรับรองนิติบุคคล, สำเนาทะเบียนรถ, วันเริ่มคุ้มครอง</p>
-            <p class="small">เมื่อนำส่งเอกสารฉบับนี้ให้แก่แอกซ่า ถือว่าท่านรับทราบและยอมรับนโยบายความเป็นส่วนตัวของแอกซ่าตามที่ระบุใน
-                <a href="https://www.axa.co.th/th/legal-and-privacy-statement" target="_blank">axa.co.th/th/legal-and-privacy-statement</a>
-                และรับรองว่าข้อมูลที่ให้ไว้ถูกต้องครบถ้วนทุกประการ
-            </p>
- 
-            <div class="sign-2col official-sign-space">
-                <div>
-                    <div class="sign-line2">${safe(data.customer)}</div>
-                    <div class="small">ผู้เอาประกันภัย ยอมรับความคุ้มครองและเงื่อนไขตามข้อเสนอข้างต้น</div>
-                    <div class="small">วันที่ ${todayThai}</div>
-                </div>
-                <div class="qr-bottom" style="margin-top:0;">
-                    <img src="${meta.qr}" style="height:60px;" onerror="this.style.display='none'">
-                    <div class="cap">สแกน QR เพื่อดูรายละเอียด</div>
-                </div>
+
+            <div class="footer-company">
+                <div class="th-name">บริษัท แอกซ่าประกันภัย จำกัด (มหาชน)</div>
+                <div>AXA Insurance Public Company Limited</div>
+                <div>414 อาคารสยามปทุมวันเฮ้าส์ ชั้น 25 ยูนิต 2511-1-2 ถนนพญาไท แขวงวังใหม่ เขตปทุมวัน กรุงเทพมหานคร 10330</div>
+                <div>414 Siam Patumwan House, Floor 25th, Unit 2511-1-2, Phayathai Road, Wangmai Sub-district, Pathumwan District, Bangkok 10330</div>
+                <div>Tel: +66 2118 8111 &nbsp; www.axa.co.th &nbsp; Email: axathai@axa.co.th</div>
             </div>
         </div>
     `;
+
+    const page2 = `
+        <div class="axa3" id="page2">
+            <img class="axa-logo" src="${meta.logo}" alt="AXA" onerror="this.style.display='none'">
+            <div class="producer-code">PRODUCER CODE<span class="line"></span></div>
+
+            <table class="detail">
+                <tr>
+                    <td class="label">มูลค่าการชดใช้</td>
+                    <td class="colon">:</td>
+                    <td>
+                        <p>ตามความเสียหายที่แท้จริง แต่ไม่เกินจำนวนเงินจำกัดความรับผิดที่ระบุไว้ในตารางกรมธรรม์ประกันภัย</p>
+                        <p>กรณีเกิดความสูญเสียหรือเสียหายขึ้นกับของที่รับขนส่ง หลักเกณฑ์ในการชดใช้ค่าเสียหายนั้น
+                        บริษัทจะพิจารณาชดใช้ตามเงื่อนไขของกรมธรรม์ประกันภัยความรับผิดของผู้ขนส่งตามหมวดที่ 4 เงื่อนไขทั่วไป
+                        ข้อ 3. การพิจารณาชดใช้ค่าสินไหมทดแทน <span class="underline-strong">โดยผู้เอาประกันภัยจะต้องรับผิดเองก่อนความเสียหายส่วน
+                        แรกตามจำนวนที่ระบุไว้ในตารางกรมธรรม์ประกันภัย แล้วค่อยหักด้วยมูลค่าซาก (หากมี) ซึ่งส่วนของ
+                        สินค้าที่เกิดความเสียหายนั้น บริษัท ขอสงวนสิทธิ์ในการนำมาพิจารณาชดใช้ค่าสินไหมฯ</span></p>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="label">ขอบเขต</td>
+                    <td class="colon">:</td>
+                    <td>
+                        ภายในอาณาเขตประเทศไทย ขยายความคุ้มครองการขนส่งข้ามแดน<br>
+                        ไปยังประเทศลาว มาเลเซีย เวียดนาม ไม่เกิน 10 กิโลเมตรจากด่านชายแดนไทย
+                    </td>
+                </tr>
+                <tr>
+                    <td class="label">เส้นทางการขนส่ง</td>
+                    <td class="colon">:</td>
+                    <td>
+                        ตามเส้นทางปกติเพียว ขยายความคุ้มครองการขนส่งข้ามแดน<br>
+                        ไปยังประเทศลาว มาเลเซีย เวียดนาม ไม่เกิน 10 กิโลเมตรจากด่านชายแดนไทย
+                    </td>
+                </tr>
+                <tr>
+                    <td class="label">ความเสียหายส่วนแรก</td>
+                    <td class="colon">:</td>
+                    <td>
+                        <div class="glrow"><span class="gl-label">สินค้ากลุ่ม 1, 2, 3</span><span class="gl-colon">:</span><span class="gl-desc">ผู้เอาประกันภัยรับผิดชอบ 25% ของความสูญเสียหรือเสียหาย โดยมีขั้นต่ำ 20,000.00 บาท แล้วแต่จำนวนใดสูงกว่า ต่ออุบัติเหตุแต่ละครั้งและทุกครั้ง</span></div>
+                        <div class="glrow"><span class="gl-label">สินค้ากลุ่ม 4</span><span class="gl-colon">:</span><span class="gl-desc">ผู้เอาประกันภัยรับผิดชอบ 10% ของความสูญเสียหรือเสียหาย โดยมีขั้นต่ำ 5,000.00 บาท แล้วแต่จำนวนใดสูงกว่า ต่ออุบัติเหตุแต่ละครั้งและทุกครั้ง</span></div>
+                        <div class="glrow"><span class="gl-label">สินค้ากลุ่ม 5</span><span class="gl-colon">:</span><span class="gl-desc">ไม่มี</span></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="label">ข้อตกลงและข้อกำหนด<br>เพิ่มเติม</td>
+                    <td class="colon">:</td>
+                    <td>
+                        <p><strong>1. ทรัพย์สินที่เอาประกันภัย (ของใหม่เท่านั้น) :-</strong></p>
+                        <div class="glrow"><span class="gl-label">สินค้ากลุ่ม 1</span><span class="gl-colon">:</span><span class="gl-desc">ผัก ผลไม้ ต้นหญ้า ต้นไม้ ดอกไม้ สินค้าเทกอง สินค้าที่ไม่มีบรรจุภัณฑ์</span></div>
+                        <div class="glrow"><span class="gl-label">สินค้ากลุ่ม 2</span><span class="gl-colon">:</span><span class="gl-desc">สินค้าที่ขนส่งโดยยานพาหนะที่มีเครื่องทำความเย็นควบคุมอุณหภูมิ เช่น อาหารสด อาหารแช่เย็น - แช่แข็ง สินค้าควบคุมอุณหภูมิ</span></div>
+                        <div class="glrow"><span class="gl-label">สินค้ากลุ่ม 3</span><span class="gl-colon">:</span><span class="gl-desc">เครื่องมือแพทย์และอุปกรณ์ คอมพิวเตอร์ โทรศัพท์และอุปกรณ์ สินค้าประเภทแตกหักง่าย เช่น กระจก แผงโซล่าเซลล์ กระเบื้อง เครื่องแก้ว เซรามิค สุขภัณฑ์ บานกระจก อิฐ หินอ่อน</span></div>
+                        <div class="glrow"><span class="gl-label">สินค้ากลุ่ม 4</span><span class="gl-colon">:</span><span class="gl-desc">สินค้าอุปโภค-บริโภค พลาสติกภัณฑ์อาหารสำเร็จรูป เครื่องจักร เครื่องใช้ไฟฟ้า เครื่องใช้สำนักงาน เฟอร์นิเจอร์ เสื้อผ้า เครื่องหนัง กระดาษ เหล็ก ไม่ประกอบด้วยยางประเภทต่าง ๆ อะไหล่ สารเคมีอันตราย (UN CLASS 8-9) ปุ๋ย (มีบรรจุภัณฑ์) ปูนซีเมนต์ (มีบรรจุภัณฑ์) พืชไร่การเกษตรที่มีบรรจุภัณฑ์ เช่น ข้าวสาร ข้าวเปลือก ข้าวโพด <span style="text-decoration:underline;">(ยกเว้นผัก ผลไม้)</span></span></div>
+                        <div class="glrow"><span class="gl-label">สินค้ากลุ่ม 5</span><span class="gl-colon">:</span><span class="gl-desc">อาหารสด/อาหารทะเลที่ไม่ได้ขนส่งโดยยานพาหนะที่มีเครื่องทำความเย็นควบคุมอุณหภูมิ</span></div>
+
+                        <p style="margin-top:6px;color:#c0392b;" class="underline-strong">บริษัทฯ ให้ความคุ้มครองเฉพาะการขนส่งสินค้าที่ระบุไว้เท่านั้น</p>
+                        <p class="underline-strong" style="margin-top:-3px;color:#c0392b;">หากมีการขนส่งสินค้าอื่นนอกเหนือจากที่ตกลง จะต้องแจ้งให้บริษัทฯ ทราบล่วงหน้า<br>
+                        เป็นลายลักษณ์อักษรก่อนเริ่มการขนส่งเพื่อพิจารณา</p>
+
+                        <p style="margin-top:8px;"><strong>2. ข้อยกเว้นตามเงื่อนไขกรมธรรม์มาตรฐาน <span class="underline-strong">หมวดที่ 3 ข้อยกเว้นข้อ 2</span></strong></p>
+                        <p style="margin:2px 0;">2.1 เงินแท่ง เงินรูปพรรณ ทองคำแท่ง ทองรูปพรรณ โลหะมีค่าทุกชนิด อัญมณี หรือ ของมีค่าอย่างอื่น</p>
+                        <p style="margin:2px 0;">2.2 เงินตรา ธนบัตร ตั๋วเงิน พันธบัตร แสตมป์ อากรแสตมป์ บัตรเครดิต บัตรเดินเงิน ใบหุ้น ใบหุ้นกู้<br>หรือประทวนสินค้า</p>
+                        <p style="margin:2px 0;">2.3 ศิลปวัตถุที่มีมูลค่าต่อชิ้นเกินห้าแสนบาท หรือโบราณวัตถุ</p>
+                    </td>
+                </tr>
+            </table>
+
+            <div class="page-num">Page 2/3</div>
+        </div>
+    `;
+
+    const page3 = `
+        <div class="axa3" id="page3">
+            <img class="axa-logo" src="${meta.logo}" alt="AXA" onerror="this.style.display='none'">
+            <div class="producer-code">PRODUCER CODE<span class="line"></span></div>
+
+            <table class="detail">
+                <tr>
+                    <td class="label">ข้อตกลงและข้อกำหนด<br>เพิ่มเติม (ต่อ)</td>
+                    <td class="colon">:</td>
+                    <td>
+                        <p style="margin:2px 0;">2.4 ของที่ผิดกฎหมาย เช่น ยาเสพติดให้โทษ</p>
+                        <p style="margin:2px 0;">2.5 ทรัพย์อันตราย วัตถุอันตราย วัตถุระเบิด อาวุธปืนและเครื่องกระสุนปืน รวมทั้งอาวุธสงคราม</p>
+                        <p style="margin:2px 0;">2.6 สัตว์มีชีวิต</p>
+                        <p style="margin:2px 0;">2.7 แม่พิมพ์ แผนผัง แบบแปลน เช่น พิมพ์เขียว แบบบ้าน แบบอาคาร หรือสิ่งอื่นที่มีลักษณะคล้ายคลึงกัน</p>
+                        <p style="margin:2px 0;">2.8 เอกสารทางธุรกิจ ข้อมูลและโปรแกรมในระบบคอมพิวเตอร์ไม่ว่าจัดเก็บในแบบและอุปกรณ์ใด</p>
+                        <p style="margin:2px 0;">2.9 ทรัพย์ของผู้เอาประกันภัยหรือที่ผู้เอาประกันภัยเช่าร่วม</p>
+                        <p style="margin:2px 0 8px 0;">2.10 ทรัพย์อื่นใดที่ยกเว้นเพิ่มเติมตามเอกสารแนบท้าย</p>
+
+                        <p style="margin:2px 0;"><strong>3. เกณฑ์การพิจารณาสินไหมฯ กรณีน้ำหนักบรรทุก/ยางระเบิด</strong></p>
+                        <p style="margin:2px 0;">3.1 กรณีน้ำหนักบรรทุกไม่เกิน 5,000 กิโลกรัม <span class="underline-strong">บริษัทฯ ขยายความคุ้มครองความสูญเสียหรือเสียหาย
+                        อันสืบเนื่องมาจากยางระเบิด/ยางระเบิด โดยไม่ยกเว้นหมวดที่ 3 ข้อยกเว้นข้อ 1.10</span> (การขับยานพาหนะ
+                        ขนส่งเสื่อมสภาพ หรือไม่เหมาะสมแก่การใช้ขนส่ง หรือบรรจุภัณฑ์บรรทุกน้ำหนักเกิน
+                        ขนาดที่ยานพาหนะขนส่งเหล่านั้นสามารถขนส่งได้อย่างปลอดภัย หรือบรรจุผิดหลักการจัดวางของ
+                        หรือการลากจูงที่ผิดหลักการขนส่งที่ปลอดภัย โดยไม่มีสิ่งป้องกันความเสียหายของของที่รับขน
+                        ซึ่งจำเป็นต้องมีตามปกติในการขนส่ง) <span class="underline-strong">มาพิจารณา<br>
+                        ทั้งนี้จะพิจารณาชดใช้ตามมูลค่าความเสียหายที่แท้จริงหักด้วยราคาซากสินค้า แต่ทั้งนี้ชดใช้สูงสุดไม่เกิน
+                        60% ของจำนวนเงินจำกัดความรับผิด (ไม่หักความเสียหายส่วนแรก)</span></p>
+                        <p style="margin:2px 0;">3.2 กรณีน้ำหนักบรรทุกเกินกว่า 5,000 กิโลกรัม <span class="underline-strong">บริษัทฯ ไม่พิจารณาชดใช้สินไหมโดยยกเว้นหมวด
+                        ที่ 3 ข้อยกเว้นข้อ 1.10</span> (การขับยานพาหนะขนส่งเสื่อมสภาพ หรือไม่เหมาะสมแก่การใช้ขนส่ง หรือบรรจุ
+                        เกินขนาดที่ยานพาหนะขนส่งเหล่านั้นสามารถขนส่งได้อย่างปลอดภัย หรือบรรจุผิดหลักการจัดวางของ
+                        หรือการลากจูงที่ผิดหลักการขนส่งที่ปลอดภัย โดยไม่มีสิ่งป้องกันความเสียหายของของที่รับขน
+                        ซึ่งจำเป็นต้องมีตามปกติในการขนส่ง) <span class="underline-strong">มาพิจารณา</span></p>
+
+                        <p style="margin:6px 0 2px 0;"><strong>4. การขนส่งสินค้าประเภทอื่นนอกจากที่ระบุในสินค้ากลุ่มที่ 1 - 5</strong></p>
+                        <p style="margin:2px 0;">พิจารณาชดใช้สินไหม : ไม่เกิน 3,000.00 บาท (ไม่หักความเสียหายส่วนแรก)</p>
+                    </td>
+                </tr>
+            </table>
+
+            <p style="text-align:center;font-weight:700;font-style:italic;font-size:16px !important;margin:34px 0;">
+                กรุณาศึกษาและทำความเข้าใจในรายละเอียดความคุ้มครองและเงื่อนไขก่อนตัดสินใจทำประกันภัยทุกครั้ง
+            </p>
+
+            <table style="width:100%;border-collapse:collapse;margin-top:26px;">
+                <tr>
+                    <td style="width:55%;vertical-align:top;">
+                        <strong>เอกสารประกอบการออกกรมธรรม์</strong>
+                        <ol class="doc-list">
+                            <li>ข้อเสนอและข้อเสนอแบบฟอร์มที่ผู้เอาประกันภัยลงนาม</li>
+                            <li>สำเนาบัตรประชาชน (กรณีบุคคลธรรมดา)</li>
+                            <li>หนังสือรับรองจดทะเบียนนิติบุคคล (กรณีนิติบุคคล)</li>
+                            <li>สำเนาทะเบียนรถ</li>
+                            <li>ใบเรื่องคุ้มครอง</li>
+                        </ol>
+                    </td>
+                    <td style="width:45%;vertical-align:top;text-align:center;">
+                        <div class="signature-block">
+                            <div class="signature-title">ผู้เอาประกันภัย</div>
+                            <div>ยอมรับความคุ้มครองและเงื่อนไขตามข้อเสนอข้างต้น</div>
+                            <div class="sign-name-box">
+                                .................................................................
+                                <div>( ${safe(data.customer)} )</div>
+                                <div style="margin-top:5px;">วันที่ ${todayThai}</div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+
+            <div class="legal-footer">
+                <p>เมื่อคุณดำเนินการนำส่งเอกสารฉบับนี้ให้แก่แอกซ่า แอกซ่าถือว่าคุณได้รับรู้และยอมรับนโยบายความเป็นส่วนตัวของแอกซ่าที่ระบุในลิงค์ <span class="link">https://www.axa.co.th/th/legal-and-privacy-statement</span> แล้ว รวมถึงตกลงและให้คำรับรองดังเรื่องดังต่อไปนี้</p>
+                <p>- ยืนยันว่าข้อมูลที่ท่านได้ให้ไว้ในฟอร์มการลงทะเบียนนี้ถูกต้องทุกประการ</p>
+                <p>- ยืนยันว่าท่านมีสิทธิตามกฎหมายหรือได้รับความยินยอมจากเจ้าของข้อมูลส่วนบุคคลตามกฎหมายที่เกี่ยวข้องในการให้ข้อมูลส่วนบุคคลของบุคคลอื่นต่อแอกซ่าทุกประการ</p>
+                <p>- คุณได้ทำการแจ้งให้บุคคลที่สามผู้เป็นเจ้าของข้อมูลส่วนบุคคลที่คุณอ้างหรือระบุถึงในแบบฟอร์มการลงทะเบียนนี้ให้ทราบถึงนโยบายความเป็นส่วนตัวของแอกซ่าแล้ว</p>
+            </div>
+
+            <div class="page-num">Page 3/3</div>
+        </div>
+    `;
+
+    return [page1, page2, page3];
 }
  
 /* ==========================================================
@@ -1578,8 +2067,8 @@ function renderKwiMain() {
                 <tr><td class="lbl">โทรศัพท์ / TELEPHONE NO.</td><td>${agent.agentPhone || "-"}</td></tr>
                 <tr><td class="lbl">ชื่อผู้เอาประกันภัย / INSURED'S NAME</td><td>${safe(data.customer)}</td></tr>
                 <tr><td class="lbl">ที่อยู่ / ADDRESS</td><td>${safe(data.address)}</td></tr>
-                <tr><td class="lbl">เริ่มต้นวันที่ / EFFECTIVE DATE</td><td>${safe(data.start)}</td></tr>
-                <tr><td class="lbl">สิ้นสุดวันที่ / TO</td><td>${safe(data.end)}</td></tr>
+                <tr><td class="lbl">เริ่มต้นวันที่ / EFFECTIVE DATE</td><td>${toBEDateStr(safe(data.start))}</td></tr>
+                <tr><td class="lbl">สิ้นสุดวันที่ / TO</td><td>${toBEDateStr(safe(data.end))}</td></tr>
                 <tr><td class="lbl">เส้นทางการขนส่ง / ROUTE</td><td>${data.route ? safe(data.route) : "ภายในประเทศไทย / ภายในประเทศไทย + ข้ามแดนไม่เกิน 20 กม."}</td></tr>
                 <tr>
                     <td class="lbl">รายละเอียดสินค้า / CARGO DESCRIPTIONS</td>
@@ -1652,7 +2141,7 @@ function renderBangkokMain() {
             </table>
  
             <div class="num-block" style="margin-top:10px;">
-                <div class="head small">แบบกำหนดเวลา เริ่มวันที่ <span class="field-line">${safe(data.start)}</span> สิ้นสุดวันที่ <span class="field-line">${safe(data.end)}</span> เวลา 16.30 น.</div>
+                <div class="head small">แบบกำหนดเวลา เริ่มวันที่ <span class="field-line">${toBEDateStr(safe(data.start))}</span> สิ้นสุดวันที่ <span class="field-line">${toBEDateStr(safe(data.end))}</span> เวลา 16.30 น.</div>
                 <div class="sub small">ขอบเขต ประเทศไทย &nbsp; เส้นทางการขนส่ง: ${data.route ? safe(data.route) : "ตามเส้นทางปกตินิยม"}</div>
             </div>
  
@@ -1762,7 +2251,7 @@ function renderInvoice() {
                 <td>${safe(data.customer)}</td>
                 <td>${safe(data.plate)}</td>
                 <td>${safe(data.brand)}</td>
-                <td>${safe(data.start)}</td>
+                <td>${toBEDateStr(safe(data.start))}</td>
                 <td>${data.type === "car" ? "ประกันรถยนต์" : "ประกันขนส่งสินค้า"}</td>
                 <td>${fmt(data.total)}</td>
             </tr>
@@ -1853,7 +2342,7 @@ function renderPowerOfAttorney(companyFullName) {
  
     <table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:14px;">
         <tr>
-            <td style="border:1px solid #000;padding:5px 8px;font-weight:bold;width:30%;">ข้อมูลที่รถยนต์ที่ทำประกันภัย</td>
+            <td style="border:1px solid #000;padding:5px 8px;font-weight:bold;width:30%;">ข้อมูลรถยนต์ที่ทำประกันภัย</td>
             <td style="border:1px solid #000;padding:5px 8px;" colspan="3">กรมธรรม์ประกันความรับผิดของผู้ขนส่ง</td>
         </tr>
         <tr>
@@ -1866,7 +2355,7 @@ function renderPowerOfAttorney(companyFullName) {
             <td style="border:1px solid #000;padding:5px 8px;">เบี้ยประกันภัย</td>
             <td style="border:1px solid #000;padding:5px 8px;">${fmt(data.total)} บาท</td>
             <td style="border:1px solid #000;padding:5px 8px;" colspan="2">
-                ระยะเวลาเอาประกันภัย เริ่มตั้งแต่ ${safe(data.start)} &nbsp; สิ้นสุดวันที่ ${safe(data.end)}
+                ระยะเวลาเอาประกันภัย เริ่มตั้งแต่ ${toBEDateStr(safe(data.start))} &nbsp; สิ้นสุดวันที่ ${toBEDateStr(safe(data.end))}
             </td>
         </tr>
     </table>
@@ -2290,16 +2779,24 @@ function getDocumentHTML(type){
 const docsForThisCompany = COMPANY_DOCS[data.company] || COMPANY_DOCS["เมืองไทย"];
  
 docsForThisCompany.forEach(type=>{
-    let div=document.createElement("div");
-    div.className="document-page";
-    div.id=type;
- 
-    let inner=document.createElement("div");
-    inner.className="page-scale";
-    inner.innerHTML=getDocumentHTML(type);
- 
-    div.appendChild(inner);
-    docArea.appendChild(div);
+    // getDocumentHTML อาจคืนค่าเป็นสตริงหน้าเดียว (ปกติ) หรืออาร์เรย์ของหลายหน้า
+    // (เช่น เอกสาร AXA ต้นฉบับ 3 หน้า) — ทำให้แต่ละหน้าในอาร์เรย์กลายเป็น .document-page จริงแยกกัน
+    const html = getDocumentHTML(type);
+    const pagesHtml = Array.isArray(html) ? html : [html];
+
+    pagesHtml.forEach((pageHtml, idx)=>{
+        let div=document.createElement("div");
+        div.className="document-page";
+        div.id = pagesHtml.length > 1 ? `${type}_${idx+1}` : type;
+        div.dataset.doctype = type;
+
+        let inner=document.createElement("div");
+        inner.className="page-scale";
+        inner.innerHTML=pageHtml;
+
+        div.appendChild(inner);
+        docArea.appendChild(div);
+    });
 });
  
 /* ==========================================================
@@ -2363,7 +2860,7 @@ async function saveJPG() {
     for (let i = 0; i < pages.length; i++) {
         const canvas = await html2canvas(pages[i], { scale: 2, backgroundColor: "#ffffff", useCORS: true, letterRendering: true });
         const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg", 0.95));
-        const label = pageLabels[pages[i].id] || pages[i].id || (i + 1);
+        const label = pageLabels[pages[i].dataset.doctype || pages[i].id] || pages[i].id || (i + 1);
         const fileName = `${fileBase}_${i + 1}_${label}.jpg`;
         files.push(new File([blob], fileName, { type: "image/jpeg" }));
     }
