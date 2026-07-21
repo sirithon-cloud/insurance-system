@@ -610,6 +610,46 @@ function getInstallmentPlan() {
     const perInstallment = count > 0 ? totalAmount / count : totalAmount;
     return { count, perInstallment };
 }
+
+/* ==========================================================
+    วันที่ครบกำหนดของแต่ละงวด
+   - เดิม: บวก 30 วันไปเรื่อยๆ ทำให้ "วันที่" ของแต่ละงวดไม่ตรงกับวันที่ลูกค้าเริ่มทำประกัน (data.start)
+   - แก้ไข: เปลี่ยนเฉพาะ "วันที่" (ตัวเลขวัน) ให้เป็นวันเดียวกับวันที่ลูกค้าเริ่ม (data.start) เสมอ
+     ส่วน "เดือน" ยังคงคำนวณด้วยวิธีเดิม (บวก 30 วันต่อคู่งวด เพื่อกะเดือนถัดไป) 
+   - กรณีเดือนนั้นไม่มีวันที่ตรงกับวันเริ่ม (เช่น เริ่มวันที่ 31 แต่เดือนถัดไปมีแค่ 30 วัน)
+     จะใช้วันสุดท้ายของเดือนนั้นแทน เพื่อไม่ให้วันที่เพี้ยนข้ามเดือนไปอีก */
+function getCustomerStartDay() {
+    if (!data.start) return null;
+
+    const s = String(data.start).trim();
+
+    let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{3,4})$/);
+    if (m) return parseInt(m[1], 10);
+
+    m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (m) return parseInt(m[3], 10);
+
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) return d.getDate();
+
+    return null;
+}
+
+function applyCustomerStartDay(date, startDay) {
+    if (!startDay) return date;
+
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+
+    return new Date(year, month, Math.min(startDay, lastDayOfMonth));
+}
+
+function getInstallmentDueDate(contractDate, installmentIndex, startDay) {
+    const due = new Date(contractDate);
+    due.setDate(due.getDate() + 30 * (installmentIndex + 1));
+    return applyCustomerStartDay(due, startDay);
+}
  
 /* ==========================================================
    ตัวเลขเป็นข้อความไทย
@@ -1246,10 +1286,10 @@ function renderviriyahContract() {
     const plan = getInstallmentPlan();
  
     const contractDate = new Date();
+    const startDay = getCustomerStartDay();
     let installmentRows = "";
     for (let i = 0; i < plan.count; i++) {
-        const due = new Date(contractDate);
-        due.setDate(due.getDate() + 30 * (i + 1));
+        const due = getInstallmentDueDate(contractDate, i, startDay);
         installmentRows += `
             <div class="field-row" style="margin:8px 0;">
                 <div><span class="lbl">งวดที่ ${i + 1} ยอดที่ต้องชำระ</span><span class="field-line" style="min-width:140px;">${fmt(plan.perInstallment)} บาท</span></div>
@@ -2432,10 +2472,10 @@ function renderBrokerContract(companyFullName) {
     const plan = getInstallmentPlan();
  
     const contractDate = new Date();
+    const startDay = getCustomerStartDay();
     let installmentRows = "";
     for (let i = 0; i < plan.count; i++) {
-        const due = new Date(contractDate);
-        due.setDate(due.getDate() + 30 * (i + 1));
+        const due = getInstallmentDueDate(contractDate, i, startDay);
         installmentRows += `
             <div class="field-row" style="margin:8px 0;">
                 <div><span class="lbl">งวดที่ ${i + 1} ยอดที่ต้องชำระ</span><span class="field-line" style="min-width:140px;">${fmt(plan.perInstallment)} บาท</span></div>
@@ -2580,9 +2620,7 @@ function renderBrokerContract(companyFullName) {
 ">
  
 <li>
-    ข้าพเจ้าตกลงส่งมอบและตกลงให้นายหน้าประกันเป็นผู้ยึดถือ/เก็บรักษาต้นฉบับกรมธรรม์ประกันภัย
-    และต้นฉบับใบเสร็จรับเงินค่าเบี้ยประกันภัย
-    เพื่อเป็นประกันจนกว่าจะมีการชำระหนี้ครบถ้วนตามสัญญา
+    ข้าพเจ้าตกลงส่งมอบและตกลงให้นายหน้าประกันเป็นผู้ยึดถือ/เก็บรักษาต้นฉบับกรมธรรม์ประกันภัยและต้นฉบับใบเสร็จรับเงินค่าเบี้ยประกันภัยเพื่อเป็นประกันจนกว่าจะมีการชำระหนี้ครบถ้วนตามสัญญา
 </li>
  
 <li>
@@ -2607,10 +2645,8 @@ function renderBrokerContract(companyFullName) {
 </li>
  
 <li>
-    ข้าพเจ้าตกลงยินยอมให้นายหน้าประกันมีอำนาจลงนามในเอกสาร
-    หรือกระทำการใด ๆ อันจำเป็น
-    เพื่อทำขึ้นใหม่ทดแทนกรมธรรม์ประกันภัย
-    หรือยกเลิกกรมธรรม์ประกันภัยตามเงื่อนไขของสัญญาฉบับนี้
+    ข้าพเจ้าตกลงยินยอมให้นายหน้าประกันมีอำนาจลงนามในเอกสารหรือกระทำการใดๆอันจำเป็นเพื่อทำขึ้นใหม่ทดแทนกรมธรรม์ประกันภัยหรือยกเลิกกรมธรรม์
+               ประกันภัยตามเงื่อนไขของสัญญาฉบับนี้
 </li>
  
  
@@ -2743,7 +2779,7 @@ function getDocumentHTML(type){
         if(company==="วิริยะ") return renderviriyahMain();
         if(company==="เมืองไทย") return renderMuangthaiMain();
         if(company==="AIG") return renderAigMain();
-        if(company==="AXA" || company==="AXA") return renderAxaMain();
+        if(company==="AXA" || company==="แอกซ่า") return renderAxaMain();
         if(company==="KWI") return renderKwiMain();
         if(company==="กรุงเทพ") return renderBangkokMain();
     }

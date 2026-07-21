@@ -386,6 +386,11 @@ function calculateOverdue(date){
 
 
     // รองรับวันที่แบบ dd/mm/yyyy
+    // แก้ไข: เดิมลบ 543 ออกจากปี โดยสมมติว่าเป็นปี พ.ศ. แต่จริงๆ วันที่ที่บันทึกไว้
+    // ทั้งจาก flatpickr (dateFormat: "d/m/Y") และจาก input type="date" ของฟอร์มเก่า
+    // เป็นปี ค.ศ. (เช่น 2026) เสมอ ไม่ใช่ พ.ศ. การลบ 543 จึงทำให้ได้ปี ~1483
+    // ส่งผลให้ทุกกรมธรรม์ที่มีวันสิ้นสุดกลายเป็น "เกินกำหนด" หลายแสนวันหมด
+    // แก้โดยใช้ปีตามที่กรอกไว้ตรงๆ ไม่แปลงหน่วยปีอีกต่อไป
     let parts = date.split("/");
 
 
@@ -395,7 +400,7 @@ function calculateOverdue(date){
     if(parts.length === 3){
 
         due = new Date(
-            Number(parts[2])-543,
+            Number(parts[2]),
             Number(parts[1])-1,
             Number(parts[0])
         );
@@ -642,35 +647,3 @@ onSnapshot(collection(db, "insuranceData"), (snapshot) => {
 </body>
 
 </html>
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -385,8 +385,7 @@ import {
     deleteDoc,
     doc,
     query,
-    where,
-    Timestamp
+    where
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
  
 /* =========================
@@ -1240,58 +1239,22 @@ function getFilteredData(){
  
         
 /* =========================
-   [เพิ่มใหม่] สร้างช่วงวันที่ (createdAt) จากปี/เดือน พ.ศ. ที่เลือกอยู่
-   ใช้สำหรับทำ Firestore range query บนฟิลด์ createdAt (Timestamp) เพื่อกรองข้อมูล
-   ตั้งแต่ต้นทางที่ Firestore แทนการโหลดมาทั้งหมดแล้วกรองด้วย JavaScript
+   [แก้ไข] เดิมมีฟังก์ชัน buildDateRange() ที่แปลงตัวกรอง "ปี/เดือน" เป็นช่วงวันที่
+   แล้วนำไปกรองที่ระดับ Firestore query ด้วย where("createdAt", ...) โดยตรง
+   ปัญหาคือ: Firestore range query บนฟิลด์ใด จะตัดเอกสารที่ "ไม่มีฟิลด์นั้นเลย" ทิ้งไปตั้งแต่ต้นทาง
+   ไม่ส่งกลับมาให้ client เลย ดังนั้นเอกสารเก่าที่ยังไม่มีฟิลด์ createdAt (บันทึกไว้ก่อนอัปเดตนี้)
+   จะหายไปจากรายงานทันทีที่ผู้ใช้เลือกปีใดๆ ขัดกับที่คอมเมนต์เดิมอ้างว่า getFilteredData()
+   จะกรองซ้ำที่ฝั่ง client ให้ (จริงๆ แล้วไม่มีโอกาสได้กรองซ้ำ เพราะข้อมูลไม่เคยถูกส่งมาถึง client)
 
-   หมายเหตุ: ถ้าเลือกปี = "ทั้งหมด" จะไม่ใส่ตัวกรองช่วงวันที่ในระดับ query เพราะ Firestore
-   ไม่สามารถ range-query "เดือนเดียวกันแต่ทุกปี" ในคำสั่งเดียวได้อย่างมีประสิทธิภาพ
-   กรณีนี้ (และกรณีเอกสารเก่าที่ไม่มีฟิลด์ createdAt) ระบบจะยังกรองซ้ำที่ฝั่ง client
-   ด้วยฟังก์ชัน getFilteredData() ที่มีอยู่เดิม เพื่อไม่ให้ข้อมูลเดิมตกหล่น
-========================= */
-function buildDateRange(selectedYear, selectedMonth){
-
-    if(selectedYear === "all"){
-        return null;
-    }
-
-    const gregorianYear = Number(selectedYear) - 543;
-
-    if(isNaN(gregorianYear)){
-        return null;
-    }
-
-    if(selectedMonth === "all"){
-        return {
-            start: new Date(gregorianYear, 0, 1),
-            end: new Date(gregorianYear + 1, 0, 1)
-        };
-    }
-
-    const m = Number(selectedMonth);
-
-    if(isNaN(m)){
-        return null;
-    }
-
-    return {
-        start: new Date(gregorianYear, m - 1, 1),
-        end: new Date(gregorianYear, m, 1)
-    };
-
-}
-
-/* =========================
-   [เพิ่มใหม่] สร้าง Firestore Query ตามตัวกรอง (บริษัท/พนักงาน/ประเภท/ปี-เดือน) ที่เลือกอยู่ปัจจุบัน
-   ใช้ where() ตั้งแต่ต้นทาง (เงื่อนไขข้อ 5) เพื่อให้ Firestore ส่งกลับมาเฉพาะเอกสารที่ตรงเงื่อนไข
-   แทนที่จะอ่านทั้ง collection แล้วมากรองด้วย JavaScript (เงื่อนไขข้อ 4)
+   แก้โดยตัดการกรองช่วงวันที่ (ปี/เดือน) ออกจากระดับ Firestore query ทั้งหมด
+   ปล่อยให้ getFilteredData() ที่มีอยู่เดิม (ซึ่งใช้ parseCreateDate() อ่านจากฟิลด์ createDate
+   ที่ทุกเอกสารมีอยู่แน่นอน ไม่ต้องพึ่ง createdAt) เป็นตัวกรองปี/เดือนเพียงจุดเดียวที่ฝั่ง client
+   ยังคงกรองบริษัท/พนักงาน/ประเภท ที่ระดับ Firestore query เหมือนเดิม เพื่อลด reads
 ========================= */
 function buildFirestoreQuery(){
 
     const selectedCompany = document.getElementById("filterCompany").value || "all";
     const selectedEmployee = document.getElementById("filterEmployee").value || "all";
-    const selectedYear = document.getElementById("filterYear").value || "all";
-    const selectedMonth = document.getElementById("filterMonth").value || "all";
     const selectedType = document.getElementById("filterType").value || "all";
 
     const base = collection(db, "insuranceData");
@@ -1310,13 +1273,6 @@ function buildFirestoreQuery(){
 
     if(selectedType !== "all"){
         constraints.push(where("type", "==", selectedType));
-    }
-
-    const range = buildDateRange(selectedYear, selectedMonth);
-
-    if(range){
-        constraints.push(where("createdAt", ">=", Timestamp.fromDate(range.start)));
-        constraints.push(where("createdAt", "<", Timestamp.fromDate(range.end)));
     }
 
     return constraints.length ? query(base, ...constraints) : base;

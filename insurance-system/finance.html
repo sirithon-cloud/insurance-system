@@ -319,15 +319,37 @@ function formatDate(date){
 
     if(!date) return "-";
 
-    let d = new Date(date);
+    /* แก้ไข: เดิมใช้ new Date(date) ตรงๆ กับสตริงรูปแบบ dd/mm/yyyy (ที่ฟอร์มบันทึกจริง
+       ผ่าน flatpickr) ซึ่งเบราว์เซอร์จะตีความผิดเป็นแบบ MM/DD/YYYY (สไตล์สหรัฐฯ)
+       ทำให้วัน/เดือนสลับกันแบบเงียบๆ ทุกครั้งที่วันที่ ≤ 12 (เช่น "5/7/2569" ควรเป็น
+       วันที่ 5 กรกฎาคม กลับถูกอ่านเป็นเดือน 5 (พฤษภาคม) วันที่ 7) และถ้าวัน > 12
+       จะได้ Invalid Date แล้วคืนค่าสตริงดิบกลับไปโดยไม่แปลงเป็น พ.ศ. ให้
+       แก้โดย parse รูปแบบวันที่ที่เป็นไปได้อย่างชัดเจนแทนการพึ่ง new Date(string) */
 
-    if(isNaN(d)) return date;
+    const s = String(date).trim();
 
-    let day = String(d.getDate()).padStart(2,"0");
-    let month = String(d.getMonth()+1).padStart(2,"0");
-    let year = d.getFullYear() + 543;
+    // รูปแบบ dd/mm/yyyy (ค.ศ. หรือ พ.ศ. ก็รองรับ) — รูปแบบหลักที่ฟอร์มบันทึกจริง
+    let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{3,4})$/);
+    if(m){
+        const day = m[1].padStart(2,"0");
+        const month = m[2].padStart(2,"0");
+        let year = parseInt(m[3],10);
+        if(year < 2400) year += 543; // ปี ค.ศ. -> แปลงเป็น พ.ศ. เฉพาะกรณียังไม่ใช่ พ.ศ.
+        return `${day}/${month}/${year}`;
+    }
 
-    return `${day}/${month}/${year}`;
+    // รูปแบบ yyyy-mm-dd (จาก input type="date" ของฟอร์มเก่า)
+    m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if(m){
+        const day = m[3].padStart(2,"0");
+        const month = m[2].padStart(2,"0");
+        let year = parseInt(m[1],10);
+        if(year < 2400) year += 543;
+        return `${day}/${month}/${year}`;
+    }
+
+    // รูปแบบอื่นที่ไม่รู้จัก: คืนค่าดิบกลับไป แทนที่จะเดาแบบเสี่ยงผิด
+    return s;
 
 }
 
