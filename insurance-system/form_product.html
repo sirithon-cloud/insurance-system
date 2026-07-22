@@ -170,12 +170,33 @@
             </div>
  
             <label>กลุ่มสินค้า</label>
-            <select id="group">
-                <option value="">-- เลือกกลุ่ม --</option>
-                <option value="กลุ่ม 1">กลุ่ม 1 (ค่าความเสียหายส่วนแรก 10% ของความเสียหาย หรือขั้นต่ำ 5,000 บาท แล้วแต่จำนวนใดจะสูงกว่า)</option>
-                <option value="กลุ่ม 2">กลุ่ม 2 (ค่าความเสียหายส่วนแรก 20% ของความเสียหาย หรือขั้นต่ำ 10,000 บาท แล้วแต่จำนวนใดจะสูงกว่า)</option>
-                <option value="กลุ่ม 3">กลุ่ม 3 (ค่าความเสียหายส่วนแรก 25% ของความเสียหาย หรือขั้นต่ำ 20,000 บาท แล้วแต่จำนวนใดจะสูงกว่า)</option>
-            </select>
+            <div class="installment-options" id="groupOptionsGroup">
+                <input type="radio" name="groupOption" id="groupOption1" value="กลุ่ม 1">
+                <label for="groupOption1">กลุ่ม 1</label>
+
+                <input type="radio" name="groupOption" id="groupOption2" value="กลุ่ม 2">
+                <label for="groupOption2">กลุ่ม 2</label>
+
+                <input type="radio" name="groupOption" id="groupOption3" value="กลุ่ม 3">
+                <label for="groupOption3">กลุ่ม 3</label>
+
+                <input type="radio" name="groupOption" id="groupOption3o" value="กลุ่ม 3 บรรทุกน้ำหนักเกิน">
+                <label for="groupOption3o">กลุ่ม 3 บรรทุกน้ำหนักเกิน</label>
+
+                <input type="radio" name="groupOption" id="groupOption4" value="กลุ่ม 4">
+                <label for="groupOption4">กลุ่ม 4</label>
+
+                <input type="radio" name="groupOption" id="groupOption5" value="กลุ่ม 5">
+                <label for="groupOption5">กลุ่ม 5</label>
+
+                <input type="radio" name="groupOption" id="groupOption6" value="กลุ่ม 6">
+                <label for="groupOption6">กลุ่ม 6</label>
+
+                <input type="radio" name="groupOption" id="groupOption7" value="กลุ่ม 7">
+                <label for="groupOption7">กลุ่ม 7</label>
+            </div>
+            <!-- ซ่อนไว้ เก็บค่ากลุ่มที่เลือกไว้ใช้กับโค้ดเดิมที่อ่านค่าจาก #group (collectFormData / editData) -->
+            <input type="hidden" id="group">
  
             <div class="section-title">จำนวนงวด</div>
  
@@ -221,7 +242,7 @@
                 </button>
  
  
-                <button type="button" class="edit-btn" onclick="loadEditDataForEditing()">
+                <button type="button" class="edit-btn" onclick="editData()">
                     ✏️ แก้ไขข้อมูล
                 </button>
  
@@ -256,72 +277,50 @@
             return checked ? checked.value : "";
         }
 
-        /* แก้ไข: บั๊ก "ปุ่มแก้ไขข้อมูลทำให้เกิดข้อมูลซ้ำ"
-           เดิมปุ่ม "✏️ แก้ไขข้อมูล" เรียก editData() ซึ่งเป็นฟังก์ชันจาก script.js (module)
-           ที่ถูก expose ผ่าน window.editData — ฟังก์ชันนั้นตั้งค่าตัวแปร editingId
-           ใน scope ของ script.js เอง ไม่ใช่ตัวแปร editingId ที่ประกาศไว้ในไฟล์นี้
-           (คนละตัวแปรกันแม้ชื่อเดียวกัน) ทำให้ตอนกด "บันทึกข้อมูล" หลังจากนั้น
-           editingId ในไฟล์นี้ยังเป็น null อยู่เสมอ -> saveRecord() คิดว่าเป็นข้อมูลใหม่
-           แล้วสร้างเอกสารซ้ำด้วย addDoc แทนที่จะอัปเดตของเดิมด้วย setDoc
+        /* เพิ่มใหม่: ปุ่มเลือก "กลุ่มสินค้า" แบบเดียวกับปุ่มจำนวนงวด
+           ต้องซิงค์ค่ากลับเข้าช่อง input hidden #group เสมอ เพื่อให้โค้ดเดิม
+           (collectFormData / editData ใน script.js) ที่อ่านค่าจาก #group ทำงานได้ตามปกติ ไม่ต้องแก้ที่อื่น */
+        function setGroupValue(value) {
+            const hiddenGroup = document.getElementById("group");
+            if (hiddenGroup) hiddenGroup.value = value || "";
 
-           แก้โดยย้ายโลจิกเติมข้อมูลฟอร์มมาเป็นฟังก์ชันในไฟล์นี้เอง (applyEditDataToForm)
-           แล้วให้ทั้ง DOMContentLoaded (ตอนเปิดหน้าจาก report.html) และปุ่มนี้
-           เรียกใช้ฟังก์ชันเดียวกัน เพื่อให้ editingId ที่ถูกตั้งค่า เป็นตัวแปรตัวเดียวกัน
-           กับที่ collectFormData()/saveRecord() อ่านค่าไปใช้จริงเสมอ */
-        function applyEditDataToForm(oldData){
-
-            editingId = oldData.id;
-
-            document.getElementById("company").value = oldData.company || "";
-            document.getElementById("requestName").value = oldData.requestName || "";
-            document.getElementById("name").value = oldData.customer || "";
-            document.getElementById("phone").value = oldData.phone || "";
-            document.getElementById("address").value = oldData.address || "";
-
-            document.getElementById("brand").value = oldData.brand || "";
-            document.getElementById("plate").value = oldData.plate || "";
-            document.getElementById("chassis").value = oldData.chassis || "";
-
-            const legacyDateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(oldData.start || "");
-            document.getElementById("start").value = legacyDateMatch
-                ? `${legacyDateMatch[3]}/${legacyDateMatch[2]}/${legacyDateMatch[1]}`
-                : (oldData.start || "");
-
-            const legacyEndMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(oldData.end || "");
-            document.getElementById("end").value = legacyEndMatch
-                ? `${legacyEndMatch[3]}/${legacyEndMatch[2]}/${legacyEndMatch[1]}`
-                : (oldData.end || "");
-
-            document.getElementById("sumInsured").value = oldData.sumInsured || "";
-            document.getElementById("total").value = oldData.total || "";
-            document.getElementById("group").value = oldData.group || "";
-
-            if (oldData.installmentCount) {
-                const radio = document.getElementById("installmentCount" + oldData.installmentCount);
-                if (radio) radio.checked = true;
-            }
-
-            document.getElementById("installment1").value = oldData.installment1 || "";
-            document.getElementById("installment2").value = oldData.installment2 || "";
-            document.getElementById("installment3").value = oldData.installment3 || "";
-            document.getElementById("installment4").value = oldData.installment4 || "";
+            document.querySelectorAll('input[name="groupOption"]').forEach(r => {
+                r.checked = (r.value === value);
+            });
         }
 
-        function loadEditDataForEditing(){
-
-            const raw = localStorage.getItem("editData");
-
-            if(!raw){
-                alert("ไม่พบข้อมูลที่ต้องการแก้ไข");
-                return;
-            }
-
-            const oldData = JSON.parse(raw);
-
-            applyEditDataToForm(oldData);
-
-            alert("โหลดข้อมูลเดิมแล้ว สามารถแก้ไขได้");
+        function getGroupValue() {
+            const checked = document.querySelector('input[name="groupOption"]:checked');
+            return checked ? checked.value : (document.getElementById("group")?.value || "");
         }
+
+        document.querySelectorAll('input[name="groupOption"]').forEach(r => {
+            r.addEventListener("change", function () {
+                setGroupValue(this.value);
+            });
+        });
+
+        /* เพิ่มใหม่: ถ้าเลือกบริษัทอื่นที่ไม่ใช่ "วิริยะ" ให้ล็อกกลุ่มสินค้าเป็น
+           "กลุ่ม 3 บรรทุกน้ำหนักเกิน" โดยอัตโนมัติ (ปุ่มกลุ่มอื่นจะถูกปิดใช้งานไว้ชั่วคราว)
+           ถ้าเลือกบริษัท "วิริยะ" จะปลดล็อกให้เลือกกลุ่มได้ตามปกติทุกกลุ่ม */
+        function applyGroupLockForCompany() {
+            const companyEl = document.getElementById("company");
+            const company = companyEl ? companyEl.value : "";
+            const groupRadios = document.querySelectorAll('input[name="groupOption"]');
+
+            if (company && company !== "วิริยะ") {
+                setGroupValue("กลุ่ม 3 บรรทุกน้ำหนักเกิน");
+                groupRadios.forEach(r => {
+                    r.disabled = (r.value !== "กลุ่ม 3 บรรทุกน้ำหนักเกิน");
+                });
+            } else {
+                groupRadios.forEach(r => {
+                    r.disabled = false;
+                });
+            }
+        }
+
+        document.getElementById("company")?.addEventListener("change", applyGroupLockForCompany);
  
         function collectFormData(type) {
  
@@ -518,13 +517,51 @@
  
  
     if(oldData){
+ 
+        editingId = oldData.id;
+ 
+ 
+        document.getElementById("company").value = oldData.company || "";
+        document.getElementById("requestName").value = oldData.requestName || "";
+        document.getElementById("name").value = oldData.customer || "";
+        document.getElementById("phone").value = oldData.phone || "";
+        document.getElementById("address").value = oldData.address || "";
+ 
+        document.getElementById("brand").value = oldData.brand || "";
+        document.getElementById("plate").value = oldData.plate || "";
+        document.getElementById("chassis").value = oldData.chassis || "";
+ 
+        // ข้อมูลเก่าบางรายการเคยบันทึกด้วย input type="date" (รูปแบบ ปปปป-ดด-วว)
+        // แปลงให้เป็น วว/ดด/ปปปป ก่อน เพื่อให้ flatpickr แสดงผล/เข้าใจค่าได้ถูกต้อง
+        // ส่วนข้อมูลใหม่ที่เป็น วว/ดด/ปปปป อยู่แล้วจะไม่ถูกแตะต้อง
+        const legacyDateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(oldData.start || "");
+        document.getElementById("start").value = legacyDateMatch
+            ? `${legacyDateMatch[3]}/${legacyDateMatch[2]}/${legacyDateMatch[1]}`
+            : (oldData.start || "");
 
-        // แก้ไข: ใช้ฟังก์ชันเดียวกับปุ่ม "✏️ แก้ไขข้อมูล" (applyEditDataToForm)
-        // แทนโค้ดเติมข้อมูลที่ก็อปซ้ำไว้ตรงนี้ เพื่อให้ editingId ที่ถูกตั้งค่า
-        // เป็นตัวแปรตัวเดียวกันเสมอ ไม่ว่าจะเข้าหน้านี้มาจากทางไหน
-        applyEditDataToForm(oldData);
-
+        const legacyEndMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(oldData.end || "");
+        document.getElementById("end").value = legacyEndMatch
+            ? `${legacyEndMatch[3]}/${legacyEndMatch[2]}/${legacyEndMatch[1]}`
+            : (oldData.end || "");
+ 
+        document.getElementById("sumInsured").value = oldData.sumInsured || "";
+        document.getElementById("total").value = oldData.total || "";
+        setGroupValue(oldData.group || "");
+ 
+        if (oldData.installmentCount) {
+            const radio = document.getElementById("installmentCount" + oldData.installmentCount);
+            if (radio) radio.checked = true;
+        }
+ 
+        document.getElementById("installment1").value = oldData.installment1 || "";
+        document.getElementById("installment2").value = oldData.installment2 || "";
+        document.getElementById("installment3").value = oldData.installment3 || "";
+        document.getElementById("installment4").value = oldData.installment4 || "";
+ 
     }
+ 
+    // เพิ่มใหม่: ใช้กฎล็อกกลุ่มสินค้าตามบริษัทที่เลือกอยู่ (ทั้งกรณีเปิดฟอร์มใหม่และกรณีแก้ไขข้อมูลเดิม)
+    applyGroupLockForCompany();
  
 },500);
     </script>

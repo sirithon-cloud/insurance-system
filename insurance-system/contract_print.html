@@ -143,10 +143,15 @@ html, body{
 .document-page .field-row-vehicle *{
     font-size:10px !important;
 }
-.field-row-vehicle{ gap:8px; }
-.field-row-vehicle > div{ min-width:108px; flex:1 1 0; }
-.field-row-vehicle .lbl{ margin-right:2px; }
-.field-row-vehicle .field-line{ min-width:40px; padding:0 2px; }
+.field-row-vehicle{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:8px;
+    align-items:start;
+}
+.field-row-vehicle > div{ min-width:0; }
+.field-row-vehicle .lbl{ margin-right:2px; white-space:nowrap; }
+.field-row-vehicle .field-line{ min-width:0; padding:0 2px; word-break:break-word; }
 .field-row > div{ flex:1; min-width:140px; }
 .field-row .lbl{ font-weight:bold; margin-right:4px; }
 .receipt-fields .lbl{ display:inline-block; min-width:145px; font-weight:bold; margin-right:4px; vertical-align:top; }
@@ -497,6 +502,7 @@ table.grid th{ background:#f0f2f5; }
     <button class="btn-print" onclick="window.print()">🖨 พิมพ์ / บันทึก PDF</button>
     <button class="btn-pdf" onclick="downloadPDF()">📥 ดาวน์โหลด PDF</button>
     <button class="btn-jpg" onclick="saveJPG()">🖼 ดาวน์โหลด JPG</button>
+    <button class="btn-jpg" style="background:#fd7e14;" onclick="copyJPGToClipboard()">📋 คัดลอกรูป (วางใน LINE ได้เลย)</button>
 </div>
  
 <div id="docArea"></div>
@@ -612,10 +618,10 @@ function getInstallmentPlan() {
 }
 
 /* ==========================================================
-    วันที่ครบกำหนดของแต่ละงวด
+   [เพิ่มใหม่] วันที่ครบกำหนดของแต่ละงวด
    - เดิม: บวก 30 วันไปเรื่อยๆ ทำให้ "วันที่" ของแต่ละงวดไม่ตรงกับวันที่ลูกค้าเริ่มทำประกัน (data.start)
    - แก้ไข: เปลี่ยนเฉพาะ "วันที่" (ตัวเลขวัน) ให้เป็นวันเดียวกับวันที่ลูกค้าเริ่ม (data.start) เสมอ
-     ส่วน "เดือน" ยังคงคำนวณด้วยวิธีเดิม (บวก 30 วันต่อคู่งวด เพื่อกะเดือนถัดไป) 
+     ส่วน "เดือน" ยังคงคำนวณด้วยวิธีเดิม (บวก 30 วันต่อคู่งวด เพื่อกะเดือนถัดไป) ไม่แตะต้อง
    - กรณีเดือนนั้นไม่มีวันที่ตรงกับวันเริ่ม (เช่น เริ่มวันที่ 31 แต่เดือนถัดไปมีแค่ 30 วัน)
      จะใช้วันสุดท้ายของเดือนนั้นแทน เพื่อไม่ให้วันที่เพี้ยนข้ามเดือนไปอีก */
 function getCustomerStartDay() {
@@ -685,7 +691,24 @@ function numberToThaiText(numStr) {
  
 function fmt(n) { return Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }); }
 function safe(v) { return (v === undefined || v === null || v === "") ? "-" : v; }
-function chk(isOn){ return `<span class="chk"><span class="box${isOn?" on":""}"></span>${isOn?"":""}</span>`; }
+function chk(isOn){ return `<span class="chk"><span class="box${isOn?" on":""}" onclick="this.classList.toggle('on')"></span>${isOn?"":""}</span>`; }
+/* ตัวช่วยใหม่: สร้างคู่ ใช่/ไม่ใช่ ที่ติ๊กแล้วจะยกเลิกอีกช่องให้อัตโนมัติ (เลือกได้ทีละช่องในคู่เดียวกัน) */
+function chkPair(defaultYes){
+    const gid = "chkpair_" + Math.random().toString(36).slice(2, 9);
+    const yesOn = defaultYes ? " on" : "";
+    const noOn = defaultYes ? "" : " on";
+    return {
+        yes: `<span class="chk"><span class="box${yesOn}" data-group="${gid}" onclick="chkPairSelect(this)"></span>ใช่</span>`,
+        no: `<span class="chk"><span class="box${noOn}" data-group="${gid}" onclick="chkPairSelect(this)"></span>ไม่ใช่</span>`
+    };
+}
+
+/* ใช้กับ chkPair(): ติ๊กช่องหนึ่งในคู่ ใช่/ไม่ใช่ จะยกเลิกติ๊กอีกช่องในคู่เดียวกันให้อัตโนมัติ */
+function chkPairSelect(box){
+    const group = box.dataset.group;
+    document.querySelectorAll(`.chk .box[data-group="${group}"]`).forEach(b => b.classList.remove("on"));
+    box.classList.add("on");
+}
 
 /* ใช้เฉพาะหน้าแรกของ AXA: เมื่อกดติ๊กแถวจำนวนเงินในตารางเบี้ยประกัน
    ให้ยกเลิกติ๊กแถวอื่น (เลือกได้ทีละแถวเหมือนปุ่มตัวเลือก) และอัปเดตตัวเลข
@@ -1147,7 +1170,6 @@ function renderviriyahMain() {
             <div class="num-block">
                 <div class="head"><span class="no">1.</span> ชื่อผู้ขอเอาประกันภัย <span class="field-line" style="min-width:260px; color:#000;">${safe(data.customer)}</span></div>
                 <div class="sub small">ที่อยู่ : <span class="field-line" style="min-width:400px;">${safe(data.address)}</span></div>
-                <div class="sub small">โทรศัพท์ : <span class="field-line">${safe(data.phone)}</span> &nbsp; โทรสาร : <span class="field-line"> - </span> &nbsp; E-mail : <span class="field-line"> - </span></div>
             </div>
  
             <div class="num-block">
@@ -1159,8 +1181,8 @@ function renderviriyahMain() {
  
             <div class="num-block">
                 <div class="head"><span class="no">3.</span> ยานพาหนะที่ใช้ในการขนส่ง :
-                    ลักษณะยานพาหนะพื้นเรียบ ${chk(true)}ใช่ ${chk(false)}ไม่ใช่
-                    &nbsp;&nbsp; ตู้บรรทุกติดตั้งอุปกรณ์เครื่องทำความเย็น COLD CHAIN ${chk(false)}ใช่ ${chk(true)}ไม่ใช่
+                    ลักษณะยานพาหนะพื้นเรียบ ${(() => { const p = chkPair(true); return p.yes + " " + p.no; })()}
+                    &nbsp;&nbsp; ตู้บรรทุกติดตั้งอุปกรณ์เครื่องทำความเย็น COLD CHAIN ${(() => { const p = chkPair(false); return p.yes + " " + p.no; })()}
                 </div>
                     <div class="field-row sub field-row-vehicle">
                     <div><span class="lbl">ยี่ห้อ</span><span class="field-line" style="min-width:150px;">${safe(data.brand)}</span></div>
@@ -1604,11 +1626,12 @@ function renderCarrierApplication(companyKey) {
             </div>
  
             <div class="num-block">
-                <div class="head" style="color:#000;margin-left:26px;"><span class="no" style="display:inline-block;min-width:20px;">8</span> ท่านเคยหรือมีประกันภัยการขนส่งหรือไม่ ${chk(true)}ไม่มี ${chk(false)}มี (โปรดระบุบริษัทผู้รับประกันภัย)</div>
+                <div class="head" style="color:#000;margin-left:26px;"><span class="no" style="display:inline-block;min-width:20px;">8</span> ท่านเคยหรือมีประกันภัยการขนส่งหรือไม่ ${chk(true)}ไม่มี ${chk(false)}มี (โปรดระบุบริษัทผู้รับประกันภัย)..........................................................................</div>
             </div>
  
             <div class="num-block">
-                <div class="head" style="color:#000;margin-left:26px;"><span class="no" style="display:inline-block;min-width:20px;">9</span> ท่านเคยมีความเสียหายเกิดขึ้นระหว่างการขนส่งที่ผ่านมาย้อนหลัง 3 ปีหรือไม่? ${chk(true)}ไม่มี ${chk(false)}มี (โปรดให้รายละเอียด สาเหตุและจำนวนเงินความเสียหาย)</div>
+                <div class="head" style="color:#000;margin-left:26px;"><span class="no" style="display:inline-block;min-width:20px;">9</span> ท่านเคยมีความเสียหายเกิดขึ้นระหว่างการขนส่งที่ผ่านมาย้อนหลัง 3 ปีหรือไม่? ${chk(true)}ไม่มี ${chk(false)}มี</div>
+                <div class="sub small" style="padding-left:24px;">(โปรดให้รายละเอียด สาเหตุและจำนวนเงินความเสียหาย)..................................................................................................................................................</div>
             </div>
  
             <div class="num-block">
@@ -2620,7 +2643,9 @@ function renderBrokerContract(companyFullName) {
 ">
  
 <li>
-    ข้าพเจ้าตกลงส่งมอบและตกลงให้นายหน้าประกันเป็นผู้ยึดถือ/เก็บรักษาต้นฉบับกรมธรรม์ประกันภัยและต้นฉบับใบเสร็จรับเงินค่าเบี้ยประกันภัยเพื่อเป็นประกันจนกว่าจะมีการชำระหนี้ครบถ้วนตามสัญญา
+    ข้าพเจ้าตกลงส่งมอบและตกลงให้นายหน้าประกันเป็นผู้ยึดถือ/เก็บรักษาต้นฉบับกรมธรรม์ประกันภัย
+    และต้นฉบับใบเสร็จรับเงินค่าเบี้ยประกันภัย
+    เพื่อเป็นประกันจนกว่าจะมีการชำระหนี้ครบถ้วนตามสัญญา
 </li>
  
 <li>
@@ -2645,8 +2670,10 @@ function renderBrokerContract(companyFullName) {
 </li>
  
 <li>
-    ข้าพเจ้าตกลงยินยอมให้นายหน้าประกันมีอำนาจลงนามในเอกสารหรือกระทำการใดๆอันจำเป็นเพื่อทำขึ้นใหม่ทดแทนกรมธรรม์ประกันภัยหรือยกเลิกกรมธรรม์
-               ประกันภัยตามเงื่อนไขของสัญญาฉบับนี้
+    ข้าพเจ้าตกลงยินยอมให้นายหน้าประกันมีอำนาจลงนามในเอกสาร
+    หรือกระทำการใด ๆ อันจำเป็น
+    เพื่อทำขึ้นใหม่ทดแทนกรมธรรม์ประกันภัย
+    หรือยกเลิกกรมธรรม์ประกันภัยตามเงื่อนไขของสัญญาฉบับนี้
 </li>
  
  
@@ -2779,7 +2806,7 @@ function getDocumentHTML(type){
         if(company==="วิริยะ") return renderviriyahMain();
         if(company==="เมืองไทย") return renderMuangthaiMain();
         if(company==="AIG") return renderAigMain();
-        if(company==="AXA" || company==="แอกซ่า") return renderAxaMain();
+        if(company==="AXA" || company==="AXA") return renderAxaMain();
         if(company==="KWI") return renderKwiMain();
         if(company==="กรุงเทพ") return renderBangkokMain();
     }
@@ -2874,12 +2901,19 @@ function safeFileName(s) {
 }
 const fileBase = safeFileName(data.customer) + "_" + safeFileName(data.plate);
  
-async function saveJPG() {
+/* สร้างไฟล์ JPG ของทุกหน้าเอกสาร ใช้กับปุ่ม "ดาวน์โหลด JPG"
+   (ปุ่ม "คัดลอกรูป" ไม่ได้ใช้ฟังก์ชันนี้ เพราะต้อง capture เป็น canvas ไว้ก่อนเพื่อนำไปรวมเป็นภาพเดียว
+   ดูฟังก์ชัน copyJPGToClipboard() ด้านล่าง)
+   เพิ่ม options { scale, quality } ให้ปรับคุณภาพ/ขนาดไฟล์ได้ */
+async function generateJPGFiles(options) {
+    const scale = (options && options.scale) || 2;
+    const quality = (options && options.quality) || 0.95;
+
     await document.fonts.ready; // รอฟอนต์โหลดเสร็จจริงก่อน (เพิ่มใหม่ ป้องกันฟอนต์ยังไม่พร้อมตอน capture)
     fitPagesToA4();
     await new Promise(r => setTimeout(r, 100)); // รอ layout นิ่งก่อน capture
     await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); // เพิ่มใหม่ รอ repaint นิ่งอีกชั้น
- 
+
     const pageLabels = {
         main: "ใบคำขอ",
         contract: "สัญญา",
@@ -2888,36 +2922,127 @@ async function saveJPG() {
         receipt: "ใบรับเงิน",
         invoice: "ใบแจ้งหนี้"
     };
- 
+
     const pages = document.querySelectorAll(".document-page");
     const files = [];
- 
+
     // capture ทีละหน้าแยกกัน เพื่อให้ได้ไฟล์ JPG ขนาด A4 คนละไฟล์ ไม่ติดกัน
     for (let i = 0; i < pages.length; i++) {
-        const canvas = await html2canvas(pages[i], { scale: 2, backgroundColor: "#ffffff", useCORS: true, letterRendering: true });
-        const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg", 0.95));
+        const canvas = await html2canvas(pages[i], { scale: scale, backgroundColor: "#ffffff", useCORS: true, letterRendering: true });
+        const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg", quality));
         const label = pageLabels[pages[i].dataset.doctype || pages[i].id] || pages[i].id || (i + 1);
         const fileName = `${fileBase}_${i + 1}_${label}.jpg`;
         files.push(new File([blob], fileName, { type: "image/jpeg" }));
     }
- 
-    // มือถือที่รองรับ: เปิดเมนูแชร์ของเครื่อง ส่งทุกภาพไปพร้อมกัน ผู้ใช้เลือกบันทึกแต่ละภาพเข้าแกลลอรี่ได้
-    if (navigator.canShare && navigator.canShare({ files })) {
-        try {
-            await navigator.share({ files, title: fileBase });
-            return;
-        } catch (err) {
-            // ผู้ใช้กดยกเลิก หรืออุปกรณ์แชร์ไม่สำเร็จ -> ดาวน์โหลดทีละไฟล์แทน
+
+    return files;
+}
+
+/* เพิ่มใหม่: ปุ่ม "ดาวน์โหลด JPG" บันทึกไฟล์ลงเครื่องโดยตรงเสมอ (ไม่เปิดเมนูแชร์)
+   แก้ปัญหาเดิมที่บางเครื่อง/บางเบราว์เซอร์ (เช่น Windows) เปิดเมนูแชร์ได้
+   แต่บางแอปปลายทางไม่รองรับไฟล์รูปจริง ทำให้ผู้ใช้ไม่ได้ไฟล์เก็บไว้เลย */
+async function saveJPG() {
+    const btn = document.querySelector(".btn-jpg");
+    const originalText = btn ? btn.innerText : "";
+    if (btn) { btn.innerText = "⏳ กำลังสร้างรูป..."; btn.disabled = true; }
+
+    try {
+        const files = await generateJPGFiles();
+
+        // ดาวน์โหลดทีละไฟล์แยกกันลงเครื่องโดยตรง (เว้นจังหวะกันเบราว์เซอร์บล็อกการดาวน์โหลดหลายไฟล์พร้อมกัน)
+        for (const file of files) {
+            const link = document.createElement("a");
+            link.download = file.name;
+            link.href = URL.createObjectURL(file);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            await new Promise(r => setTimeout(r, 300));
         }
+    } catch (err) {
+        alert("สร้างรูป JPG ไม่สำเร็จ: " + err.message);
+        console.error(err);
+    } finally {
+        if (btn) { btn.innerText = originalText; btn.disabled = false; }
     }
- 
-    // เบราว์เซอร์ที่ไม่รองรับการแชร์ไฟล์: ดาวน์โหลดทีละไฟล์แยกกัน (เว้นจังหวะกันเบราว์เซอร์บล็อก)
-    for (const file of files) {
-        const link = document.createElement("a");
-        link.download = file.name;
-        link.href = URL.createObjectURL(file);
-        link.click();
-        await new Promise(r => setTimeout(r, 300));
+}
+
+/* เพิ่มใหม่: ปุ่ม "คัดลอกรูป" แทนที่ปุ่ม "แชร์รูปภาพ" (shareJPG) เดิมที่ใช้ Web Share API
+   เหตุผลที่เปลี่ยน: LINE บนพีซี/Windows ส่วนใหญ่ไม่รับไฟล์ที่ส่งผ่าน Web Share API เลย
+   ไม่ว่าจะบีบอัดไฟล์เล็กแค่ไหนก็ตาม (เป็นข้อจำกัดของตัวแอปเอง ไม่ใช่ของโค้ด)
+   การคัดลอกรูปเข้าคลิปบอร์ดโดยตรงแล้วให้ผู้ใช้กด Ctrl+V ในช่องแชท เป็นวิธีที่ใช้ได้กว้างกว่ามาก
+
+   ตอบคำถาม "แชร์ทั้งหมดได้ไหม": คลิปบอร์ดของเบราว์เซอร์เก็บรูปได้ครั้งละ 1 รูปเท่านั้น
+   จึงไม่สามารถวางรูปหลายไฟล์พร้อมกันในครั้งเดียวได้ (ข้อจำกัดของคลิปบอร์ดเอง)
+   [แก้ไข] เดิมลองรวมทุกหน้าเป็นภาพเดียว (เรียงต่อกันแนวตั้ง) แต่ผู้ใช้ไม่ต้องการแบบนั้น
+   ต้องการให้แต่ละหน้ายังคงเป็นรูปแยกจากกันเหมือนไฟล์ JPG ที่ดาวน์โหลด
+   จึงเปลี่ยนกลับมาเป็น "คัดลอกทั้งหมด" ในความหมายว่า กดปุ่มครั้งเดียว แล้วระบบจะวนคัดลอกให้ทีละหน้า
+   โดยมี popup แจ้งให้ไปวาง (Ctrl+V) หน้านั้นในแชทก่อน แล้วกด OK เพื่อคัดลอกหน้าถัดไปให้เองอัตโนมัติ
+   จนครบทุกหน้า (ผู้ใช้ไม่ต้องกดปุ่ม "คัดลอกรูป" ซ้ำเองทีละหน้า) */
+async function copyJPGToClipboard() {
+    const btn = document.querySelector('.btn-bar button[onclick="copyJPGToClipboard()"]');
+    const originalText = btn ? btn.innerText : "";
+
+    if (!navigator.clipboard || typeof window.ClipboardItem === "undefined") {
+        alert("เบราว์เซอร์นี้ไม่รองรับการคัดลอกรูปภาพไปยังคลิปบอร์ด กรุณาใช้ปุ่ม \"ดาวน์โหลด JPG\" แล้วแนบไฟล์แทน");
+        return;
+    }
+
+    if (btn) { btn.innerText = "⏳ กำลังเตรียมรูป..."; btn.disabled = true; }
+
+    try {
+        await document.fonts.ready; // รอฟอนต์โหลดเสร็จจริงก่อน (ป้องกันฟอนต์ยังไม่พร้อมตอน capture)
+        fitPagesToA4();
+        await new Promise(r => setTimeout(r, 100)); // รอ layout นิ่งก่อน capture
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); // รอ repaint นิ่งอีกชั้น
+
+        const pageLabels = {
+            main: "ใบคำขอ",
+            contract: "สัญญา",
+            cancel: "ใบยกเลิก",
+            poa: "หนังสือมอบอำนาจ",
+            receipt: "ใบรับเงิน",
+            invoice: "ใบแจ้งหนี้"
+        };
+
+        const pages = document.querySelectorAll(".document-page");
+
+        // คัดลอกทีละหน้าแยกกัน (ไม่รวมเป็นภาพเดียว) — สเกลค่อนข้างต่ำเพราะ PNG หนักกว่า JPEG
+        // อยู่แล้วที่คุณภาพเท่ากัน ต้องการให้ไฟล์คลิปบอร์ดไม่หนักเกินไป
+        for (let i = 0; i < pages.length; i++) {
+            const canvas = await html2canvas(pages[i], { scale: 1.1, backgroundColor: "#ffffff", useCORS: true, letterRendering: true });
+
+            const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
+            if (!blob) throw new Error("สร้างรูปไม่สำเร็จ");
+
+            try {
+                await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+            } catch (err) {
+                throw new Error("เขียนคลิปบอร์ดไม่สำเร็จ (เบราว์เซอร์อาจบล็อกสิทธิ์การเข้าถึงคลิปบอร์ด): " + err.message);
+            }
+
+            const label = pageLabels[pages[i].dataset.doctype || pages[i].id] || pages[i].id || (i + 1);
+
+            if (pages.length > 1) {
+                if (i < pages.length - 1) {
+                    const cont = confirm(
+                        `คัดลอกหน้า "${label}" ไปยังคลิปบอร์ดแล้ว (หน้า ${i + 1}/${pages.length})\n\n` +
+                        `กรุณาไปวาง (กด Ctrl+V หรือกดค้างแล้วเลือก "วาง") ในแชทก่อน ` +
+                        `จากนั้นกด OK ที่นี่เพื่อคัดลอกหน้าถัดไปให้อัตโนมัติ (คลิปบอร์ดเก็บได้ทีละรูปเท่านั้น)`
+                    );
+                    if (!cont) return;
+                } else {
+                    alert(`คัดลอกหน้า "${label}" ไปยังคลิปบอร์ดแล้ว (หน้าสุดท้าย ${i + 1}/${pages.length}) กรุณาไปวางในแชทได้เลย`);
+                }
+            } else {
+                alert("คัดลอกรูปไปยังคลิปบอร์ดแล้ว กรุณาไปวาง (Ctrl+V) ในแชทได้เลย");
+            }
+        }
+    } catch (err) {
+        alert("คัดลอกรูปไม่สำเร็จ: " + err.message + "\nกรุณาใช้ปุ่ม \"ดาวน์โหลด JPG\" แล้วแนบไฟล์แทน");
+        console.error(err);
+    } finally {
+        if (btn) { btn.innerText = originalText; btn.disabled = false; }
     }
 }
  
