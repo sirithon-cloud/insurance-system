@@ -74,6 +74,15 @@
         .installment-options label:hover {
             border-color: #2d6cdf;
         }
+
+        /* เพิ่มใหม่: ปุ่มที่ถูกล็อก (disabled) ให้ดูจางลงชัดเจน แยกจากปุ่มที่เลือกได้ปกติ */
+        .installment-options input[type="radio"]:disabled + label {
+            opacity: .45;
+            cursor: not-allowed;
+        }
+        .installment-options input[type="radio"]:disabled + label:hover {
+            border-color: #ccc;
+        }
     </style>
  
 </head>
@@ -89,6 +98,7 @@
 <aside class="sidebar" id="sidebar">
     <ul>
         <li><a href="index.html" class="menu-link">🏠 หน้าหลัก</a></li>
+        <li><a href="report.html" class="menu-link">📊 รายงาน</a></li>
         <li><a href="revenue.html" class="menu-link">📈 กราฟรายได้</a></li>
     </ul>
 </aside>
@@ -242,7 +252,10 @@
                 </button>
  
  
-                <button type="button" class="edit-btn" onclick="editData()">
+                <!-- แก้ไข: เดิม onclick="editData()" เรียกฟังก์ชันของ script.js (type="module")
+                     ซึ่งมี scope แยกต่างหากจากหน้านี้เสมอ ไม่เคยตั้งค่า editingId ของหน้านี้ได้เลย
+                     เปลี่ยนเป็นเรียก loadEditDataIntoForm() ซึ่งเป็นฟังก์ชันของหน้านี้เอง -->
+                <button type="button" class="edit-btn" onclick="loadEditDataIntoForm()">
                     ✏️ แก้ไขข้อมูล
                 </button>
  
@@ -264,12 +277,15 @@
     <script src="auth.js"></script>
  
     <script>
-        /* แก้ไข: เดิมมีการประกาศ let editingId / editingIndex ซ้ำที่นี่
-           ทั้งที่ script.js ประกาศตัวแปร editingId ไว้แล้ว การประกาศ let
-           ชื่อเดียวกันซ้ำในหน้าเดียวกันทำให้เกิด SyntaxError และ <script>
-           ก้อนนี้ทั้งก้อนไม่ทำงานเลย (ปุ่มบันทึก/ไฟล์เอกสาร/เมนูใช้ไม่ได้)
-           จึงตัดออก ใช้ editingId ตัวที่ประกาศไว้ใน script.js แทน */
- 
+        /* แก้ไข (สำคัญ): เดิมตรงนี้ไม่มีการประกาศ editingId เลยสักบรรทัด (ตัดออกไปทั้งหมด
+           โดยเข้าใจผิดว่า script.js ประกาศ editingId ไว้ให้แล้วใช้ร่วมกันได้)
+           แต่ script.js เป็น type="module" จึงมี scope ของตัวเองแยกขาดจากหน้านี้เสมอ
+           ตัวแปร editingId ของ script.js เข้าถึงจากที่นี่ไม่ได้จริงๆ
+           ผลคือถ้าเปิดฟอร์มมาเพื่อ "บันทึกข้อมูลใหม่" (ไม่ได้มาจากหน้าแก้ไข) editingId จะไม่เคย
+           ถูกประกาศ/กำหนดค่าที่ไหนเลยทั้งไฟล์ พอกด "บันทึกข้อมูล" แล้ว collectFormData()
+           ไปเช็ค if (editingId) จะเกิด ReferenceError: editingId is not defined ทันที
+           ทำให้บันทึกข้อมูลใหม่ไม่ได้เลยสักรายการ (error เงียบๆ ใน console ไม่มี alert เตือน)
+           แก้โดยเติมการประกาศตัวแปรนี้กลับมาที่หน้านี้ (เป็นของหน้านี้เท่านั้น ไม่ชนกับ script.js) */
         let editingId = null;
  
         function getInstallmentCount() {
@@ -277,9 +293,9 @@
             return checked ? checked.value : "";
         }
 
-        /* เพิ่มใหม่: ปุ่มเลือก "กลุ่มสินค้า" แบบเดียวกับปุ่มจำนวนงวด
+        /* ปุ่มเลือก "กลุ่มสินค้า" แบบเดียวกับปุ่มจำนวนงวด
            ต้องซิงค์ค่ากลับเข้าช่อง input hidden #group เสมอ เพื่อให้โค้ดเดิม
-           (collectFormData / editData ใน script.js) ที่อ่านค่าจาก #group ทำงานได้ตามปกติ ไม่ต้องแก้ที่อื่น */
+           (collectFormData ในหน้านี้) ที่อ่านค่าจาก #group ทำงานได้ตามปกติ ไม่ต้องแก้ที่อื่น */
         function setGroupValue(value) {
             const hiddenGroup = document.getElementById("group");
             if (hiddenGroup) hiddenGroup.value = value || "";
@@ -300,7 +316,7 @@
             });
         });
 
-        /* เพิ่มใหม่: ถ้าเลือกบริษัทอื่นที่ไม่ใช่ "วิริยะ" ให้ล็อกกลุ่มสินค้าเป็น
+        /* ถ้าเลือกบริษัทอื่นที่ไม่ใช่ "วิริยะ" ให้ล็อกกลุ่มสินค้าเป็น
            "กลุ่ม 3 บรรทุกน้ำหนักเกิน" โดยอัตโนมัติ (ปุ่มกลุ่มอื่นจะถูกปิดใช้งานไว้ชั่วคราว)
            ถ้าเลือกบริษัท "วิริยะ" จะปลดล็อกให้เลือกกลุ่มได้ตามปกติทุกกลุ่ม */
         function applyGroupLockForCompany() {
@@ -405,14 +421,7 @@
  
     window.location.href = "contract_print.html";
 }
- 
-        /* เพิ่มใหม่: เปิดใช้ปฏิทินเลือกวันที่ (flatpickr) ให้ช่อง "วันเริ่ม" และ "วันสิ้นสุด"
-           - ยังคงมีปฏิทินให้กดเลือกได้เหมือนของเดิม (input type="date")
-           - บังคับรูปแบบการแสดงผลเป็น วว/ดด/ปปปป (วัน ขึ้นก่อน ตามด้วยเดือน แล้วปี) เสมอ
-             ไม่ขึ้นกับการตั้งค่าภาษา/รูปแบบวันที่ของเครื่องผู้ใช้แต่ละคนอีกต่อไป
-           - ใช้ภาษาไทยสำหรับชื่อเดือน/ชื่อวัน (l10n/th.js)
-           - เปลี่ยนตัวเลือก "ปี" จากลูกศรขึ้น-ลงตัวเล็กที่กดยาก ให้เป็น dropdown กดง่าย
-             เหมือนตัวเลือกเดือน */
+
         function attachYearDropdown(instance) {
 
             const calendarEl = instance.calendarContainer;
@@ -456,6 +465,9 @@
             }
         }
 
+        let startPicker = null;
+        let endPicker = null;
+
         if (typeof flatpickr === "function") {
 
             const datePickerOptions = {
@@ -477,8 +489,8 @@
                 }
             };
 
-            flatpickr("#start", datePickerOptions);
-            flatpickr("#end", datePickerOptions);
+            startPicker = flatpickr("#start", datePickerOptions);
+            endPicker = flatpickr("#end", datePickerOptions);
         }
 
         const menuBtn = document.getElementById("menuBtn");
@@ -498,70 +510,82 @@
             });
  
         }
+
+        /* แปลงวันที่แบบเก่า (ปปปป-ดด-วว จาก input type="date") ให้เป็น วว/ดด/ปปปป
+           ใช้ทั้งตอนโหลดหน้า (DOMContentLoaded) และตอนกดปุ่ม "แก้ไขข้อมูล" (loadEditDataIntoForm) */
+        function toDisplayDate(v) {
+            const legacyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || "");
+            return legacyMatch ? `${legacyMatch[3]}/${legacyMatch[2]}/${legacyMatch[1]}` : (v || "");
+        }
+
+        /* รวมโค้ดเติมข้อมูลเดิมลงฟอร์มไว้ในฟังก์ชันเดียว ใช้ร่วมกันทั้ง 2 จุด
+           1) ตอนเปิดหน้านี้มาจาก report.html (ผ่าน DOMContentLoaded ด้านล่าง)
+           2) ตอนกดปุ่ม "✏️ แก้ไขข้อมูล" เอง (onclick="loadEditDataIntoForm()")
+           สำคัญที่สุดคือฟังก์ชันนี้ตั้งค่า editingId ของ "หน้านี้เอง" ให้ถูกต้องเสมอ */
+        function loadEditDataIntoForm() {
+
+            const oldData = JSON.parse(localStorage.getItem("editData"));
+
+            if (!oldData) {
+                alert("ไม่พบข้อมูลที่ต้องการแก้ไข");
+                return;
+            }
+
+            editingId = oldData.id;
+
+            document.getElementById("company").value = oldData.company || "";
+            document.getElementById("requestName").value = oldData.requestName || "";
+            document.getElementById("name").value = oldData.customer || "";
+            document.getElementById("phone").value = oldData.phone || "";
+            document.getElementById("address").value = oldData.address || "";
+
+            document.getElementById("brand").value = oldData.brand || "";
+            document.getElementById("plate").value = oldData.plate || "";
+            document.getElementById("chassis").value = oldData.chassis || "";
+
+            const startVal = toDisplayDate(oldData.start);
+            const endVal = toDisplayDate(oldData.end);
+
+            // ใช้ setDate ของ flatpickr แทนการเซ็ต .value ตรงๆ เพื่อ sync ปฏิทินให้ตรงกับค่าจริงด้วย
+            if (startPicker) startPicker.setDate(startVal, true, "d/m/Y");
+            else document.getElementById("start").value = startVal;
+
+            if (endPicker) endPicker.setDate(endVal, true, "d/m/Y");
+            else document.getElementById("end").value = endVal;
+
+            document.getElementById("sumInsured").value = oldData.sumInsured || "";
+            document.getElementById("total").value = oldData.total || "";
+            setGroupValue(oldData.group || "");
+
+            if (oldData.installmentCount) {
+                const radio = document.getElementById("installmentCount" + oldData.installmentCount);
+                if (radio) radio.checked = true;
+            }
+
+            document.getElementById("installment1").value = oldData.installment1 || "";
+            document.getElementById("installment2").value = oldData.installment2 || "";
+            document.getElementById("installment3").value = oldData.installment3 || "";
+            document.getElementById("installment4").value = oldData.installment4 || "";
+
+            // ใช้กฎล็อกกลุ่มสินค้าตามบริษัทของข้อมูลเดิมที่โหลดมา
+            applyGroupLockForCompany();
+        }
  
         window.addEventListener("DOMContentLoaded", function(){
  
-    // ===== เพิ่มใหม่: ดึงชื่อผู้ Login จากระบบ Login เดิม (login.html) =====
-    // login.html บันทึกชื่อผู้ใช้งานไว้ที่ localStorage/sessionStorage key "currentUser"
-    // ถ้ามีการ Login อยู่ ให้เติมชื่อนี้ลงช่อง "ผู้แจ้ง" ทันทีที่เปิดหน้า
-    // ถ้ายังไม่ได้ Login (ไม่มีค่าใน storage) ให้ปล่อยช่องว่างไว้ตามเดิม
     const currentUser = localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser');
     if (currentUser) {
         document.getElementById("requestName").value = currentUser;
     }
-    // ===== จบส่วนที่เพิ่มใหม่ =====
  
-    const oldData = JSON.parse(localStorage.getItem("editData"));
- 
-    console.log("รับข้อมูลแก้ไข:", oldData);
- 
- 
-    if(oldData){
- 
-        editingId = oldData.id;
- 
- 
-        document.getElementById("company").value = oldData.company || "";
-        document.getElementById("requestName").value = oldData.requestName || "";
-        document.getElementById("name").value = oldData.customer || "";
-        document.getElementById("phone").value = oldData.phone || "";
-        document.getElementById("address").value = oldData.address || "";
- 
-        document.getElementById("brand").value = oldData.brand || "";
-        document.getElementById("plate").value = oldData.plate || "";
-        document.getElementById("chassis").value = oldData.chassis || "";
- 
-        // ข้อมูลเก่าบางรายการเคยบันทึกด้วย input type="date" (รูปแบบ ปปปป-ดด-วว)
-        // แปลงให้เป็น วว/ดด/ปปปป ก่อน เพื่อให้ flatpickr แสดงผล/เข้าใจค่าได้ถูกต้อง
-        // ส่วนข้อมูลใหม่ที่เป็น วว/ดด/ปปปป อยู่แล้วจะไม่ถูกแตะต้อง
-        const legacyDateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(oldData.start || "");
-        document.getElementById("start").value = legacyDateMatch
-            ? `${legacyDateMatch[3]}/${legacyDateMatch[2]}/${legacyDateMatch[1]}`
-            : (oldData.start || "");
-
-        const legacyEndMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(oldData.end || "");
-        document.getElementById("end").value = legacyEndMatch
-            ? `${legacyEndMatch[3]}/${legacyEndMatch[2]}/${legacyEndMatch[1]}`
-            : (oldData.end || "");
- 
-        document.getElementById("sumInsured").value = oldData.sumInsured || "";
-        document.getElementById("total").value = oldData.total || "";
-        setGroupValue(oldData.group || "");
- 
-        if (oldData.installmentCount) {
-            const radio = document.getElementById("installmentCount" + oldData.installmentCount);
-            if (radio) radio.checked = true;
-        }
- 
-        document.getElementById("installment1").value = oldData.installment1 || "";
-        document.getElementById("installment2").value = oldData.installment2 || "";
-        document.getElementById("installment3").value = oldData.installment3 || "";
-        document.getElementById("installment4").value = oldData.installment4 || "";
- 
+    // แก้ไข: เดิมมีโค้ดเติมข้อมูลซ้ำอยู่ตรงนี้ทั้งก้อน รวมเป็นฟังก์ชันเดียวคือ
+    // loadEditDataIntoForm() แล้วเรียกใช้ที่นี่แทน (เฉพาะกรณีมีข้อมูลที่ต้องแก้ไขจริง)
+    if (localStorage.getItem("editData")) {
+        loadEditDataIntoForm();
+    } else {
+        // ไม่ได้มาจากหน้าแก้ไข: ยังคงต้องเช็คกฎล็อกกลุ่มสินค้าตามบริษัทที่เลือกอยู่ (ถ้ามี)
+        applyGroupLockForCompany();
     }
- 
-    // เพิ่มใหม่: ใช้กฎล็อกกลุ่มสินค้าตามบริษัทที่เลือกอยู่ (ทั้งกรณีเปิดฟอร์มใหม่และกรณีแก้ไขข้อมูลเดิม)
-    applyGroupLockForCompany();
  
 },500);
     </script>

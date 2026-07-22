@@ -17,24 +17,116 @@
         requireLogin();
     </script>
 
+    <!-- เพิ่มใหม่: ปรับความสวยงามของแถบด้านบน (topbar) เฉพาะหน้านี้
+         บังคับให้อยู่บรรทัดเดียวเสมอ (เมนู + โลโก้ + ชื่อพนักงาน + ปุ่มออกจากระบบ)
+         ไม่ตัดขึ้นบรรทัดที่ 2 อีกต่อไป (ของเดิมที่ตัดบรรทัดทำให้ความสูง topbar ไม่คงที่
+         และคำนวณระยะเว้นด้วย JS ผิดพลาดเป็นบางจังหวะ ทำให้หัวข้อ "เลือกประเภทประกัน" โดนบังบางส่วน)
+         ใช้วิธีลดขนาด/ตัดข้อความ (ellipsis) แทนการขึ้นบรรทัดใหม่บนจอแคบ
+         สโคปด้วย body#homePage เพื่อไม่กระทบ .topbar ของหน้าอื่นในระบบ -->
+    <style>
+        #homePage .topbar{
+            flex-wrap:nowrap;
+            height:70px;
+            padding:0 16px;
+            gap:10px;
+        }
+
+        #homePage .topbar-left{
+            display:flex;
+            align-items:center;
+            gap:10px;
+            min-width:0;
+            flex:0 0 auto;
+        }
+
+        #homePage .topbar-right{
+            display:flex;
+            align-items:center;
+            gap:8px;
+            min-width:0;
+            flex:0 1 auto;
+            margin-left:auto;
+            justify-content:flex-end;
+        }
+
+        #homePage #employeeBadge{
+            display:inline-flex;
+            align-items:center;
+            gap:5px;
+            background:rgba(255,255,255,.55);
+            border:1px solid rgba(21,42,84,.10);
+            color:var(--navy);
+            font-size:12.5px;
+            font-weight:600;
+            padding:6px 12px;
+            border-radius:999px;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
+            min-width:0;
+            max-width:170px;
+        }
+
+        #homePage #logoutBtn{
+            white-space:nowrap;
+            flex:0 0 auto;
+        }
+
+        /* จอแคบ: ย่อโลโก้/ป้ายชื่อ/ปุ่ม ให้พอดีบรรทัดเดียว แทนการขึ้นบรรทัดใหม่ */
+        @media(max-width:480px){
+
+            #homePage .topbar{
+                padding:0 12px;
+                gap:6px;
+            }
+
+            #homePage .toplogo{
+                height:28px;
+            }
+
+            #homePage #employeeBadge{
+                max-width:88px;
+                font-size:11px;
+                padding:5px 9px;
+            }
+
+            #homePage #logoutBtn{
+                padding:6px 12px !important;
+                font-size:12px !important;
+            }
+        }
+
+        /* จอแคบมาก: ซ่อนป้ายชื่อพนักงาน เหลือแค่ปุ่มออกจากระบบ กันไม่ให้ล้น */
+        @media(max-width:340px){
+
+            #homePage #employeeBadge{
+                display:none;
+            }
+        }
+    </style>
+
 </head>
 
-<body>
+<body id="homePage">
 
     <!-- TOPBAR -->
-    <div class="topbar">
-        <button id="menuBtn">☰</button>
-        <img src="logo.png" class="toplogo" alt="logo">
-        <span class="apptitle">ระบบประกันรถยนต์กับคุณพลอย</span>
+    <div class="topbar" id="topbar">
 
-        <!-- เพิ่มใหม่: แสดงชื่อพนักงานที่ล็อกอินอยู่ + ปุ่ม Logout
-             จัดชิดขวาแบบง่ายด้วย inline style เพื่อไม่แตะ style.css เดิม -->
-        <span id="employeeBadge" style="margin-left:auto; margin-right:10px; color:#152A54; font-size:13px; font-weight:600;"></span>
-        <button id="logoutBtn"
-            style="background:#EAF1FF; color:#1E4FC4; border:none; padding:8px 16px; border-radius:999px; font-family:'Kanit',sans-serif; font-weight:600; font-size:13px; cursor:pointer;"
-            onclick="logoutEmployee()">
-            ออกจากระบบ
-        </button>
+        <div class="topbar-left">
+            <button id="menuBtn">☰</button>
+            <img src="logo.png" class="toplogo" alt="logo">
+        </div>
+
+        <!-- เพิ่มใหม่: แสดงชื่อพนักงานที่ล็อกอินอยู่ + ปุ่ม Logout จัดเป็นกลุ่มเดียวกันชิดขวา -->
+        <div class="topbar-right">
+            <span id="employeeBadge"></span>
+            <button id="logoutBtn"
+                style="background:#EAF1FF; color:#1E4FC4; border:none; padding:8px 16px; border-radius:999px; font-family:'Kanit',sans-serif; font-weight:600; font-size:13px; cursor:pointer;"
+                onclick="logoutEmployee()">
+                ออกจากระบบ
+            </button>
+        </div>
+
     </div>
 
     <!-- SIDEBAR -->
@@ -55,7 +147,11 @@
 
         <div class="cards">
 
-            <div class="card car" onclick="location.href='documents.html'">
+            <!-- แก้ไข: เดิม onclick="location.href='documents.html'" เหมือนกับการ์ด "ประกันสินค้า" ทุกประการ
+                 และ documents.html มีปุ่มเดียวคือพาไป form_product.html เสมอ ทำให้กด "ประกันรถยนต์"
+                 แล้วก็ไปเจอฟอร์มประกันสินค้าอยู่ดี ไม่มีทางเข้าถึง form_car.html ได้เลยจากเมนูหลัก
+                 แก้ให้การ์ดนี้พาไปหน้าฟอร์มรถยนต์ (form_car.html) โดยตรง -->
+            <div class="card car" onclick="location.href='form_car.html'">
                 <div class="icon">🚗</div>
                 <h3>
                     ประกันรถยนต์

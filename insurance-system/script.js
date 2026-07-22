@@ -42,8 +42,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const menuBtn = document.getElementById("menuBtn");
     const sidebar = document.getElementById("sidebar");
+    const overlay = document.getElementById("overlay");
 
-    if (menuBtn && sidebar) {
+    /* แก้ไข: บางหน้า (เช่น form_product.html, account_menu.html, finance.html,
+       report.html) มีสคริปต์ของตัวเองที่ผูก event ให้ปุ่ม menuBtn อยู่แล้ว
+       (เปิด/ปิด sidebar พร้อม overlay) ถ้าปล่อยให้ script.js ผูก event ซ้ำอีกชุด
+       จะทำให้ sidebar.classList.toggle("show") ถูกเรียก 2 ครั้งในคลิกเดียว
+       (หักล้างกันเอง) กดปุ่ม ☰ แล้วเมนูไม่เปิด
+       จึงเช็คว่าหน้านั้นมี #overlay อยู่แล้วหรือไม่ ถ้ามี แปลว่าหน้านั้นจัดการเอง
+       ให้ข้ามไปไม่ผูก event ซ้ำจากที่นี่ */
+    if (menuBtn && sidebar && !overlay) {
         menuBtn.addEventListener("click", () => {
             sidebar.classList.toggle("show");
         });
