@@ -502,7 +502,6 @@ table.grid th{ background:#f0f2f5; }
     <button class="btn-print" onclick="window.print()">🖨 พิมพ์ / บันทึก PDF</button>
     <button class="btn-pdf" onclick="downloadPDF()">📥 ดาวน์โหลด PDF</button>
     <button class="btn-jpg" onclick="saveJPG()">🖼 ดาวน์โหลด JPG</button>
-    <button class="btn-jpg" style="background:#fd7e14;" onclick="copyJPGToClipboard()">📋 คัดลอกรูป (วางใน LINE ได้เลย)</button>
 </div>
  
 <div id="docArea"></div>
@@ -2938,9 +2937,22 @@ async function generateJPGFiles(options) {
     return files;
 }
 
-/* เพิ่มใหม่: ปุ่ม "ดาวน์โหลด JPG" บันทึกไฟล์ลงเครื่องโดยตรงเสมอ (ไม่เปิดเมนูแชร์)
-   แก้ปัญหาเดิมที่บางเครื่อง/บางเบราว์เซอร์ (เช่น Windows) เปิดเมนูแชร์ได้
-   แต่บางแอปปลายทางไม่รองรับไฟล์รูปจริง ทำให้ผู้ใช้ไม่ได้ไฟล์เก็บไว้เลย */
+/* แก้ไข: ปุ่ม "ดาวน์โหลด JPG" กลับมาเป็นแบบเปิดเมนูให้เลือกปลายทางได้เหมือนเดิม
+   ใช้ Web Share API (navigator.share พร้อมไฟล์แนบ) ก่อนเป็นอันดับแรก
+   - บนมือถือ (iOS/Android) จะเปิดหน้าต่างระบบให้ผู้ใช้เลือกเองว่าจะบันทึกรูปไปที่ไหน
+     เช่น บันทึกลงคลังภาพ, บันทึกลงแอปไฟล์, หรือส่งต่อเข้า LINE/แอปแชทอื่นๆ ได้ทันที
+   - ถ้าอุปกรณ์/เบราว์เซอร์ไม่รองรับการแชร์ไฟล์ (ส่วนใหญ่คือคอมพิวเตอร์ทั่วไป)
+     จะ fallback กลับไปดาวน์โหลดไฟล์ลงเครื่องโดยตรงแบบเดิมให้อัตโนมัติ ไม่ต้องกดซ้ำ */
+/* เช็คว่าเป็นอุปกรณ์มือถือ/แท็บเล็ตจริงๆ หรือไม่ (ไม่ใช่แค่เช็คว่ามี navigator.share)
+   เพราะคอมพิวเตอร์บางเครื่อง/บางเบราว์เซอร์ (เช่น Windows + Chrome/Edge รุ่นใหม่)
+   ก็มี navigator.share ให้ใช้งานเหมือนกัน ทำให้เข้าใจผิดว่าเป็นมือถือ
+   ถ้าปล่อยแบบนั้น กดปุ่มบนคอมจะเปิดเมนูแชร์ของ Windows แทนที่จะดาวน์โหลดไฟล์ตรงๆ ลงเครื่อง
+   จึงต้องเช็ค user agent เพิ่มเติมเพื่อคัดกรองเฉพาะมือถือ/แท็บเล็ตจริงเท่านั้น */
+function isMobileOrTabletDevice() {
+    const ua = navigator.userAgent || "";
+    return /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(ua);
+}
+
 async function saveJPG() {
     const btn = document.querySelector(".btn-jpg");
     const originalText = btn ? btn.innerText : "";
@@ -2949,7 +2961,25 @@ async function saveJPG() {
     try {
         const files = await generateJPGFiles();
 
-        // ดาวน์โหลดทีละไฟล์แยกกันลงเครื่องโดยตรง (เว้นจังหวะกันเบราว์เซอร์บล็อกการดาวน์โหลดหลายไฟล์พร้อมกัน)
+        // เปิดเมนูแชร์เฉพาะบนมือถือ/แท็บเล็ตจริงเท่านั้น เพื่อให้เลือกปลายทางบันทึกได้เอง
+        // ส่วนคอมพิวเตอร์ (แม้เบราว์เซอร์จะรองรับ navigator.share ก็ตาม) จะข้ามไปดาวน์โหลดตรงเสมอ
+        if (isMobileOrTabletDevice() && navigator.share && navigator.canShare && navigator.canShare({ files })) {
+            try {
+                await navigator.share({
+                    files: files,
+                    title: fileBase
+                });
+                return; // ผู้ใช้เลือกปลายทางเองจากเมนูแชร์เรียบร้อยแล้ว จบการทำงาน
+            } catch (shareErr) {
+                // ผู้ใช้กดยกเลิกเมนูแชร์เอง ไม่ถือว่าเป็นข้อผิดพลาด ไม่ต้อง fallback ต่อ
+                if (shareErr && shareErr.name === "AbortError") {
+                    return;
+                }
+                // กรณีอื่น (เช่น แชร์ไม่สำเร็จ) ให้ตกไปดาวน์โหลดตรงแทนด้านล่าง
+            }
+        }
+
+        // อุปกรณ์ที่ไม่รองรับการแชร์ไฟล์ (เช่นคอมพิวเตอร์) หรือแชร์ไม่สำเร็จ: ดาวน์โหลดตรงลงเครื่องแทน
         for (const file of files) {
             const link = document.createElement("a");
             link.download = file.name;
@@ -2961,85 +2991,6 @@ async function saveJPG() {
         }
     } catch (err) {
         alert("สร้างรูป JPG ไม่สำเร็จ: " + err.message);
-        console.error(err);
-    } finally {
-        if (btn) { btn.innerText = originalText; btn.disabled = false; }
-    }
-}
-
-/* เพิ่มใหม่: ปุ่ม "คัดลอกรูป" แทนที่ปุ่ม "แชร์รูปภาพ" (shareJPG) เดิมที่ใช้ Web Share API
-   เหตุผลที่เปลี่ยน: LINE บนพีซี/Windows ส่วนใหญ่ไม่รับไฟล์ที่ส่งผ่าน Web Share API เลย
-   ไม่ว่าจะบีบอัดไฟล์เล็กแค่ไหนก็ตาม (เป็นข้อจำกัดของตัวแอปเอง ไม่ใช่ของโค้ด)
-   การคัดลอกรูปเข้าคลิปบอร์ดโดยตรงแล้วให้ผู้ใช้กด Ctrl+V ในช่องแชท เป็นวิธีที่ใช้ได้กว้างกว่ามาก
-
-   ตอบคำถาม "แชร์ทั้งหมดได้ไหม": คลิปบอร์ดของเบราว์เซอร์เก็บรูปได้ครั้งละ 1 รูปเท่านั้น
-   จึงไม่สามารถวางรูปหลายไฟล์พร้อมกันในครั้งเดียวได้ (ข้อจำกัดของคลิปบอร์ดเอง)
-   [แก้ไข] เดิมลองรวมทุกหน้าเป็นภาพเดียว (เรียงต่อกันแนวตั้ง) แต่ผู้ใช้ไม่ต้องการแบบนั้น
-   ต้องการให้แต่ละหน้ายังคงเป็นรูปแยกจากกันเหมือนไฟล์ JPG ที่ดาวน์โหลด
-   จึงเปลี่ยนกลับมาเป็น "คัดลอกทั้งหมด" ในความหมายว่า กดปุ่มครั้งเดียว แล้วระบบจะวนคัดลอกให้ทีละหน้า
-   โดยมี popup แจ้งให้ไปวาง (Ctrl+V) หน้านั้นในแชทก่อน แล้วกด OK เพื่อคัดลอกหน้าถัดไปให้เองอัตโนมัติ
-   จนครบทุกหน้า (ผู้ใช้ไม่ต้องกดปุ่ม "คัดลอกรูป" ซ้ำเองทีละหน้า) */
-async function copyJPGToClipboard() {
-    const btn = document.querySelector('.btn-bar button[onclick="copyJPGToClipboard()"]');
-    const originalText = btn ? btn.innerText : "";
-
-    if (!navigator.clipboard || typeof window.ClipboardItem === "undefined") {
-        alert("เบราว์เซอร์นี้ไม่รองรับการคัดลอกรูปภาพไปยังคลิปบอร์ด กรุณาใช้ปุ่ม \"ดาวน์โหลด JPG\" แล้วแนบไฟล์แทน");
-        return;
-    }
-
-    if (btn) { btn.innerText = "⏳ กำลังเตรียมรูป..."; btn.disabled = true; }
-
-    try {
-        await document.fonts.ready; // รอฟอนต์โหลดเสร็จจริงก่อน (ป้องกันฟอนต์ยังไม่พร้อมตอน capture)
-        fitPagesToA4();
-        await new Promise(r => setTimeout(r, 100)); // รอ layout นิ่งก่อน capture
-        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); // รอ repaint นิ่งอีกชั้น
-
-        const pageLabels = {
-            main: "ใบคำขอ",
-            contract: "สัญญา",
-            cancel: "ใบยกเลิก",
-            poa: "หนังสือมอบอำนาจ",
-            receipt: "ใบรับเงิน",
-            invoice: "ใบแจ้งหนี้"
-        };
-
-        const pages = document.querySelectorAll(".document-page");
-
-        // คัดลอกทีละหน้าแยกกัน (ไม่รวมเป็นภาพเดียว) — สเกลค่อนข้างต่ำเพราะ PNG หนักกว่า JPEG
-        // อยู่แล้วที่คุณภาพเท่ากัน ต้องการให้ไฟล์คลิปบอร์ดไม่หนักเกินไป
-        for (let i = 0; i < pages.length; i++) {
-            const canvas = await html2canvas(pages[i], { scale: 1.1, backgroundColor: "#ffffff", useCORS: true, letterRendering: true });
-
-            const blob = await new Promise(res => canvas.toBlob(res, "image/png"));
-            if (!blob) throw new Error("สร้างรูปไม่สำเร็จ");
-
-            try {
-                await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-            } catch (err) {
-                throw new Error("เขียนคลิปบอร์ดไม่สำเร็จ (เบราว์เซอร์อาจบล็อกสิทธิ์การเข้าถึงคลิปบอร์ด): " + err.message);
-            }
-
-            const label = pageLabels[pages[i].dataset.doctype || pages[i].id] || pages[i].id || (i + 1);
-
-            if (pages.length > 1) {
-                if (i < pages.length - 1) {
-                    const cont = confirm(
-                        `คัดลอกหน้า "${label}" ไปยังคลิปบอร์ดแล้ว (หน้า ${i + 1}/${pages.length})\n\n` +
-                        `กรุณาไปวาง (กด Ctrl+V หรือกดค้างแล้วเลือก "วาง") ในแชทก่อน ` +
-                        `จากนั้นกด OK ที่นี่เพื่อคัดลอกหน้าถัดไปให้อัตโนมัติ (คลิปบอร์ดเก็บได้ทีละรูปเท่านั้น)`
-                    );
-                    if (!cont) return;
-                } else {
-                    alert(`คัดลอกหน้า "${label}" ไปยังคลิปบอร์ดแล้ว (หน้าสุดท้าย ${i + 1}/${pages.length}) กรุณาไปวางในแชทได้เลย`);
-                }
-            } else {
-                alert("คัดลอกรูปไปยังคลิปบอร์ดแล้ว กรุณาไปวาง (Ctrl+V) ในแชทได้เลย");
-            }
-        }
-    } catch (err) {
-        alert("คัดลอกรูปไม่สำเร็จ: " + err.message + "\nกรุณาใช้ปุ่ม \"ดาวน์โหลด JPG\" แล้วแนบไฟล์แทน");
         console.error(err);
     } finally {
         if (btn) { btn.innerText = originalText; btn.disabled = false; }
