@@ -10,6 +10,13 @@
             <link rel="stylesheet" href="style.css">
  
             <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+            <!-- เพิ่มใหม่: บังคับให้ต้อง login ก่อนเข้าใช้งานหน้านี้ (เดิมเข้าตรงผ่าน URL ได้โดยไม่ต้อง login
+                 ทำให้ดูรายงานข้อมูลลูกค้าทั้งหมดได้โดยไม่ต้องยืนยันตัวตน) -->
+            <script src="auth.js"></script>
+            <script>
+                requireLogin();
+            </script>
  
  
         <style>
@@ -588,6 +595,37 @@ if(loggedInEmployee){
  
         }
  
+        /* เพิ่มใหม่: วันที่ start/end ที่บันทึกไว้จริงเป็นปี ค.ศ. (Gregorian) เสมอ (มาจาก flatpickr / input type="date")
+           แต่หน้านี้แสดงผลเป็นภาษาไทยทั้งหน้า เดิมเอาค่าดิบมาแสดงตรงๆ ทำให้เห็นปี ค.ศ. (เช่น 2026) ปนอยู่
+           กับส่วนอื่นของระบบที่แปลงเป็น พ.ศ. แล้ว (เช่น createDate, contract_print.html) ผู้ใช้จึงสับสนว่าปีผิด
+           แก้โดยแปลงเป็น พ.ศ. ก่อนแสดงผลเสมอ ไม่แตะข้อมูลที่บันทึกจริงใน Firestore */
+        function toBEDateDisplay(dateStr){
+
+            if(!dateStr) return "-";
+
+            const s = String(dateStr).trim();
+
+            let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{3,4})$/);
+            if(m){
+                const day = m[1].padStart(2,"0");
+                const month = m[2].padStart(2,"0");
+                let year = parseInt(m[3],10);
+                if(year < 2400) year += 543;
+                return `${day}/${month}/${year}`;
+            }
+
+            m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+            if(m){
+                const day = m[3].padStart(2,"0");
+                const month = m[2].padStart(2,"0");
+                let year = parseInt(m[1],10);
+                if(year < 2400) year += 543;
+                return `${day}/${month}/${year}`;
+            }
+
+            return s;
+        }
+
         /* =========================
         แสดงข้อมูลตาราง
         ========================= */
@@ -669,8 +707,8 @@ if(loggedInEmployee){
         <td>${item.address || "-"}</td>
         <td>${item.brand || "-"}</td>
         <td>${item.plate || "-"}</td>
-        <td>${item.start || "-"}</td>
-        <td>${item.end || "-"}</td>
+        <td>${toBEDateDisplay(item.start)}</td>
+        <td>${toBEDateDisplay(item.end)}</td>
  
         <td>
  

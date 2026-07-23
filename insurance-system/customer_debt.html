@@ -13,6 +13,13 @@
 
 <link rel="stylesheet" href="style.css">
 
+<!-- เพิ่มใหม่: บังคับให้ต้อง login ก่อนเข้าใช้งานหน้านี้ (เดิมเข้าตรงผ่าน URL ได้โดยไม่ต้อง login
+     ทำให้ดูข้อมูลลูกหนี้/เบอร์โทรลูกค้าได้โดยไม่ต้องยืนยันตัวตน) -->
+<script src="auth.js"></script>
+<script>
+    requireLogin();
+</script>
+
 
 <style>
 
@@ -435,6 +442,37 @@ function calculateOverdue(date){
 
 
 
+/* เพิ่มใหม่: item.start / item.end บันทึกไว้จริงเป็นปี ค.ศ. (Gregorian) เสมอ
+   แต่หน้านี้แสดงผลเป็นภาษาไทยทั้งหน้า เดิมเอาค่าดิบมาแสดงตรงๆ (เช่น 2026) ทำให้ผู้ใช้เข้าใจผิด
+   ว่าปีวันเริ่ม/วันสิ้นสุด/วันครบกำหนดผิดพลาด แก้โดยแปลงเป็น พ.ศ. ก่อนแสดงผลเท่านั้น
+   ไม่แตะตรรกะคำนวณเกินกำหนด (calculateOverdue) ที่ต้องใช้ปี ค.ศ. ตัวจริงในการคำนวณอยู่แล้ว */
+function toBEDateDisplay(dateStr){
+
+    if(!dateStr) return "-";
+
+    const s = String(dateStr).trim();
+
+    let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{3,4})$/);
+    if(m){
+        const day = m[1].padStart(2,"0");
+        const month = m[2].padStart(2,"0");
+        let year = parseInt(m[3],10);
+        if(year < 2400) year += 543;
+        return `${day}/${month}/${year}`;
+    }
+
+    m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if(m){
+        const day = m[3].padStart(2,"0");
+        const month = m[2].padStart(2,"0");
+        let year = parseInt(m[1],10);
+        if(year < 2400) year += 543;
+        return `${day}/${month}/${year}`;
+    }
+
+    return s;
+}
+
 function renderDebt(data){
 
 
@@ -539,9 +577,9 @@ html+=`
 
 <td>${item.plate||"-"}</td>
 
-<td>${item.start||"-"}</td>
+<td>${toBEDateDisplay(item.start)}</td>
 
-<td>${item.end||"-"}</td>
+<td>${toBEDateDisplay(item.end)}</td>
 
 
 <td>
@@ -579,7 +617,7 @@ ${item.phone||"-"}
 
 
 <td>
-${item.end||"-"}
+${toBEDateDisplay(item.end)}
 </td>
 
 

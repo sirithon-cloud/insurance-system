@@ -9,6 +9,12 @@
     <link rel="stylesheet" href="style.css">
  
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- เพิ่มใหม่: บังคับให้ต้อง login ก่อนเข้าใช้งานหน้านี้ (เดิมเข้าตรงผ่าน URL ได้โดยไม่ต้อง login) -->
+    <script src="auth.js"></script>
+    <script>
+        requireLogin();
+    </script>
  
     <!-- เพิ่มใหม่: flatpickr บังคับให้แสดงผลเป็น วัน/เดือน/ปี เสมอ -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
@@ -121,6 +127,7 @@
                 <option value="เมืองไทย">เมืองไทย</option>
                 <option value="AIG">AIG</option>
                 <option value="AXA">AXA</option>
+                <option value="KWI">KWI</option>
                 <option value="กรุงเทพ">กรุงเทพ</option>
             </select>
  
@@ -316,23 +323,38 @@
             });
         });
 
-        /* ถ้าเลือกบริษัทอื่นที่ไม่ใช่ "วิริยะ" ให้ล็อกกลุ่มสินค้าเป็น
-           "กลุ่ม 3 บรรทุกน้ำหนักเกิน" โดยอัตโนมัติ (ปุ่มกลุ่มอื่นจะถูกปิดใช้งานไว้ชั่วคราว)
-           ถ้าเลือกบริษัท "วิริยะ" จะปลดล็อกให้เลือกกลุ่มได้ตามปกติทุกกลุ่ม */
-        function applyGroupLockForCompany() {
+        /* ถ้าเลือกบริษัทอื่นที่ไม่ใช่ "วิริยะ" ให้ตั้งค่าเริ่มต้นของกลุ่มสินค้าเป็น
+           "กลุ่ม 3 บรรทุกน้ำหนักเกิน" ให้อัตโนมัติ (เพื่อความสะดวก เพราะบริษัทอื่นส่วนใหญ่ใช้กลุ่มนี้)
+           แต่ยังคงเลือกกลุ่มอื่นได้ตามปกติเสมอ ไม่ปิดใช้งาน (disable) ปุ่มกลุ่มใดๆ ทั้งสิ้น
+
+           แก้ไข (รอบ 1): เดิมฟังก์ชันนี้ถูกเรียกตอนโหลดข้อมูลเก่ามาแก้ไข (loadEditDataIntoForm) ด้วย
+           ทำให้ค่ากลุ่มสินค้าที่บันทึกไว้จริงของลูกค้าถูกทับเป็น "กลุ่ม 3 บรรทุกน้ำหนักเกิน"
+           แบบเงียบๆ ทุกครั้งที่บริษัทของรายการนั้นไม่ใช่วิริยะ (เช่น เดิมเลือกไว้เป็น "กลุ่ม 3"
+           พอเปิดแก้ไขค่าจะเปลี่ยนเป็น "กลุ่ม 3 บรรทุกน้ำหนักเกิน" ทันที โดยพนักงานไม่ทันสังเกต)
+           แก้โดยเพิ่มพารามิเตอร์ preserveValue: true สำหรับกรณีโหลดข้อมูลเดิมมาแก้ไขโดยเฉพาะ
+
+           แก้ไข (รอบ 2): เดิมยังปิดใช้งาน (disable) ปุ่มกลุ่มอื่นทั้งหมดเมื่อบริษัทไม่ใช่วิริยะ
+           ทำให้เลือกกลุ่มอื่นไม่ได้เลยแม้ต้องการ ตัดส่วน disable ออก เหลือแค่ตั้งค่าเริ่มต้นให้เฉยๆ
+           ปุ่มกลุ่มทุกกลุ่มยังกดเลือกได้เสมอไม่ว่าจะเลือกบริษัทใด */
+        function applyGroupLockForCompany(options) {
             const companyEl = document.getElementById("company");
             const company = companyEl ? companyEl.value : "";
             const groupRadios = document.querySelectorAll('input[name="groupOption"]');
 
-            if (company && company !== "วิริยะ") {
+            // ปุ่มกลุ่มสินค้าทุกกลุ่มเลือกได้เสมอ ไม่ล็อก/ปิดใช้งานอีกต่อไป
+            groupRadios.forEach(r => {
+                r.disabled = false;
+            });
+
+            // แก้ไข: เดิมใช้พารามิเตอร์ preserveValue ที่ส่งเข้ามาแค่ครั้งเดียวตอนโหลดข้อมูลแก้ไข
+            // ทำให้ถ้าอยู่ระหว่างแก้ไขรายการเดิม (editingId มีค่า) แล้วพนักงานสลับเปลี่ยนบริษัทอีกครั้ง
+            // (ทำให้ event "change" ยิงใหม่โดยไม่มี preserveValue) ค่ากลุ่มสินค้าจริงของลูกค้าเสี่ยงถูกทับ
+            // เปลี่ยนมาเช็คจาก editingId ของหน้านี้โดยตรงแทน เพื่อให้ "อยู่ระหว่างแก้ไขข้อมูลเดิม" ไม่ถูกตั้งค่า
+            // กลุ่มสินค้าอัตโนมัติทับให้เองเด็ดขาด ไม่ว่าจะสลับบริษัทกี่ครั้งก็ตาม
+            if (company && company !== "วิริยะ" && !editingId && !getGroupValue()) {
+                // ตั้งค่าเริ่มต้นให้เฉพาะตอนที่เป็นการบันทึกข้อมูลใหม่ และยังไม่ได้เลือกกลุ่มใดไว้เท่านั้น
+                // (กันไม่ให้ไปทับค่าที่พนักงานเลือกเองอยู่แล้วเวลาสลับบริษัทไปมา หรือค่าจริงของข้อมูลที่กำลังแก้ไข)
                 setGroupValue("กลุ่ม 3 บรรทุกน้ำหนักเกิน");
-                groupRadios.forEach(r => {
-                    r.disabled = (r.value !== "กลุ่ม 3 บรรทุกน้ำหนักเกิน");
-                });
-            } else {
-                groupRadios.forEach(r => {
-                    r.disabled = false;
-                });
             }
         }
 
@@ -568,7 +590,8 @@
             document.getElementById("installment4").value = oldData.installment4 || "";
 
             // ใช้กฎล็อกกลุ่มสินค้าตามบริษัทของข้อมูลเดิมที่โหลดมา
-            applyGroupLockForCompany();
+            // preserveValue: true เพื่อไม่ให้ทับค่ากลุ่มสินค้าจริงของลูกค้าที่โหลดมา (setGroupValue ด้านบน)
+            applyGroupLockForCompany({ preserveValue: true });
         }
  
         window.addEventListener("DOMContentLoaded", function(){
