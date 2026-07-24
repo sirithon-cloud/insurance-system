@@ -428,9 +428,18 @@ table.grid th{ background:#f0f2f5; }
 .axa3 table.premium th{ font-weight:700; background:#fafafa; }
 .axa3 table.premium td.axa-chk-amt{
     font-weight:600;
-    text-align:center;
+    text-align:left;
     white-space:nowrap;
     overflow:visible;
+    position:relative;
+    padding-left:10px;
+    padding-right:52px;
+}
+.axa3 table.premium td.axa-chk-amt span:not(.axa-box){
+    position:absolute;
+    right:6px;
+    top:50%;
+    transform:translateY(-50%);
 }
 .axa3 table.premium td.axa-chk-amt .axa-box{ vertical-align:middle; margin-right:5px; }
 .axa3 table.premium td.axa-chk-amt span{ white-space:nowrap; }
@@ -711,6 +720,28 @@ function getInstallmentDueDate(contractDate, installmentIndex, startDay) {
     due.setDate(due.getDate() + 30 * (installmentIndex + 1));
     return applyCustomerStartDay(due, startDay);
 }
+
+/* [เพิ่มใหม่] แปลงวันที่แบบยืดหยุ่น (dd/mm/yyyy หรือ yyyy-mm-dd, รองรับทั้ง ค.ศ./พ.ศ.) เป็น Date object
+   ใช้เป็นฐานคำนวณ "วันครบกำหนดงวด" แทนวันที่เปิดดูเอกสาร (new Date()) เพื่อไม่ให้วันครบกำหนด
+   ของสัญญาฉบับเดียวกันเปลี่ยนไปทุกครั้งที่เปิดพิมพ์ซ้ำคนละวัน */
+function parseFlexibleDate(v) {
+    if (!v) return null;
+    const s = String(v).trim();
+    let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{3,4})$/);
+    if (m) {
+        let yyyy = parseInt(m[3], 10);
+        if (yyyy > 2400) yyyy -= 543;
+        return new Date(yyyy, parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+    }
+    m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (m) {
+        let yyyy = parseInt(m[1], 10);
+        if (yyyy > 2400) yyyy -= 543;
+        return new Date(yyyy, parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+    }
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+}
  
 /* ==========================================================
    ตัวเลขเป็นข้อความไทย
@@ -883,6 +914,7 @@ function renderReceipt(info, typeLabel) {
     const perInstallment = Number(data.total || 0) / instCount;
     const productLabel = typeLabel.includes("รถยนต์") ? "ประกันรถยนต์" : "ประกันสินค้า";
     const receiptCompanyName = companyMeta().fullName;
+    const receiptSignatureImg = (info === AGENT_viriyah) ? "logos/signature1.png" : "logos/signature.png";
 
     return `
         <!-- ส่วนหัว -->
@@ -1026,7 +1058,7 @@ function renderReceipt(info, typeLabel) {
         </div>
  
         <img
-            src="logos/signature1.png"
+            src="${receiptSignatureImg}"
             style="
                 width:180px;
                 height:auto;
@@ -1222,11 +1254,11 @@ function renderviriyahMain() {
  
                 <div class="small"
                     style="
-                        font-size:10.5px !important;
+                        font-size:9.5px !important;
                         white-space:nowrap;
                         text-align:right;
                         position:relative;
-                        top:40px;
+                        top:45px;
                     ">
                     เอกสารเริ่มมีผลบังคับใช้ 01/01/2022
                 </div>
@@ -1382,9 +1414,12 @@ function renderviriyahContract() {
  
     const contractDate = new Date();
     const startDay = getCustomerStartDay();
+    // [แก้ไข] ฐานคำนวณวันครบกำหนดงวด เดิมใช้ contractDate (วันที่เปิดดูเอกสาร) ทำให้วันครบกำหนด
+    // ของสัญญาฉบับเดียวกันเปลี่ยนไปทุกครั้งที่เปิดพิมพ์ซ้ำคนละวัน แก้ให้ยึดจากวันเริ่มจริงของลูกค้า (data.start) แทน
+    const dueBaseDate = parseFlexibleDate(data.start) || contractDate;
     let installmentRows = "";
     for (let i = 0; i < plan.count; i++) {
-        const due = getInstallmentDueDate(contractDate, i, startDay);
+        const due = getInstallmentDueDate(dueBaseDate, i, startDay);
         installmentRows += `
             <div class="field-row" style="margin:8px 0;">
                 <div><span class="lbl">งวดที่ ${i + 1} ยอดที่ต้องชำระ</span><span class="field-line" style="min-width:140px;">${fmt(plan.perInstallment)} บาท</span></div>
@@ -2073,8 +2108,8 @@ function renderAxaMain() {
                     <td class="label">มูลค่าการชดใช้</td>
                     <td class="colon">:</td>
                     <td>
-                        <p>ตามความเสียหายที่แท้จริง แต่ไม่เกินจำนวนเงินจำกัดความรับผิดที่ระบุไว้ในตารางกรมธรรม์ประกันภัย</p>
-                        <p>กรณีเกิดความสูญเสียหรือเสียหายขึ้นกับของที่รับขนส่ง หลักเกณฑ์ในการชดใช้ค่าเสียหายนั้น
+                        <p><strong>ตามความเสียหายที่แท้จริง แต่ไม่เกินจำนวนเงินจำกัดความรับผิดที่ระบุไว้ในตารางกรมธรรม์ประกันภัย</strong></p>
+                        <p style="text-indent:20px;">กรณีเกิดความสูญเสียหรือเสียหายขึ้นกับของที่รับขนส่ง หลักเกณฑ์ในการชดใช้ค่าเสียหายนั้น
                         บริษัทจะพิจารณาชดใช้ตามเงื่อนไขของกรมธรรม์ประกันภัยความรับผิดของผู้ขนส่งตามหมวดที่ 4 เงื่อนไขทั่วไป
                         ข้อ 3. การพิจารณาชดใช้ค่าสินไหมทดแทน <span class="underline-strong">โดยผู้เอาประกันภัยจะต้องรับผิดเองก่อนความเสียหายส่วน
                         แรกตามจำนวนที่ระบุไว้ในตารางกรมธรรม์ประกันภัย แล้วค่อยหักด้วยมูลค่าซาก (หากมี) ซึ่งส่วนของ
@@ -2085,16 +2120,16 @@ function renderAxaMain() {
                     <td class="label">ขอบเขต</td>
                     <td class="colon">:</td>
                     <td>
-                        ภายในอาณาเขตประเทศไทย ขยายความคุ้มครองการขนส่งข้ามแดน<br>
-                        ไปยังประเทศลาว มาเลเซีย เวียดนาม ไม่เกิน 10 กิโลเมตรจากด่านชายแดนไทย
+                        ภายในอาณาเขตประเทศไทย <strong>ขยายความคุ้มครองการขนส่งข้ามแดน<br>
+                        ไปยังประเทศลาว มาเลเซีย เวียดนาม ไม่เกิน 10 กิโลเมตรจากด่านชายแดนไทย</strong>
                     </td>
                 </tr>
                 <tr>
                     <td class="label">เส้นทางการขนส่ง</td>
                     <td class="colon">:</td>
                     <td>
-                        ตามเส้นทางปกตินิยม ขยายความคุ้มครองการขนส่งข้ามแดน<br>
-                        ไปยังประเทศลาว มาเลเซีย เวียดนาม ไม่เกิน 10 กิโลเมตรจากด่านชายแดนไทย
+                        ตามเส้นทางปกตินิยม <strong>ขยายความคุ้มครองการขนส่งข้ามแดน<br>
+                        ไปยังประเทศลาว มาเลเซีย เวียดนาม ไม่เกิน 10 กิโลเมตรจากด่านชายแดนไทย</strong>
                     </td>
                 </tr>
                 <tr>
@@ -2133,7 +2168,7 @@ function renderAxaMain() {
                     <td>
                         <div class="glrow"><span class="gl-label">สินค้ากลุ่ม 3</span><span class="gl-colon">:</span><span class="gl-desc">เครื่องมือแพทย์และอุปกรณ์ คอมพิวเตอร์ โทรศัพท์และอุปกรณ์ สินค้าประเภทแตกหักง่าย เช่น กระจก แผงโซล่าเซลล์ กระเบื้อง เครื่องแก้ว เซรามิค สุขภัณฑ์ บานกระจก อิฐ หินอ่อน</span></div>
                         <div class="glrow"><span class="gl-label">สินค้ากลุ่ม 4</span><span class="gl-colon">:</span><span class="gl-desc">สินค้าอุปโภค-บริโภค พลาสติกภัณฑ์อาหารสำเร็จรูป เครื่องจักร เครื่องใช้ไฟฟ้า เครื่องใช้สำนักงาน เฟอร์นิเจอร์ เสื้อผ้า เครื่องหนัง กระดาษ เหล็ก ไม่ประกอบด้วยยางประเภทต่าง ๆ อะไหล่ สารเคมีอันตราย (UN CLASS 8-9) ปุ๋ย (มีบรรจุภัณฑ์) ปูนซีเมนต์ (มีบรรจุภัณฑ์) พืชไร่การเกษตรที่มีบรรจุภัณฑ์ เช่น ข้าวสาร ข้าวเปลือก ข้าวโพด <span style="text-decoration:underline;">(ยกเว้นผัก ผลไม้)</span></span></div>
-                        <div class="glrow"><span class="gl-label">สินค้ากลุ่ม 5</span><span class="gl-colon">:</span><span class="gl-desc">อาหารสด/อาหารทะเลที่ไม่ได้ขนส่งโดยยานพาหนะที่มีเครื่องทำความเย็นควบคุมอุณหภูมิ</span></div>
+                        <div class="glrow"><span class="gl-label">สินค้ากลุ่ม 5</span><span class="gl-colon">:</span><span class="gl-desc">อาหารสด/อาหารทะเลที่<span style="text-decoration:underline;">ไม่ได้</span>ขนส่งโดยยานพาหนะที่มีเครื่องทำความเย็นควบคุมอุณหภูมิ</span></div>
 
                         <p style="margin-top:6px;color:#c0392b;" class="underline-strong">บริษัทฯ ให้ความคุ้มครองเฉพาะการขนส่งสินค้าที่ระบุไว้เท่านั้น</p>
                         <p class="underline-strong" style="margin-top:-3px;color:#c0392b;">หากมีการขนส่งสินค้าอื่นนอกเหนือจากที่ตกลง จะต้องแจ้งให้บริษัทฯ ทราบล่วงหน้า<br>
@@ -2702,9 +2737,12 @@ function renderBrokerContract(companyFullName) {
  
     const contractDate = new Date();
     const startDay = getCustomerStartDay();
+    // [แก้ไข] ฐานคำนวณวันครบกำหนดงวด เดิมใช้ contractDate (วันที่เปิดดูเอกสาร) ทำให้วันครบกำหนด
+    // ของสัญญาฉบับเดียวกันเปลี่ยนไปทุกครั้งที่เปิดพิมพ์ซ้ำคนละวัน แก้ให้ยึดจากวันเริ่มจริงของลูกค้า (data.start) แทน
+    const dueBaseDate = parseFlexibleDate(data.start) || contractDate;
     let installmentRows = "";
     for (let i = 0; i < plan.count; i++) {
-        const due = getInstallmentDueDate(contractDate, i, startDay);
+        const due = getInstallmentDueDate(dueBaseDate, i, startDay);
         installmentRows += `
             <div class="field-row" style="margin:8px 0;">
                 <div><span class="lbl">งวดที่ ${i + 1} ยอดที่ต้องชำระ</span><span class="field-line" style="min-width:140px;">${fmt(plan.perInstallment)} บาท</span></div>
@@ -2993,12 +3031,12 @@ function renderPending(label) {
 ========================================================== */
 const COMPANY_DOCS = {
     "วิริยะ":   ["main", "contract", "cancel", "receipt"],
-    "เมืองไทย": ["main", "contract", "cancel", "poa"],
-    "AIG":      ["main", "poa", "cancel", "contract"],
-    "แอกซ่า":   ["main", "contract", "poa"],
-    "AXA":      ["main", "contract", "poa"],
-    "KWI":      ["main", "contract", "cancel", "poa"],
-    "กรุงเทพ":  ["main"]
+    "เมืองไทย": ["main", "contract", "cancel", "poa", "receipt"],
+    "AIG":      ["main", "poa", "cancel", "contract", "receipt"],
+    "แอกซ่า":   ["main", "contract", "poa", "receipt"],
+    "AXA":      ["main", "contract", "poa", "receipt"],
+    "KWI":      ["main", "contract", "cancel", "poa", "receipt"],
+    "กรุงเทพ":  ["main", "receipt"]
 };
  
 const docArea=document.getElementById("docArea");
@@ -3012,7 +3050,7 @@ function getDocumentHTML(type){
         if(company==="วิริยะ") return renderviriyahMain();
         if(company==="เมืองไทย") return renderMuangthaiMain();
         if(company==="AIG") return renderAigMain();
-        if(company==="AXA" || company==="AXA") return renderAxaMain();
+        if(company==="AXA" || company==="แอกซ่า") return renderAxaMain();
         if(company==="KWI") return renderKwiMain();
         if(company==="กรุงเทพ") return renderBangkokMain();
     }

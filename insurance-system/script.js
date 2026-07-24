@@ -44,20 +44,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const sidebar = document.getElementById("sidebar");
     const overlay = document.getElementById("overlay");
 
-    /* แก้ไข: บางหน้า (เช่น form_product.html, account_menu.html, finance.html,
-       report.html) มีสคริปต์ของตัวเองที่ผูก event ให้ปุ่ม menuBtn อยู่แล้ว
-       (เปิด/ปิด sidebar พร้อม overlay) ถ้าปล่อยให้ script.js ผูก event ซ้ำอีกชุด
-       จะทำให้ sidebar.classList.toggle("show") ถูกเรียก 2 ครั้งในคลิกเดียว
-       (หักล้างกันเอง) กดปุ่ม ☰ แล้วเมนูไม่เปิด
-       จึงเช็คว่าหน้านั้นมี #overlay อยู่แล้วหรือไม่ ถ้ามี แปลว่าหน้านั้นจัดการเอง
-       ให้ข้ามไปไม่ผูก event ซ้ำจากที่นี่ */
     if (menuBtn && sidebar && !overlay) {
         menuBtn.addEventListener("click", () => {
             sidebar.classList.toggle("show");
         });
     }
 
-    getData();
+    // เปิด Firestore listener เฉพาะหน้าที่มีตาราง #tableBody จริงๆ เท่านั้น
+    // (ตอนนี้ไม่มีหน้าไหนใช้ #tableBody แล้ว แต่กันไว้เผื่ออนาคตมีหน้าที่ใช้)
+    if (document.getElementById("tableBody")) {
+        getData();
+    }
 });
 
 let editingId = null;
@@ -114,10 +111,11 @@ function getData() {
    ป้องกันปัญหาเดิมที่แก้ไขข้อมูลแล้วกลายเป็นสร้างซ้ำ */
 async function saveRecord(record) {
 
-    record.createDate = new Date().toLocaleDateString("th-TH");
-
     if (record.id) {
 
+        // แก้ไขข้อมูลเดิม: ไม่แตะ createDate / employeeName เดิม
+        // (ไม่ได้ส่ง field เหล่านี้มาใน record ตั้งแต่ต้นแล้ว เพราะฝั่งฟอร์มไม่ใส่มาให้ตอนแก้ไข
+        // และ merge:true จะอัปเดตเฉพาะ field ที่ส่งมาเท่านั้น ของเดิมใน Firestore จึงยังอยู่ครบ)
         const { id, ...fields } = record;
 
         await setDoc(
@@ -128,6 +126,8 @@ async function saveRecord(record) {
 
     } else {
 
+        // บันทึกข้อมูลใหม่เท่านั้น: ประทับวันที่แจ้งงาน + เวลาบันทึกจริง
+        record.createDate = new Date().toLocaleDateString("th-TH");
         record.createdAt = serverTimestamp();
 
         await addDoc(

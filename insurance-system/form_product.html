@@ -365,9 +365,6 @@
         const record = {
     type: type,
  
-    // วันที่กรอกฟอร์ม
-            createDate: new Date().toLocaleDateString("th-TH"),
- 
             company: document.getElementById("company")?.value,
             requestName: document.getElementById("requestName")?.value,
             customer: document.getElementById("name")?.value,
@@ -385,18 +382,26 @@
             installment1: document.getElementById("installment1")?.value,
             installment2: document.getElementById("installment2")?.value,
             installment3: document.getElementById("installment3")?.value,
-            installment4: document.getElementById("installment4")?.value,
-
-            // เพิ่มใหม่: ชื่อพนักงานผู้แจ้งงานที่ล็อกอินอยู่ (จากระบบ login แบบง่าย auth.js)
-            // ใช้ typeof เช็คกันไว้เผื่อ auth.js โหลดไม่ทันหรือไม่มีอยู่ จะได้ไม่ error
-            // ข้อมูลเก่าที่ไม่มี field นี้จะยังใช้งานได้ตามปกติ (ไม่มี field นี้เฉยๆ)
-            employeeName: (typeof getEmployeeName === "function") ? getEmployeeName() : ""
+            installment4: document.getElementById("installment4")?.value
         };
  
         // แนบ id เฉพาะตอนแก้ไขข้อมูลเดิม (id คือ document id จริงจาก Firestore)
         // ถ้าเป็นข้อมูลใหม่จะไม่มี id -> saveRecord() จะสร้างเอกสารใหม่ด้วย addDoc
+        //
+        // แก้ไข (สำคัญ): เดิมใส่ createDate (วันที่แจ้งงาน) และ employeeName (ผู้แจ้งงานที่ล็อกอินอยู่)
+        // เข้าไปใน record ทุกครั้งไม่ว่าจะบันทึกใหม่หรือแก้ไขข้อมูลเดิม ทำให้เวลาพนักงานคนอื่น
+        // เปิดแก้ไขรายการเก่า (เช่น แก้แค่เบอร์โทร) แล้วกดบันทึก จะไปทับวันที่แจ้งงานจริง
+        // เป็นวันที่กดบันทึกล่าสุด และทับชื่อผู้แจ้งงานจริงเป็นชื่อคนที่ล็อกอินอยู่ตอนนั้นแทน
+        // ทำให้รายงานยอดขายรายเดือน/รายพนักงานผิดเพี้ยนย้อนหลัง
+        //
+        // แก้โดยใส่ 2 ฟิลด์นี้เฉพาะตอน "บันทึกข้อมูลใหม่" เท่านั้น (ไม่มี editingId)
+        // ส่วนตอนแก้ไขข้อมูลเดิม จะไม่ส่ง 2 ฟิลด์นี้ไปเลย -> saveRecord() ใช้ merge:true
+        // จึงไม่แตะค่าที่บันทึกไว้เดิมใน Firestore ทั้งสองฟิลด์นี้จะยังเป็นของเดิมเสมอ
         if (editingId) {
             record.id = editingId;
+        } else {
+            record.createDate = new Date().toLocaleDateString("th-TH");
+            record.employeeName = (typeof getEmployeeName === "function") ? getEmployeeName() : "";
         }
  
         return record;
