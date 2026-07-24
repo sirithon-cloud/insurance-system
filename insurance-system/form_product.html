@@ -232,12 +232,27 @@
             </div>
  
             <div class="section-title">💳 งวดชำระแล้ว</div>
- 
+
+            <!-- แก้ไข: ตัดช่องกรอก "วันที่ชำระ" ของแต่ละงวดออก ไม่ต้องให้พนักงานกรอกเองแล้ว
+                 ระบบจะบันทึกวันที่ชำระให้อัตโนมัติเป็นวันที่กด "บันทึกข้อมูล" ตอนที่ยอดงวดนั้นเปลี่ยน/ถูกกรอกใหม่
+                 (ดูฟังก์ชัน getInstallmentDate() ด้านล่าง) ใบรับเงิน (receipt_print.html) ยังคงอ่านค่า
+                 installmentXDate นี้ไปแสดงผลเหมือนเดิมทุกประการ ไม่ต้องแก้ไฟล์นั้นเลย -->
             <div class="row">
-                <input type="number" id="installment1" placeholder="งวดที่ 1">
-                <input type="number" id="installment2" placeholder="งวดที่ 2">
-                <input type="number" id="installment3" placeholder="งวดที่ 3">
-                <input type="number" id="installment4" placeholder="งวดที่ 4">
+                <div>
+                    <input type="number" id="installment1" placeholder="งวดที่ 1 (บาท)">
+                </div>
+                <div>
+                    <input type="number" id="installment2" placeholder="งวดที่ 2 (บาท)">
+                </div>
+            </div>
+
+            <div class="row">
+                <div>
+                    <input type="number" id="installment3" placeholder="งวดที่ 3 (บาท)">
+                </div>
+                <div>
+                    <input type="number" id="installment4" placeholder="งวดที่ 4 (บาท)">
+                </div>
             </div>
  
             <div class="button-group">
@@ -294,6 +309,12 @@
            ทำให้บันทึกข้อมูลใหม่ไม่ได้เลยสักรายการ (error เงียบๆ ใน console ไม่มี alert เตือน)
            แก้โดยเติมการประกาศตัวแปรนี้กลับมาที่หน้านี้ (เป็นของหน้านี้เท่านั้น ไม่ชนกับ script.js) */
         let editingId = null;
+
+        /* เพิ่มใหม่: เก็บข้อมูลเดิมของรายการที่กำลังแก้ไข (ถ้ามี) ไว้เทียบยอดงวดตอนกดบันทึก
+           ใช้เพื่อรู้ว่างวดไหน "ยอดเปลี่ยน/เพิ่งกรอกใหม่" (ต้องตีวันที่ชำระเป็นวันนี้)
+           กับงวดไหน "ยอดเดิมเป๊ะ ไม่ได้แก้" (ต้องคงวันที่ชำระเดิมไว้ ไม่ทับ)
+           ดูฟังก์ชัน getInstallmentDate() ด้านล่าง */
+        let loadedRecordData = null;
  
         function getInstallmentCount() {
             const checked = document.querySelector('input[name="installmentCount"]:checked');
@@ -360,7 +381,31 @@
 
         document.getElementById("company")?.addEventListener("change", applyGroupLockForCompany);
  
+        /* เพิ่มใหม่: คำนวณวันที่ชำระของงวดที่ i โดยอัตโนมัติ แทนการให้พนักงานกรอกเอง
+           - ยังไม่กรอกยอด (0 หรือว่าง) -> ไม่มีวันที่ ("")
+           - กำลังแก้ไขรายการเดิม และยอดงวดนี้ "เท่าเดิมเป๊ะ" และมีวันที่เดิมบันทึกไว้อยู่แล้ว
+             -> คงวันที่เดิมไว้ ไม่ทับ (ยังไม่ได้แก้ไขงวดนี้จริงๆ)
+           - นอกนั้นทั้งหมด (บันทึกใหม่ หรือยอดงวดนี้เปลี่ยนไปจากเดิม) -> ถือว่าชำระ "วันนี้" */
+        function getInstallmentDate(i, newAmtRaw) {
+            const newAmt = Number(newAmtRaw) || 0;
+            if (newAmt <= 0) return "";
+
+            const oldAmt = loadedRecordData ? Number(loadedRecordData["installment" + i] || 0) : 0;
+            const oldDate = loadedRecordData ? (loadedRecordData["installment" + i + "Date"] || "") : "";
+
+            if (editingId && newAmt === oldAmt && oldDate) {
+                return oldDate;
+            }
+
+            return new Date().toLocaleDateString("th-TH");
+        }
+
         function collectFormData(type) {
+
+        const installment1Val = document.getElementById("installment1")?.value;
+        const installment2Val = document.getElementById("installment2")?.value;
+        const installment3Val = document.getElementById("installment3")?.value;
+        const installment4Val = document.getElementById("installment4")?.value;
  
         const record = {
     type: type,
@@ -379,10 +424,15 @@
             total: document.getElementById("total")?.value,
             group: document.getElementById("group")?.value,
             installmentCount: getInstallmentCount(),
-            installment1: document.getElementById("installment1")?.value,
-            installment2: document.getElementById("installment2")?.value,
-            installment3: document.getElementById("installment3")?.value,
-            installment4: document.getElementById("installment4")?.value
+            installment1: installment1Val,
+            installment2: installment2Val,
+            installment3: installment3Val,
+            installment4: installment4Val,
+            // แก้ไข: วันที่ชำระคำนวณอัตโนมัติแล้ว ไม่อ่านจากช่องกรอกอีกต่อไป (ช่องนั้นถูกตัดออกจากฟอร์มแล้ว)
+            installment1Date: getInstallmentDate(1, installment1Val),
+            installment2Date: getInstallmentDate(2, installment2Val),
+            installment3Date: getInstallmentDate(3, installment3Val),
+            installment4Date: getInstallmentDate(4, installment4Val)
         };
  
         // แนบ id เฉพาะตอนแก้ไขข้อมูลเดิม (id คือ document id จริงจาก Firestore)
@@ -559,6 +609,7 @@
             }
 
             editingId = oldData.id;
+            loadedRecordData = oldData; // เพิ่มใหม่: เก็บไว้เทียบยอดงวดตอนกดบันทึก (ดู getInstallmentDate)
 
             document.getElementById("company").value = oldData.company || "";
             document.getElementById("requestName").value = oldData.requestName || "";
@@ -593,6 +644,9 @@
             document.getElementById("installment2").value = oldData.installment2 || "";
             document.getElementById("installment3").value = oldData.installment3 || "";
             document.getElementById("installment4").value = oldData.installment4 || "";
+
+            // แก้ไข: ไม่มีช่องกรอกวันที่ชำระในฟอร์มแล้ว วันที่จะถูกคำนวณอัตโนมัติตอนกดบันทึก
+            // (loadedRecordData ที่ตั้งไว้ด้านบนจะถูกใช้เทียบยอดงวดเดิม/ใหม่ใน getInstallmentDate())
 
             // ใช้กฎล็อกกลุ่มสินค้าตามบริษัทของข้อมูลเดิมที่โหลดมา
             // preserveValue: true เพื่อไม่ให้ทับค่ากลุ่มสินค้าจริงของลูกค้าที่โหลดมา (setGroupValue ด้านบน)

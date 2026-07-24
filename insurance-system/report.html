@@ -181,6 +181,12 @@
                 background:#0d6efd;
                 color:white;
             }
+
+            /* เพิ่มใหม่: ปุ่ม "โหลดใบเสร็จ" ออกใบรับเงินตามจำนวนงวดที่ชำระแล้ว */
+            .receipt-btn{
+                background:#2FBF9B;
+                color:white;
+            }
  
             .delete-btn{
                 background:#dc3545;
@@ -233,6 +239,150 @@
                 color:#002d72;
             }
 
+            /* =========================
+            เพิ่มใหม่: จัดหน้าใหม่ของ summary-panel
+            แบ่งเป็น 2 ฝั่ง: ซ้าย = ตัวกรองเดิมทั้งหมด + ยอดรวม, ขวา = ช่องค้นหา
+            เดิมทุกอย่างชิดซ้ายแถวเดียวยาว ทำให้บนมือถือดูเกะกะ/ล้น
+            แก้เป็น flex 2 คอลัมน์ (จอกว้าง) และสลับเป็นเรียงต่อกันแนวตั้งเต็มความกว้าง (จอมือถือ)
+            ========================= */
+            /* =========================
+            เพิ่มใหม่: จัดหน้าใหม่ของ summary-panel ด้วย CSS Grid
+            แบ่งเป็น 2 คอลัมน์: ซ้าย = ตัวกรองเดิมทั้งหมด + ยอดรวม, ขวา = ช่องค้นหา (คอมพิวเตอร์)
+            แก้ไข: เดิมใช้ flex กับ flex-basis ตายตัว (240px) ทำให้บนจอที่กว้างกว่า 768px แต่แคบ
+            (เช่น แท็บเล็ต/มือถือโหมดเดสก์ท็อป) คอลัมน์ขวาหลุดล้นออกนอกจอ มองไม่เห็นช่องค้นหาเลย
+            เปลี่ยนมาใช้ grid-template-columns กำหนดความกว้างคอลัมน์ตายตัว ไม่มีทางล้นออกนอกกรอบได้
+            พอจอเล็ก (มือถือ) เปลี่ยนเป็น 1 คอลัมน์ ทุกอย่างจะเรียงต่อกันแนวตั้งตามลำดับ HTML
+            (ซ้ายก่อน ขวาทีหลัง) โดยอัตโนมัติ ไม่ต้องกำหนด flex-basis/order เพิ่มเลย
+            ========================= */
+            .summary-panel{
+                display:grid;
+                grid-template-columns:1fr 260px;
+                align-items:start;
+                gap:24px;
+            }
+
+            .summary-panel-left{
+                min-width:0;
+            }
+
+            .summary-panel-right{
+                min-width:0;
+            }
+
+            .search-label{
+                font-size:13px;
+                color:#002d72;
+                font-weight:bold;
+                margin-bottom:6px;
+            }
+
+            .search-box{
+                position:relative;
+            }
+
+            .search-box .search-icon{
+                position:absolute;
+                left:12px;
+                top:50%;
+                transform:translateY(-50%);
+                font-size:13px;
+                pointer-events:none;
+            }
+
+            .search-box input{
+                width:100%;
+                padding:9px 12px 9px 32px;
+                border-radius:999px;
+                border:1px solid #cfd6e2;
+                font-family:"Kanit",sans-serif;
+                font-size:13px;
+                box-sizing:border-box;
+            }
+
+            .search-box input:focus{
+                outline:none;
+                border-color:#2F6FED;
+            }
+
+            @media(max-width:768px){
+
+                .summary-panel{
+                    grid-template-columns:1fr;
+                    gap:10px;
+                    padding:10px 12px;
+                }
+
+                /* จัดตัวกรองเป็นตาราง 2 คอลัมน์ที่ขนาดเท่ากันเสมอ
+                   (เดิมแต่ละอันกว้างไม่เท่ากันตามความยาวข้อความ กดพลาดง่าย)
+                   ย่อ padding/ระยะห่างให้กระชับ แต่ยังคงความสูงพอกดถนัดนิ้ว */
+                .summary-filters{
+                    display:grid;
+                    grid-template-columns:repeat(2, 1fr);
+                    gap:8px 10px;
+                    margin-bottom:8px;
+                }
+
+                .summary-filters > span{
+                    display:flex;
+                    flex-direction:column;
+                    min-width:0;
+                }
+
+                .summary-filters label{
+                    font-size:11px;
+                    margin:0 0 3px;
+                    white-space:nowrap;
+                    overflow:hidden;
+                    text-overflow:ellipsis;
+                }
+
+                .summary-filters select{
+                    width:100%;
+                    box-sizing:border-box;
+                    padding:9px 8px;
+                    font-size:12.5px;
+                    min-height:40px;
+                }
+
+                .summary-total{
+                    font-size:12.5px;
+                    line-height:1.45;
+                }
+
+                .search-label{
+                    font-size:12px;
+                    margin-bottom:4px;
+                }
+
+                .search-box input{
+                    padding:8px 10px 8px 30px;
+                    font-size:12.5px;
+                    min-height:40px;
+                    box-sizing:border-box;
+                }
+            }
+
+            @media(max-width:420px){
+
+                .summary-filters{
+                    gap:6px 8px;
+                }
+
+                .summary-filters label{
+                    font-size:10.5px;
+                }
+
+                .summary-filters select{
+                    font-size:12px;
+                    padding:8px 6px;
+                    min-height:38px;
+                }
+
+                .summary-total{
+                    font-size:12px;
+                }
+            }
+
            /* เพิ่มใหม่: ปุ่ม "← กลับ" ไปหน้า account_menu.html
    ใช้ class เฉพาะของหน้านี้ ไม่แตะ style.css และไม่กระทบ UI ส่วนอื่น
    แก้ไข: ลดขนาดปุ่มให้กะทัดรัดแต่ยังกดถนัดมือ (padding แนวตั้งพอสำหรับนิ้วกด)
@@ -281,62 +431,80 @@
  
  
         <div class="summary-panel">
-            <div class="summary-filters">
-                <span>
-                    <label for="filterCompany">
-                        🏢 เลือกบริษัท
-                    </label>
-                    <select id="filterCompany"></select>
-                </span>
- 
- 
-                <span>
-                    <label for="filterYear">
-                        🗓️ เลือกปี
-                    </label>
-                    <select id="filterYear"></select>
-                </span>
- 
- 
- 
- 
-                <span>
- 
-                    <label for="filterMonth">
-                        📅 เลือกเดือน
-                    </label>
-                    <select id="filterMonth"></select>
- 
-                </span>
 
-                <!-- เพิ่มใหม่: ตัวกรอง "พนักงาน" (ชื่อผู้แจ้ง) ตัวเลือกเสริม ค่าเริ่มต้น = "ทั้งหมด" -->
-                <span>
+            <!-- ฝั่งซ้าย: ตัวกรองเดิมทั้งหมด + ยอดรวม (ของเดิมทุกอย่าง ไม่เปลี่ยนแปลง) -->
+            <div class="summary-panel-left">
 
-                    <label for="filterEmployee">
-                        👤 เลือกพนักงาน
-                    </label>
-                    <select id="filterEmployee"></select>
+                <div class="summary-filters">
+                    <span>
+                        <label for="filterCompany">
+                            🏢 เลือกบริษัท
+                        </label>
+                        <select id="filterCompany"></select>
+                    </span>
 
-                </span>
 
-                <!-- เพิ่มใหม่: ตัวกรอง "ประเภทประกัน" ตัวเลือกเสริม ค่าเริ่มต้น = "ทั้งหมด" -->
-                <span>
+                    <span>
+                        <label for="filterYear">
+                            🗓️ เลือกปี
+                        </label>
+                        <select id="filterYear"></select>
+                    </span>
 
-                    <label for="filterType">
-                        🧾 ประเภทประกัน
-                    </label>
-                    <select id="filterType">
-                        <option value="all">ทั้งหมด</option>
-                        <option value="car">🚗 ประกันรถยนต์</option>
-                        <option value="product">📦 ประกันสินค้า</option>
-                    </select>
 
-                </span>
- 
+
+
+                    <span>
+
+                        <label for="filterMonth">
+                            📅 เลือกเดือน
+                        </label>
+                        <select id="filterMonth"></select>
+
+                    </span>
+
+                    <!-- เพิ่มใหม่: ตัวกรอง "พนักงาน" (ชื่อผู้แจ้ง) ตัวเลือกเสริม ค่าเริ่มต้น = "ทั้งหมด" -->
+                    <span>
+
+                        <label for="filterEmployee">
+                            👤 เลือกพนักงาน
+                        </label>
+                        <select id="filterEmployee"></select>
+
+                    </span>
+
+                    <!-- เพิ่มใหม่: ตัวกรอง "ประเภทประกัน" ตัวเลือกเสริม ค่าเริ่มต้น = "ทั้งหมด" -->
+                    <span>
+
+                        <label for="filterType">
+                            🧾 ประเภทประกัน
+                        </label>
+                        <select id="filterType">
+                            <option value="all">ทั้งหมด</option>
+                            <option value="car">🚗 ประกันรถยนต์</option>
+                            <option value="product">📦 ประกันสินค้า</option>
+                        </select>
+
+                    </span>
+
+                </div>
+
+                <div id="summaryTotal" class="summary-total"></div>
+
             </div>
- 
-            <div id="summaryTotal" class="summary-total"></div>
- 
+
+            <!-- ฝั่งขวา (เพิ่มใหม่): ช่องค้นหา ค้นได้ทั้งชื่อผู้เอาประกันและทะเบียนรถ -->
+            <div class="summary-panel-right">
+
+                <div class="search-label">🔍 ค้นหา (ชื่อ / ทะเบียนรถ)</div>
+
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="filterSearch" placeholder="พิมพ์ชื่อผู้เอาประกัน หรือ ทะเบียนรถ">
+                </div>
+
+            </div>
+
         </div>
  
  
@@ -667,6 +835,16 @@ if(loggedInEmployee){
         </button>
 
 
+        <!-- เพิ่มใหม่: ปุ่มโหลดใบเสร็จ ออกใบรับเงินตามจำนวนงวดที่มีการบันทึกยอดชำระแล้ว
+             (ชำระงวด 1 -> ออก 1 ใบ, ชำระถึงงวด 2 -> ออก 2 ใบ, ... ครบ 4 งวด -> ออก 4 ใบ) -->
+        <button 
+        class="receipt-btn"
+        onclick="openReceipt('${item.id}')"
+        title="โหลดใบเสร็จ">
+        🧾
+        </button>
+
+
         <button 
         class="delete-btn"
         onclick="deleteItem('${item.id}')">
@@ -927,6 +1105,16 @@ employeeSelect.onchange = function(){
 document.getElementById("filterType").onchange = function(){
     subscribeToData();
 };
+
+/* เพิ่มใหม่: ช่องค้นหา ไม่ต้อง query Firestore ใหม่ (ค้นหาจาก allData ที่โหลดมาแล้วพอ)
+   จึงแค่ render ตาราง/สรุปยอดใหม่ทุกครั้งที่พิมพ์ ไม่เรียก subscribeToData() */
+const searchInputEl = document.getElementById("filterSearch");
+if(searchInputEl){
+    searchInputEl.oninput = function(){
+        renderTable();
+        updateSummary();
+    };
+}
  
  
         }
@@ -1085,6 +1273,11 @@ function getFilteredData(){
 
     const selectedType =
     document.getElementById("filterType").value;
+
+    /* เพิ่มใหม่: คำค้นหาจากช่องค้นหาด้านขวา ค้นได้ทั้งชื่อผู้เอาประกันและทะเบียนรถ
+       (กรองที่ฝั่ง client จาก allData ที่โหลดมาแล้วเท่านั้น ไม่ต้อง query Firestore ใหม่) */
+    const searchTerm =
+    (document.getElementById("filterSearch")?.value || "").trim().toLowerCase();
  
  
     const sorted = [...allData].sort(
@@ -1127,10 +1320,18 @@ function getFilteredData(){
         selectedType === "all"
         ||
         item.type === selectedType;
+
+        /* เพิ่มใหม่: ค้นหาแบบไม่สนตัวพิมพ์เล็ก-ใหญ่ ตรงส่วนใดส่วนหนึ่งของชื่อผู้เอาประกันหรือทะเบียนรถก็เจอ */
+        const searchOK =
+        !searchTerm
+        ||
+        (item.customer || "").toLowerCase().includes(searchTerm)
+        ||
+        (item.plate || "").toLowerCase().includes(searchTerm);
  
  
  
-        return companyOK && yearOK && monthOK && employeeOK && typeOK;
+        return companyOK && yearOK && monthOK && employeeOK && typeOK && searchOK;
  
  
     });
@@ -1446,6 +1647,32 @@ function openDoc(id){
         "contract_print.html";
  
 }
+
+
+/* =========================
+   เพิ่มใหม่: โหลดใบเสร็จ
+   ออกใบรับเงิน (receipt_print.html) ตามจำนวนงวดที่มีการบันทึกยอดชำระแล้วเท่านั้น
+   เช่น ชำระงวด 1 แล้ว -> ออก 1 ใบ, ชำระถึงงวด 2 -> ออก 2 ใบ, ครบ 4 งวด -> ออก 4 ใบ
+========================= */
+function openReceipt(id){
+
+    const item = allData.find(x => x.id === id);
+
+    if(!item){
+        alert("ไม่พบข้อมูล");
+        return;
+    }
+
+    // ข้อมูลชั่วคราวสำหรับเปิดใบเสร็จเท่านั้น ไม่ใช่แหล่งข้อมูลหลัก
+    localStorage.setItem(
+        "pdfData",
+        JSON.stringify(item)
+    );
+
+    location.href =
+        "receipt_print.html";
+
+}
  
 /* =========================
    SIDEBAR MENU
@@ -1462,6 +1689,7 @@ const overlay = document.getElementById("overlay");
 ========================= */
 window.editItem = editItem;
 window.openDoc = openDoc;
+window.openReceipt = openReceipt;
 window.deleteItem = deleteItem;
  
 if(menuBtn && sidebar && overlay){

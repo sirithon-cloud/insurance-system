@@ -907,199 +907,6 @@ if (data) {
 }
  
 /* ==========================================================
-   RENDER: ใบรับเงิน
-========================================================== */
-function renderReceipt(info, typeLabel) {
-    const instCount = Number(data.installmentCount || 1);
-    const perInstallment = Number(data.total || 0) / instCount;
-    const productLabel = typeLabel.includes("รถยนต์") ? "ประกันรถยนต์" : "ประกันสินค้า";
-    const receiptCompanyName = companyMeta().fullName;
-    const receiptSignatureImg = (info === AGENT_viriyah) ? "logos/signature1.png" : "logos/signature.png";
-
-    return `
-        <!-- ส่วนหัว -->
-        <div style="
-            display:flex;
-            justify-content:space-between;
-            align-items:flex-start;
-            border-bottom:2px solid #000;
-            padding-bottom:12px;
-            margin-bottom:18px;
-            padding-top:30px;
-        ">
-            <div style="padding-left:40px;">
-    <div style="font-size:22px;font-weight:bold;">
-        ${info.officeTitle}
-    </div>
- 
-    <div class="small" style="line-height:1.6;">
-        ${info.agentLine}
-    </div>
- 
-    <div class="small" style="line-height:1.6;">
-        ${info.address}
-    </div>
- 
-    <div class="small" style="line-height:1.6;">
-        ${info.province}
-    </div>
-</div>
- 
-            <div style="
-        font-size:42px;
-        font-weight:900;
-        margin:1;
-        line-height:1
-        ;
-        
-    ">
-                <h1 style="margin:0;padding-left:50px;">ใบรับเงิน</h1>
-                
-               <div class="small" style="padding-right:30px;">
-                    วันที่ ${todayThai} ${nowThai} น.
-                </div>
-            </div>
-        </div>
- 
-        <!-- เนื้อหา -->
-        <div style="padding:0 40px;">
- 
-            <div class="small" style="
-                border-bottom:1px solid #999;
-                padding-bottom:10px;
-                margin-bottom:18px;
-                line-height:1.8;
-            ">
-                ทะเบียนเลขที่ / เลขประจำตัวผู้เสียอากร<br>
-                ใบอนุญาตเป็นนายหน้าประกันวินาศภัยที่ ${info.licenseNo}
-            </div>
- 
-            <div class="receipt-fields">
-            <div class="field-row">
-                <div>
-                    <span class="lbl">ได้รับเงินจาก</span>
-                    <span class="field-line">${safe(data.customer)}</span>
-                </div>
-            </div>
- 
-            <div class="field-row">
-                <div>
-                    <span class="lbl">ที่อยู่</span>
-                    <span class="field-line">${safe(data.address)}</span>
-                </div>
-            </div>
- 
-            <div class="field-row">
-                <div>
-                    <span class="lbl">รับเงินสำหรับ</span>
-                    <span class="field-line">ค่างวดแบ่งชำระค่าเบี้ยประกันภัย</span>
-                </div>
-            </div>
- 
-            <div class="field-row">
-                <div>
-                    <span class="lbl">ประเภท</span>
-                    <span class="field-line">${typeLabel}</span>
-                </div>
-            </div>
- 
-            <div class="field-row">
-                <div>
-                    <span class="lbl">เลขทะเบียน</span>
-                    <span class="field-line">${safe(data.plate)}</span>
-                </div>
- 
-                <div>
-                    <span class="lbl">เลขตัวถัง</span>
-                    <span class="field-line">${safe(data.chassis)}</span>
-                </div>
-            </div>
-            </div>
- 
-            <!-- จำนวนเงิน -->
-            <table class="grid" style="margin-top:14px;">
-                <tr>
-                    <th>ลำดับ</th>
-                    <th>ผลิตภัณฑ์</th>
-                    <th>บริษัทประกัน</th>
-                    <th>เบี้ยประกัน (บาท)</th>
-                </tr>
-                <tr>
-                    <td>1</td>
-                    <td>${productLabel}</td>
-                    <td>${receiptCompanyName}</td>
-                    <td style="text-align:right;">${fmt(data.total)}</td>
-                </tr>
-                <tr>
-                    <td colspan="3" style="text-align:right;font-weight:bold;">จำนวนเงินที่ต้องชำระ</td>
-                    <td style="text-align:right;font-weight:bold;">${fmt(data.total)} บาท</td>
-                </tr>
-                <tr>
-                    <td colspan="3" style="text-align:right;padding-right:14px;">ชำระจำนวน <b>${instCount}</b> งวด งวดละ</td>
-                    <td style="text-align:right;font-weight:bold;">${fmt(perInstallment)} บาท</td>
-                </tr>
-                <tr>
-                    <td colspan="4" style="text-align:center;font-weight:bold;">
-                        (${numberToThaiText(data.total)})
-                    </td>
-                </tr>
-            </table>
- 
-<div style="margin-top:120px;">
- 
-    <!-- ลายเซ็น -->
-    <div class="official-sign-space" style="
-        clear:both;
-        text-align:center;
-    ">
- 
-        <div style="font-weight:bold;margin-bottom:6px;">
-            ผู้ออกเอกสาร
-        </div>
- 
-        <img
-            src="${receiptSignatureImg}"
-            style="
-                width:180px;
-                height:auto;
-                margin-bottom:-15px;
-            "
-        >
- 
-        <div style="font-size:18px;">
-            ลงชื่อ.......................................................
-        </div>
- 
-        <div style="margin-top:10px;">
-            (${info.signerName})
-        </div>
- 
-        <div class="small" style="margin-top:4px;">
-            เลขที่ใบอนุญาต ${info.licenseNo}
-        </div>
- 
-    </div>
- 
-    <!-- หมายเหตุ -->
-    <div class="small" style="
-        margin-top:30px;
-        line-height:1.8;
-    ">
-        <b>หมายเหตุ</b><br>
- 
-        - โปรดตรวจสอบความถูกต้องของรายการ มิฉะนั้นทางเราจะไม่รับผิดชอบความเสียหายที่เกิดขึ้น<br>
- 
-        - การทำรายการจะสมบูรณ์ เมื่อท่านได้รับเอกสารยืนยันความคุ้มครองหรือเอกสารเงื่อนไขความคุ้มครอง พร้อมใบรับเงินฉบับนี้<br>
- 
-        - หากมีข้อสงสัยเพิ่มเติมเกี่ยวกับใบรับเงินฉบับนี้ สามารถติดต่อได้ที่โทรศัพท์
-        ${info.province.split("โทรศัพท์ ")[1] || ""}
-    </div>
- 
-</div>
-    `;
-}
- 
-/* ==========================================================
    RENDER: หนังสือขอบอกเลิกสัญญาประกันภัย
 ========================================================== */
 function renderCancelLetter(companyFullName) {
@@ -3030,13 +2837,13 @@ function renderPending(label) {
    เอกสารที่ต้องแสดงของแต่ละบริษัท
 ========================================================== */
 const COMPANY_DOCS = {
-    "วิริยะ":   ["main", "contract", "cancel", "receipt"],
-    "เมืองไทย": ["main", "contract", "cancel", "poa", "receipt"],
-    "AIG":      ["main", "poa", "cancel", "contract", "receipt"],
-    "แอกซ่า":   ["main", "contract", "poa", "receipt"],
-    "AXA":      ["main", "contract", "poa", "receipt"],
-    "KWI":      ["main", "contract", "cancel", "poa", "receipt"],
-    "กรุงเทพ":  ["main", "receipt"]
+    "วิริยะ":   ["main", "contract", "cancel"],
+    "เมืองไทย": ["main", "contract", "cancel", "poa"],
+    "AIG":      ["main", "poa", "cancel", "contract"],
+    "แอกซ่า":   ["main", "contract", "poa"],
+    "AXA":      ["main", "contract", "poa"],
+    "KWI":      ["main", "contract", "cancel", "poa"],
+    "กรุงเทพ":  ["main"]
 };
  
 const docArea=document.getElementById("docArea");
@@ -3066,15 +2873,6 @@ function getDocumentHTML(type){
  
     if(type==="poa"){
         return renderPowerOfAttorney(meta.fullName);
-    }
- 
-    if(type==="receipt"){
-        if(company==="วิริยะ")
-            return renderReceipt(AGENT_viriyah, "ประกันความรับผิดของผู้ขนส่งสินค้า");
-        return renderReceipt(
-            BROKER_GENERAL,
-            data.type==="car" ? "ประกันรถยนต์" : "กรมธรรม์ประกันความรับผิดของผู้ขนส่ง"
-        );
     }
  
     if(type==="invoice")
@@ -3174,7 +2972,6 @@ async function generateJPGFiles(options) {
         contract: "สัญญา",
         cancel: "ใบยกเลิก",
         poa: "หนังสือมอบอำนาจ",
-        receipt: "ใบรับเงิน",
         invoice: "ใบแจ้งหนี้"
     };
 

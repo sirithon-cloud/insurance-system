@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=794, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>ใบรับเงิน</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=block" rel="stylesheet">
+
+<!-- บังคับให้ต้อง login ก่อนเข้าใช้งานหน้านี้ เหมือน contract_print.html
+     (หน้านี้มีข้อมูลส่วนตัว/การเงินของลูกค้า) -->
+<script src="auth.js"></script>
+<script>
+    requireLogin();
+</script>
+
+<style>
+
+body{
+    min-width:calc(210mm + 20px);
+    margin:0;
+    padding:0;
+}
+
+body {
+    font-family:"Sarabun","TH Sarabun New",Tahoma,sans-serif;
+    background:#e9ecef;
+    padding:0 10px;
+    font-size:13px;
+}
+
+html, body{
+    -webkit-text-size-adjust:100%;
+    text-size-adjust:100%;
+}
+*, *::before, *::after{
+    box-sizing:border-box;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+}
+
+.btn-bar {
+     max-width:900px;
+     margin:0 auto 15px;
+     display:flex;
+     gap:10px;
+     justify-content:flex-end;
+     flex-wrap:wrap;
+}
+
+.btn-bar button {
+    padding:10px 18px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+    color:#fff;
+    font-size:14px;
+}
+
+.btn-print { background:#000; }
+.btn-pdf { background:#0d6efd; }
+.btn-jpg { background:#198754; }
+
+.small {
+    font-size:9px;
+    color:#333;
+    line-height:1.6;
+}
+
+.pending-box {
+    text-align:center;
+    padding:60px 20px;
+    color:#c0392b;
+}
+
+.app-box{
+    border:none;
+    padding:14px 18px;
+}
+
+.receipt-fields .lbl{ display:inline-block; min-width:145px; font-weight:bold; margin-right:4px; vertical-align:top; }
+.field-row{ display:flex; gap:14px; flex-wrap:wrap; margin:4px 0; }
+.field-row > div{ flex:1; min-width:140px; }
+.field-row .lbl{ font-weight:bold; margin-right:4px; }
+.field-line{ border-bottom:1px dotted #999; padding:0 4px; display:inline-block; min-width:60px; }
+
+table.grid{ width:100%; border-collapse:collapse; font-size:11.5px; margin-top:6px; }
+table.grid th, table.grid td{ border:1px solid #000; padding:5px 6px; text-align:center; }
+table.grid th{ background:#f0f2f5; }
+
+.official-sign-space{ margin-top:110px !important; }
+
+/* ================= จัดรูปแบบให้ขนาดตัวอักษรเท่ากับเอกสารอื่นในระบบ (เหมือน contract_print.html) =================
+   บังคับขนาดตัวอักษรทั้งหมดในหน้าเอกสารให้เล็กลงเท่ากัน แม้บางส่วนจะกำหนด font-size แบบ inline ไว้ใหญ่กว่านี้
+   (เช่น หัวข้อ "ใบรับเงิน" และชื่อสำนักงานที่กำหนด font-size ไว้ในสไตล์ inline ของแต่ละใบ) */
+.document-page, .document-page *{
+    font-size:10.5px !important;
+    line-height:1.7 !important;
+}
+.document-page h1{ font-size:19px !important; }
+
+.document-list{ max-width:900px; margin:0 auto; text-align:center; }
+.document-list h2 { color:#002d72; margin-bottom:15px; }
+
+.summary-strip{
+    max-width:900px;
+    margin:0 auto 15px;
+    background:#EAF1FF;
+    border:1px solid #DCE9FF;
+    border-radius:10px;
+    padding:12px 18px;
+    color:#152A54;
+    font-size:13px;
+    text-align:center;
+}
+
+.document-page{
+    width:210mm;
+    max-width:210mm;
+    height:297mm;
+    margin:0 auto 40px;
+    background:#fff;
+    border:0px solid #333333;
+    padding:0px;
+    page-break-after:always;
+    break-after:page;
+    box-sizing:border-box;
+    box-shadow:0 0 6px rgba(0,0,0,0.15);
+    overflow:hidden;
+    position:relative;
+    flex-shrink:0;
+}
+
+.document-page:last-child{ page-break-after:auto; break-after:auto; }
+
+.document-page > .app-box{
+    min-height:100%;
+    box-sizing:border-box;
+}
+
+.page-scale{
+    width:100%;
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    transform-origin:top left;
+    box-sizing:border-box;
+}
+
+@media print {
+    @page{ size:A4; margin:0; }
+    .btn-bar, .document-list, .summary-strip{ display:none; }
+    html, body{ background:#fff; padding:0; margin:0; min-width:0; width:auto; }
+    .document-page{
+        width:210mm; max-width:210mm; height:297mm; margin:0; padding:0;
+        border:none; box-shadow:none; page-break-after:always; break-after:page;
+        overflow:hidden;
+    }
+    .document-page:last-child{ page-break-after:auto; break-after:auto; }
+    .document-page > .app-box{ min-height:100%; }
+}
+
+</style>
+</head>
+<body>
+
+<div class="document-list">
+    <h2>🧾 ใบรับเงิน ของ <span id="customerName"></span></h2>
+    <p class="small" style="margin:0;">ระบบออกใบรับเงินให้อัตโนมัติตามจำนวนงวดที่มีการบันทึกยอดชำระแล้วเท่านั้น เลื่อนดูหรือกดปุ่มด้านล่างเพื่อบันทึกได้เลย</p>
+</div>
+
+<div id="summaryStrip" class="summary-strip"></div>
+
+<div class="btn-bar">
+  <button
+    onclick="window.location.href='report.html'"
+    style="background:#666866; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer;">
+    🏠 กลับหน้ารายงาน
+</button>
+    <button class="btn-print" onclick="window.print()">🖨 พิมพ์ / บันทึก PDF</button>
+    <button class="btn-pdf" onclick="downloadPDF()">📥 ดาวน์โหลด PDF</button>
+    <button class="btn-jpg" onclick="saveJPG()">🖼 ดาวน์โหลด JPG</button>
+</div>
+
+<div id="docArea"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+
+/* ==========================================================
+   ข้อมูลสำนักงาน/ตัวแทน-นายหน้า ต่อบริษัท
+   (คงเดิมตาม contract_print.html เพื่อให้ข้อมูลออกใบรับเงินตรงกันทั้งระบบ)
+========================================================== */
+const AGENT_viriyah = {
+    officeTitle: "สำนักงานตัวแทนประกันวินาศภัย",
+    agentLine: "โดยนายณุพล วิทยาขาว",
+    address: "168 หมู่ที่ 1 ตำบลหนองไผ่ อำเภอชุมแพ",
+    province: "จังหวัดขอนแก่น โทรศัพท์ 094-284-1557",
+    licenseNo: "5802002651",
+    signerName: "นายณุพล วิทยาขาว",
+    companyFullName: "บริษัท วิริยะประกันภัย จำกัด (มหาชน)"
+};
+
+const BROKER_GENERAL = {
+    officeTitle: "สำนักงานนายหน้าประกันวินาศภัย",
+    agentLine: "โดยคุณอรุณลักษณ์ มหาจตุพัฒน์",
+    address: "166 หมู่ที่ 5 ตำบลโนนสะอาด อำเภอชุมแพ",
+    province: "จังหวัดขอนแก่น โทรศัพท์ 094-284-1557",
+    licenseNo: "6204051609",
+    signerName: "นางสาวอรุณลักษณ์ มหาจตุพัฒน์"
+};
+
+const COMPANY_META = {
+    "วิริยะ": {
+        fullName: "บริษัท วิริยะประกันภัย จำกัด (มหาชน)",
+        agent: AGENT_viriyah
+    },
+    "เมืองไทย": {
+        fullName: "บริษัท เมืองไทยประกันภัย จำกัด (มหาชน)",
+        agent: BROKER_GENERAL
+    },
+    "AIG": {
+        fullName: "บริษัท เอไอจี ประกันภัย (ประเทศไทย) จำกัด (มหาชน)",
+        agent: BROKER_GENERAL
+    },
+    "แอกซ่า": {
+        fullName: "บริษัท แอกซ่าประกันภัย จำกัด (มหาชน)",
+        agent: BROKER_GENERAL
+    },
+    "KWI": {
+        fullName: "บริษัท เคดับบลิวไอ ประกันภัย จำกัด (มหาชน)",
+        agent: BROKER_GENERAL
+    },
+    "กรุงเทพ": {
+        fullName: "บริษัท กรุงเทพประกันภัย จำกัด (มหาชน)",
+        agent: BROKER_GENERAL
+    }
+};
+COMPANY_META["AXA"] = COMPANY_META["แอกซ่า"];
+
+function companyMeta() {
+    return COMPANY_META[data.company] || COMPANY_META["เมืองไทย"];
+}
+
+function fmt(n) { return Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }); }
+function safe(v) { return (v === undefined || v === null || v === "") ? "-" : v; }
+
+function numberToThaiText(numStr) {
+    const num = Number(numStr || 0);
+    if (isNaN(num) || num === 0) return "-";
+    const numText = ["ศูนย์","หนึ่ง","สอง","สาม","สี่","ห้า","หก","เจ็ด","แปด","เก้า"];
+    const digitText = ["","สิบ","ร้อย","พัน","หมื่น","แสน","ล้าน"];
+    function convert(n) {
+        n = String(n);
+        let result = "";
+        const len = n.length;
+        for (let i = 0; i < len; i++) {
+            const digit = parseInt(n[i]);
+            const place = len - i - 1;
+            if (digit === 0) continue;
+            if (place === 0 && digit === 1 && len > 1) result += "เอ็ด";
+            else if (place === 1 && digit === 1) result += "สิบ";
+            else if (place === 1 && digit === 2) result += "ยี่สิบ";
+            else {
+                result += numText[digit] + digitText[place % 6 > 0 || place === 0 ? place % 6 : 0];
+                if (place >= 6) result += "ล้าน";
+            }
+        }
+        return result;
+    }
+    const parts = num.toFixed(2).split(".");
+    let baht = convert(parseInt(parts[0]));
+    const satang = parseInt(parts[1]);
+    return baht + "บาท" + (satang === 0 ? "ถ้วน" : convert(satang) + "สตางค์");
+}
+
+function toBuddhistDate(d) {
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yyyy = d.getFullYear() + 543;
+    return `${dd}/${mm}/${yyyy}`;
+}
+
+/* แปลงวันที่แบบยืดหยุ่น (dd/mm/yyyy หรือ yyyy-mm-dd, รองรับทั้ง ค.ศ./พ.ศ.) เป็น Date object
+   ใช้เป็นฐานคำนวณวันครบกำหนดของแต่ละงวด เหมือนกับที่ contract_print.html ใช้ */
+function parseFlexibleDate(v) {
+    if (!v) return null;
+    const s = String(v).trim();
+    let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{3,4})$/);
+    if (m) {
+        let yyyy = parseInt(m[3], 10);
+        if (yyyy > 2400) yyyy -= 543;
+        return new Date(yyyy, parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+    }
+    m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (m) {
+        let yyyy = parseInt(m[1], 10);
+        if (yyyy > 2400) yyyy -= 543;
+        return new Date(yyyy, parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+    }
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+}
+
+/* วันที่ "วัน" ของลูกค้า (ใช้ตัวเลขวันเดียวกับวันเริ่มทำประกันของลูกค้าเสมอ) */
+function getCustomerStartDay() {
+    if (!data.start) return null;
+    const s = String(data.start).trim();
+    let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{3,4})$/);
+    if (m) return parseInt(m[1], 10);
+    m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (m) return parseInt(m[3], 10);
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) return d.getDate();
+    return null;
+}
+
+function applyCustomerStartDay(date, startDay) {
+    if (!startDay) return date;
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+    return new Date(year, month, Math.min(startDay, lastDayOfMonth));
+}
+
+/* วันครบกำหนดของงวดที่ installmentIndex (0-based) นับจากวันเริ่มทำประกันของลูกค้า
+   ใช้สูตรเดียวกับ contract_print.html (บวกทีละ 30 วันต่องวด แล้วปรับ "วัน" ให้ตรงกับวันเริ่มของลูกค้า) */
+function getInstallmentDueDate(contractDate, installmentIndex, startDay) {
+    const due = new Date(contractDate);
+    due.setDate(due.getDate() + 30 * (installmentIndex + 1));
+    return applyCustomerStartDay(due, startDay);
+}
+
+/* ==========================================================
+   โหลดข้อมูลฟอร์มล่าสุด (ส่งมาจากปุ่ม "โหลดใบเสร็จ" ในหน้า report.html)
+========================================================== */
+const data = JSON.parse(localStorage.getItem("pdfData"));
+if (!data) {
+    alert("กรุณากด 'โหลดใบเสร็จ' จากหน้ารายงานก่อน");
+    window.location.href = "index.html";
+}
+if (data) {
+    document.getElementById("customerName").innerText = data.customer || "-";
+}
+
+/* ==========================================================
+   RENDER: ใบรับเงินของ 1 งวด
+========================================================== */
+function renderInstallmentReceipt(installmentIndex, amount, dueDate) {
+
+    const meta = companyMeta();
+    const info = meta.agent;
+    const typeLabel = data.type === "car" ? "ประกันรถยนต์" : "ประกันความรับผิดของผู้ขนส่งสินค้า";
+    const productLabel = data.type === "car" ? "ประกันรถยนต์" : "ประกันสินค้า";
+    const receiptCompanyName = meta.fullName;
+    const receiptSignatureImg = (info === AGENT_viriyah) ? "logos/signature1.png" : "logos/signature.png";
+
+    const dueDateThai = dueDate ? toBuddhistDate(dueDate) : "-";
+
+    // แสดงเฉพาะ "วันที่ชำระ" เหมือนใบรับเงินแบบเดิม ไม่แสดงลำดับงวด/จำนวนงวดใดๆ ทั้งสิ้น
+    const headerRightSub = `วันที่ ${dueDateThai}`;
+
+    const purposeText = `ค่างวดแบ่งชำระค่าเบี้ยประกันภัย`;
+
+    const instCount = Number(data.installmentCount) || 1;
+
+    const amountTable = `
+                <tr>
+                    <th>ลำดับ</th>
+                    <th>ผลิตภัณฑ์</th>
+                    <th>บริษัทประกัน</th>
+                    <th>เบี้ยประกัน (บาท)</th>
+                </tr>
+                <tr>
+                    <td>1</td>
+                    <td>${productLabel}</td>
+                    <td>${receiptCompanyName}</td>
+                    <td style="text-align:right;">${fmt(amount)}</td>
+                </tr>
+                <tr>
+                    <td colspan="3" style="text-align:right;font-weight:bold;">จำนวนเงินที่ต้องชำระ</td>
+                    <td style="text-align:right;font-weight:bold;">${fmt(amount)} บาท</td>
+                </tr>
+                <tr>
+                    <td colspan="3" style="text-align:right;padding-right:14px;">ชำระจำนวน <b>${instCount}</b> งวด งวดละ</td>
+                    <td style="text-align:right;font-weight:bold;">${fmt(amount)} บาท</td>
+                </tr>
+                <tr>
+                    <td colspan="4" style="text-align:center;font-weight:bold;">
+                        (${numberToThaiText(amount)})
+                    </td>
+                </tr>
+        `;
+
+    return `
+        <!-- ส่วนหัว -->
+        <div style="
+            display:flex;
+            justify-content:space-between;
+            align-items:flex-start;
+            border-bottom:2px solid #000;
+            padding-bottom:12px;
+            margin-bottom:18px;
+            padding-top:30px;
+        ">
+            <div style="padding-left:40px;">
+                <div style="font-size:22px;font-weight:bold;">
+                    ${info.officeTitle}
+                </div>
+
+                <div class="small" style="line-height:1.6;">
+                    ${info.agentLine}
+                </div>
+
+                <div class="small" style="line-height:1.6;">
+                    ${info.address}
+                </div>
+
+                <div class="small" style="line-height:1.6;">
+                    ${info.province}
+                </div>
+            </div>
+
+            <div style="font-size:42px;font-weight:900;margin:1;line-height:1;text-align:right;padding-right:20px;">
+                <h1 style="margin:0;">ใบรับเงิน</h1>
+
+                <div class="small" style="margin-top:4px;white-space:nowrap;">
+                    ${headerRightSub}
+                </div>
+            </div>
+        </div>
+
+        <!-- เนื้อหา -->
+        <div style="padding:0 40px;">
+
+            <div class="small" style="
+                padding-bottom:10px;
+                margin-bottom:18px;
+                line-height:1.8;
+            ">
+                ทะเบียนเลขที่ / เลขประจำตัวผู้เสียอากร<br>
+                ใบอนุญาตเป็นนายหน้าประกันวินาศภัยที่ ${info.licenseNo}
+            </div>
+
+            <div class="receipt-fields">
+            <div class="field-row">
+                <div>
+                    <span class="lbl">ได้รับเงินจาก</span>
+                    <span class="field-line">${safe(data.customer)}</span>
+                </div>
+            </div>
+
+            <div class="field-row">
+                <div>
+                    <span class="lbl">ที่อยู่</span>
+                    <span class="field-line">${safe(data.address)}</span>
+                </div>
+            </div>
+
+            <div class="field-row">
+                <div>
+                    <span class="lbl">รับเงินสำหรับ</span>
+                    <span class="field-line">${purposeText}</span>
+                </div>
+            </div>
+
+            <div class="field-row">
+                <div>
+                    <span class="lbl">ประเภท</span>
+                    <span class="field-line">${typeLabel}</span>
+                </div>
+            </div>
+
+            <div class="field-row">
+                <div>
+                    <span class="lbl">เลขทะเบียน</span>
+                    <span class="field-line">${safe(data.plate)}</span>
+                </div>
+
+                <div>
+                    <span class="lbl">เลขตัวถัง</span>
+                    <span class="field-line">${safe(data.chassis)}</span>
+                </div>
+            </div>
+            </div>
+
+            <!-- จำนวนเงิน -->
+            <table class="grid" style="margin-top:14px;">
+                ${amountTable}
+            </table>
+
+            <div style="margin-top:120px;">
+
+                <!-- ลายเซ็น -->
+                <div class="official-sign-space" style="clear:both;text-align:center;">
+
+                    <div style="font-weight:bold;margin-bottom:6px;">
+                        ผู้ออกเอกสาร
+                    </div>
+
+                    <img
+                        src="${receiptSignatureImg}"
+                        style="width:190px;height:auto;margin-bottom:-15px;"
+                    >
+
+                    <div style="font-size:18px;">
+                        ลงชื่อ..................................................................
+                    </div>
+
+                    <div style="margin-top:10px;">
+                        (${info.signerName})
+                    </div>
+
+                    <div class="small" style="margin-top:4px;">
+                        เลขที่ใบอนุญาต ${info.licenseNo}
+                    </div>
+
+                </div>
+
+                <!-- หมายเหตุ -->
+                <div class="small" style="margin-top:200px;line-height:1.8;">
+                    <b>หมายเหตุ</b><br>
+
+                    - โปรดตรวจสอบความถูกต้องของรายการ มิฉะนั้นทางเราจะไม่รับผิดชอบความเสียหายที่เกิดขึ้น<br>
+
+                    - การทำรายการจะสมบูรณ์ เมื่อท่านได้รับเอกสารยืนยันความคุ้มครองหรือเอกสารเงื่อนไขความคุ้มครอง พร้อมใบรับเงินฉบับนี้<br>
+
+                    - หากมีข้อสงสัยเพิ่มเติมเกี่ยวกับใบรับเงินฉบับนี้ สามารถติดต่อได้ที่โทรศัพท์
+                    ${info.province.split("โทรศัพท์ ")[1] || ""}
+                </div>
+
+            </div>
+        </div>
+    `;
+}
+
+/* ==========================================================
+   สร้างใบรับเงิน: 1 ใบต่อ 1 งวดที่มีการบันทึกยอดชำระแล้ว (installment1..4 > 0)
+   ชำระงวด 1 -> ออก 1 ใบ, ชำระถึงงวด 2 -> ออก 2 ใบ, ... ชำระครบ 4 งวด -> ออก 4 ใบ
+========================================================== */
+const docArea = document.getElementById("docArea");
+const summaryStrip = document.getElementById("summaryStrip");
+
+const totalPlanned = parseInt(data.installmentCount, 10) || 4;
+const startDay = getCustomerStartDay();
+const baseDate = parseFlexibleDate(data.start) || new Date();
+
+const paidInstallments = [];
+let cumulative = 0;
+
+for (let i = 1; i <= 4; i++) {
+    const amt = Number(data["installment" + i]) || 0;
+    if (amt > 0) {
+        cumulative += amt;
+
+        /* แก้ไข: ใช้วันที่ชำระจริงที่กรอกไว้ในฟอร์ม (installment1Date..4Date) เป็นหลักเสมอ
+           งวดที่ 1 คือช่อง installment1 เสมอ, งวดที่ 2 คือช่อง installment2 เสมอ (ไม่มีการสลับลำดับ)
+           ถ้าไปแก้ไขวันที่ในช่องไหนของฟอร์มแล้วมาเปิดใบรับเงินใหม่ วันที่บนใบของงวดนั้นจะอัปเดตตามทันที
+           ข้อมูลเก่าที่ยังไม่เคยกรอกวันที่ชำระ (ก่อนมีฟีเจอร์นี้) จะ fallback ไปคำนวณแบบเดิม (+30 วัน/งวด) แทน */
+        const actualPaidDate = parseFlexibleDate(data["installment" + i + "Date"]);
+        const due = actualPaidDate || getInstallmentDueDate(baseDate, i - 1, startDay);
+
+        paidInstallments.push({ index: i, amount: amt, due: due, cumulative: cumulative });
+    }
+}
+
+if (paidInstallments.length === 0) {
+
+    summaryStrip.style.display = "none";
+
+    docArea.innerHTML = `
+        <div class="pending-box">
+            <h2>🕒 ยังไม่มีการชำระเงินงวดใด</h2>
+            <p>เมื่อมีการบันทึกยอดชำระในงวดที่ 1 เป็นต้นไปในฟอร์ม ระบบจะออกใบรับเงินของงวดนั้นให้อัตโนมัติที่นี่</p>
+        </div>
+    `;
+
+} else {
+
+    const totalAll = Number(data.total || 0);
+    const lastCumulative = paidInstallments[paidInstallments.length - 1].cumulative;
+    const remainingAll = Math.max(totalAll - lastCumulative, 0);
+
+    summaryStrip.innerText =
+        `💰 ชำระแล้ว ${paidInstallments.length} จาก ${totalPlanned} งวด · ยอดชำระสะสม ${fmt(lastCumulative)} บาท · คงเหลือ ${fmt(remainingAll)} บาท จากยอดรวม ${fmt(totalAll)} บาท`;
+
+    paidInstallments.forEach((inst) => {
+
+        const div = document.createElement("div");
+        div.className = "document-page";
+        div.dataset.doctype = "receipt_" + inst.index;
+
+        const inner = document.createElement("div");
+        inner.className = "page-scale";
+        inner.innerHTML = renderInstallmentReceipt(inst.index, inst.amount, inst.due);
+
+        div.appendChild(inner);
+        docArea.appendChild(div);
+    });
+}
+
+/* ==========================================================
+   บังคับให้เนื้อหาแต่ละใบรับเงินพอดี 1 หน้า A4 เป๊ะ
+========================================================== */
+function fitPagesToA4(){
+    document.querySelectorAll(".document-page").forEach(page=>{
+
+        const inner = page.querySelector(".page-scale");
+        if(!inner) return;
+
+        inner.style.transform="none";
+        inner.style.width="100%";
+
+        const pageHeight = page.clientHeight;
+        const contentHeight = inner.scrollHeight;
+
+        if(contentHeight > pageHeight){
+            const scale = pageHeight / contentHeight;
+            inner.style.transform=`scale(${scale})`;
+            inner.style.width=(100/scale)+"%";
+        }
+    });
+}
+
+fitPagesToA4();
+window.addEventListener("load", fitPagesToA4);
+window.addEventListener("beforeprint", fitPagesToA4);
+setTimeout(fitPagesToA4, 500);
+setTimeout(fitPagesToA4, 1500);
+
+/* ==========================================================
+   บันทึกเป็น JPG / PDF
+========================================================== */
+function safeFileName(s) {
+    return (s || "ไฟล์").toString().trim().replace(/[\\/:*?"<>|]/g, "").replace(/\s+/g, "_");
+}
+const fileBase = safeFileName(data.customer) + "_ใบรับเงิน_" + safeFileName(data.plate);
+
+function isMobileOrTabletDevice() {
+    const ua = navigator.userAgent || "";
+    return /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(ua);
+}
+
+async function generateJPGFiles(options) {
+    const scale = (options && options.scale) || 2;
+    const quality = (options && options.quality) || 0.95;
+
+    await document.fonts.ready;
+    fitPagesToA4();
+    await new Promise(r => setTimeout(r, 100));
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+    const pages = document.querySelectorAll(".document-page");
+    const files = [];
+
+    for (let i = 0; i < pages.length; i++) {
+        const canvas = await html2canvas(pages[i], { scale: scale, backgroundColor: "#ffffff", useCORS: true, letterRendering: true });
+        const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg", quality));
+        const fileName = `${fileBase}_งวดที่${i + 1}.jpg`;
+        files.push(new File([blob], fileName, { type: "image/jpeg" }));
+    }
+
+    return files;
+}
+
+async function saveJPG() {
+    const btn = document.querySelector(".btn-jpg");
+    const originalText = btn ? btn.innerText : "";
+    if (btn) { btn.innerText = "⏳ กำลังสร้างรูป..."; btn.disabled = true; }
+
+    try {
+        const files = await generateJPGFiles();
+
+        if (isMobileOrTabletDevice() && navigator.share && navigator.canShare && navigator.canShare({ files })) {
+            try {
+                await navigator.share({ files: files, title: fileBase });
+                return;
+            } catch (shareErr) {
+                if (shareErr && shareErr.name === "AbortError") return;
+            }
+        }
+
+        for (const file of files) {
+            const link = document.createElement("a");
+            link.download = file.name;
+            link.href = URL.createObjectURL(file);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            await new Promise(r => setTimeout(r, 300));
+        }
+    } catch (err) {
+        alert("สร้างรูป JPG ไม่สำเร็จ: " + err.message);
+        console.error(err);
+    } finally {
+        if (btn) { btn.innerText = originalText; btn.disabled = false; }
+    }
+}
+
+async function downloadPDF() {
+    const btn = document.querySelector(".btn-pdf");
+    const originalText = btn.innerText;
+    btn.innerText = "⏳ กำลังสร้าง PDF...";
+    btn.disabled = true;
+
+    try {
+        await document.fonts.ready;
+        fitPagesToA4();
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ unit: "mm", format: "a4" });
+        const pageW = pdf.internal.pageSize.getWidth();
+        const pageH = pdf.internal.pageSize.getHeight();
+
+        const pages = document.querySelectorAll(".document-page");
+        for (let i = 0; i < pages.length; i++) {
+            const canvas = await html2canvas(pages[i], { scale: 2, backgroundColor: "#ffffff", useCORS: true, letterRendering: true });
+            const imgData = canvas.toDataURL("image/jpeg", 0.95);
+            const ratio = Math.min(pageW / canvas.width, pageH / canvas.height);
+            const imgW = canvas.width * ratio;
+            const imgH = canvas.height * ratio;
+            const x = (pageW - imgW) / 2;
+            const y = 0;
+            if (i > 0) pdf.addPage();
+            pdf.addImage(imgData, "JPEG", x, y, imgW, imgH);
+        }
+        pdf.save(fileBase + ".pdf");
+    } catch (err) {
+        alert("สร้าง PDF ไม่สำเร็จ: " + err.message);
+        console.error(err);
+    } finally {
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }
+}
+
+document.title = fileBase;
+
+</script>
+
+</body>
+</html>
