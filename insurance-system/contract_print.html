@@ -3003,12 +3003,11 @@ function isMobileOrTabletDevice() {
     return /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(ua);
 }
 
-/* แก้ไข: เปิดรูปทั้งหมดในแท็บใหม่ (ฝัง data URL ไว้ในหน้า HTML ธรรมดา) เพื่อให้กดค้างที่รูป
-   แล้วเลือก "บันทึกรูปภาพ" ได้เอง ใช้แทนการคลิกลิงก์ดาวน์โหลด <a download> อัตโนมัติ
-   เหตุผล: เบราว์เซอร์ในตัวแอป/เบราว์เซอร์มือถือหลายตัว (โดยเฉพาะบน iPhone ทุกเบราว์เซอร์ที่ใช้ WebKit
-   เช่น Safari, Chrome บน iOS, และเบราว์เซอร์ในตัวแอปอย่าง LINE/Facebook/Google) ไม่รองรับการดาวน์โหลด
-   ไฟล์ blob ผ่าน <a download> เลย กดปุ่มแล้วจะไม่มีอะไรเกิดขึ้น (เหมือนกดไม่ได้) วิธีเปิดแท็บใหม่แบบนี้
-   เป็นวิธีที่ใช้งานได้แน่นอนในทุกเบราว์เซอร์ เพราะเป็นแค่การเปิดหน้าเว็บปกติ ไม่ใช่การดาวน์โหลดไฟล์ */
+/* แก้ไข (สำคัญ): เดิมใช้ window.open() เปิดแท็บ/หน้าต่างใหม่ ซึ่งเบราว์เซอร์ในตัวแอป Google บน iPhone
+   บล็อกไว้เสมอโดยไม่มีตัวเลือกให้กดอนุญาตเลย (ปุ่ม "อนุญาต Pop-up" ที่ขึ้นมาเป็นแค่กล่องแจ้งเตือนจาก
+   alert() ของเรา ไม่ใช่การตั้งค่าเบราว์เซอร์จริง กดแล้วก็ยังใช้ไม่ได้อยู่ดี)
+   เปลี่ยนวิธีใหม่: สร้างภาพซ้อนทับ (overlay) ไว้บนหน้าเดิมนี้เลย ไม่เปิดแท็บ/หน้าต่างใหม่แต่อย่างใด
+   จึงไม่มีทางถูกตัวบล็อก Pop-up ปิดกั้นได้ ใช้งานได้แน่นอนทุกเบราว์เซอร์ รวมถึงเบราว์เซอร์ในตัวแอป */
 async function openImagesForManualSave(files) {
 
     const dataUrls = await Promise.all(files.map(file => new Promise((resolve, reject) => {
@@ -3018,33 +3017,41 @@ async function openImagesForManualSave(files) {
         reader.readAsDataURL(file);
     })));
 
-    const win = window.open("", "_blank");
+    const overlay = document.createElement("div");
+    overlay.id = "jpgSaveOverlay";
+    overlay.style.cssText = `
+        position:fixed; inset:0; z-index:999999;
+        background:#111; overflow-y:auto;
+        -webkit-overflow-scrolling:touch;
+        padding:16px 12px 60px;
+        font-family:"Segoe UI",Tahoma,sans-serif;
+    `;
 
-    if (!win) {
-        alert("เบราว์เซอร์บล็อกการเปิดหน้าต่างใหม่ กรุณาอนุญาต Pop-up ของเว็บนี้แล้วกดดาวน์โหลดอีกครั้ง");
-        return;
-    }
+    const closeBtn = document.createElement("button");
+    closeBtn.innerText = "✕ ปิด";
+    closeBtn.style.cssText = `
+        position:sticky; top:0; float:right;
+        background:#dc3545; color:#fff; border:none;
+        padding:10px 18px; border-radius:8px; font-size:14px;
+        margin-bottom:10px; z-index:2;
+    `;
+    closeBtn.onclick = () => overlay.remove();
 
-    win.document.write(`
-        <!DOCTYPE html>
-        <html lang="th">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>${fileBase}</title>
-            <style>
-                body{ margin:0; padding:16px 12px 40px; background:#111; font-family:"Segoe UI",Tahoma,sans-serif; }
-                p{ color:#fff; text-align:center; margin:0 0 16px; font-size:14px; line-height:1.6; }
-                img{ display:block; width:100%; max-width:650px; margin:0 auto 22px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,.4); }
-            </style>
-        </head>
-        <body>
-            <p>📌 กดค้างที่รูปแต่ละภาพด้านล่าง แล้วเลือก "บันทึกรูปภาพ" (Save Image) เพื่อบันทึกลงเครื่อง</p>
-            ${dataUrls.map(u => `<img src="${u}">`).join("")}
-        </body>
-        </html>
-    `);
-    win.document.close();
+    const hint = document.createElement("p");
+    hint.innerText = "📌 กดค้างที่รูปแต่ละภาพด้านล่าง แล้วเลือก \"บันทึกรูปภาพ\" (Save Image) เพื่อบันทึกลงเครื่อง";
+    hint.style.cssText = "color:#fff; text-align:center; clear:both; margin:0 0 16px; font-size:14px; line-height:1.6;";
+
+    overlay.appendChild(closeBtn);
+    overlay.appendChild(hint);
+
+    dataUrls.forEach(u => {
+        const img = document.createElement("img");
+        img.src = u;
+        img.style.cssText = "display:block; width:100%; max-width:650px; margin:0 auto 22px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,.4);";
+        overlay.appendChild(img);
+    });
+
+    document.body.appendChild(overlay);
 }
 
 async function saveJPG() {
