@@ -362,7 +362,7 @@ function renderInstallmentReceipt(installmentIndex, amount, dueDate) {
     // แสดงเฉพาะ "วันที่ชำระ" เหมือนใบรับเงินแบบเดิม ไม่แสดงลำดับงวด/จำนวนงวดใดๆ ทั้งสิ้น
     const headerRightSub = `วันที่ ${dueDateThai}`;
 
-    const purposeText = `ค่างวดแบ่งชำระค่าเบี้ยประกันภัย`;
+    const purposeText = `ชำระค่าเบี้ยประกันภัย`;
 
     const instCount = Number(data.installmentCount) || 1;
 
@@ -383,10 +383,7 @@ function renderInstallmentReceipt(installmentIndex, amount, dueDate) {
                     <td colspan="3" style="text-align:right;font-weight:bold;">จำนวนเงินที่ต้องชำระ</td>
                     <td style="text-align:right;font-weight:bold;">${fmt(amount)} บาท</td>
                 </tr>
-                <tr>
-                    <td colspan="3" style="text-align:right;padding-right:14px;">ชำระจำนวน <b>${instCount}</b> งวด งวดละ</td>
-                    <td style="text-align:right;font-weight:bold;">${fmt(amount)} บาท</td>
-                </tr>
+                
                 <tr>
                     <td colspan="4" style="text-align:center;font-weight:bold;">
                         (${numberToThaiText(amount)})
@@ -435,14 +432,7 @@ function renderInstallmentReceipt(installmentIndex, amount, dueDate) {
         <!-- เนื้อหา -->
         <div style="padding:0 40px;">
 
-            <div class="small" style="
-                padding-bottom:10px;
-                margin-bottom:18px;
-                line-height:1.8;
-            ">
-                ทะเบียนเลขที่ / เลขประจำตัวผู้เสียอากร<br>
-                ใบอนุญาตเป็นนายหน้าประกันวินาศภัยที่ ${info.licenseNo}
-            </div>
+            
 
             <div class="receipt-fields">
             <div class="field-row">
@@ -458,6 +448,14 @@ function renderInstallmentReceipt(installmentIndex, amount, dueDate) {
                     <span class="field-line">${safe(data.address)}</span>
                 </div>
             </div>
+
+             <div class="field-row">
+                <div>
+                    <span class="lbl">เบอร์โทร</span>
+                    <span class="field-line">${safe(data.phone)}</span>
+                </div>
+            </div>
+
 
             <div class="field-row">
                 <div>
@@ -524,8 +522,6 @@ function renderInstallmentReceipt(installmentIndex, amount, dueDate) {
                     <b>หมายเหตุ</b><br>
 
                     - โปรดตรวจสอบความถูกต้องของรายการ มิฉะนั้นทางเราจะไม่รับผิดชอบความเสียหายที่เกิดขึ้น<br>
-
-                    - การทำรายการจะสมบูรณ์ เมื่อท่านได้รับเอกสารยืนยันความคุ้มครองหรือเอกสารเงื่อนไขความคุ้มครอง พร้อมใบรับเงินฉบับนี้<br>
 
                     - หากมีข้อสงสัยเพิ่มเติมเกี่ยวกับใบรับเงินฉบับนี้ สามารถติดต่อได้ที่โทรศัพท์
                     ${info.province.split("โทรศัพท์ ")[1] || ""}

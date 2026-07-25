@@ -48,6 +48,13 @@
             flex-wrap: wrap;
             gap: 10px;
         }
+
+        /* เพิ่มใหม่: เว้นระยะห่างระหว่างแถวงวดที่ 1-2 กับแถวงวดที่ 3-4
+           เดิมสองแถวนี้ชิดติดกันเพราะไม่มี label/section-title คั่นระหว่างแถวเหมือนจุดอื่นในฟอร์ม
+           ใช้ selector .row + .row จึงเจาะจงเฉพาะจุดนี้ ไม่กระทบ .row อื่นในฟอร์มที่มี label/section-title คั่นอยู่แล้ว */
+        .row + .row {
+            margin-top: 16px;
+        }
  
         .installment-options input[type="radio"] {
             position: absolute;

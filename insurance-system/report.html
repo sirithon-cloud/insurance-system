@@ -80,6 +80,19 @@
                 border-bottom:1px solid #eee;
                 white-space:nowrap;
                 text-align:center;
+                /* เพิ่มใหม่: บังคับความสูงแถวให้เท่ากันทุกแถว + จัดกึ่งกลางแนวตั้งทุกคอลัมน์
+                   เดิมแต่ละคอลัมน์มีความสูงเนื้อหาไม่เท่ากัน (ปุ่มไอคอน vs ตัวอักษรธรรมดา)
+                   ทำให้เส้นคั่นแถว (border-bottom) อยู่คนละระดับกันในแต่ละคอลัมน์ของแถวเดียวกัน
+                   ดูเหมือนเส้นเอียง/ไม่ตรงกัน แก้โดยล็อกความสูงบรรทัดให้เท่ากันทุกเซลล์
+                   และจัดกึ่งกลางแนวตั้งเสมอ ทำให้เส้นแบ่งแถวเป็นเส้นตรงเดียวกันตลอดทั้งแถว */
+                height:56px;
+                box-sizing:border-box;
+                vertical-align:middle;
+                /* เพิ่มใหม่: กันเนื้อหาภายใน (ปุ่ม/ช่องกรอกที่มี border-radius, box-shadow ตอน hover)
+                   ล้นทะลุขอบเซลล์จนไปทับเส้นคั่นแถวของแถวถัดไป ซึ่งเป็นอีกสาเหตุที่ทำให้
+                   เส้นดูเหลื่อม/ไม่ตรงกันบนจอเล็กที่พื้นที่แคบกว่า */
+                overflow:hidden;
+                line-height:1;
             }
  
  
@@ -129,6 +142,11 @@
                     font-size:12px;
                     white-space:nowrap;
                 }
+
+                /* แก้ไข: คอลัมน์ "เลขกรมธรรม์" (policy-cell/policy-input/policy-btn) ใช้ขนาด
+                   ตายตัวจาก base เสมอเช่นกัน ไม่ย่อขนาดตามจอแคบอีกต่อไป เพื่อไม่ให้เนื้อหา
+                   ในเซลล์บีบจนล้นออกนอกกรอบคอลัมน์ ซึ่งเป็นสาเหตุที่ทำให้เส้นคั่นแถวดูเหลื่อมกัน
+                   บนจอเล็ก (ดู base .policy-cell / .policy-input / .policy-btn ด้านล่างของไฟล์) */
             }
 
             @media(max-width:480px){
@@ -148,6 +166,11 @@
                     padding:4px 6px;
                     font-size:11px;
                 }
+
+                /* แก้ไข: คอลัมน์ "เลขกรมธรรม์" (ความกว้างคอลัมน์ + policy-cell/policy-input/
+                   policy-btn) ใช้ขนาดตายตัวจาก base เสมอเช่นกัน ไม่ย่อขนาดตามจอแคบอีกต่อไป
+                   เพื่อไม่ให้เนื้อหาในเซลล์บีบจนล้นออกนอกกรอบคอลัมน์ ซึ่งเป็นสาเหตุที่ทำให้
+                   เส้นคั่นแถวดูเหลื่อมกันบนจอเล็ก (ดู base ด้านล่างของไฟล์) */
             }
  
             /* =========================
@@ -159,17 +182,19 @@
                 justify-content:center;
                 align-items:center;
                 gap:4px;
+                width:100%;
             }
  
             .action-buttons button{
-                width:28px !important;
-                height:28px !important;
-                min-width:28px !important;
+                width:30px !important;
+                height:30px !important;
+                min-width:30px !important;
                 padding:0 !important;
                 border:none;
                 border-radius:6px;
                 font-size:13px;
                 cursor:pointer;
+                flex:0 0 auto;
             }
  
             .edit-btn{
@@ -196,6 +221,103 @@
             .action-buttons button:hover{
                 transform:scale(1.1);
  
+            }
+
+            /* =========================
+            เพิ่มใหม่: ล็อกความกว้างคอลัมน์ "ลำดับ" และ "จัดการ" ให้ตายตัวทุกขนาดจอ
+            (ไม่ย่อ/ขยายตามการปรับขนาดหน้าจออีกต่อไป) เพื่อให้เส้นตารางของทุกแถว
+            ตรงกันเสมอ จอแคบจะเลื่อนดูตารางแนวนอนแทนการบีบคอลัมน์
+            ========================= */
+            /* แก้ไข: สลับความกว้างตามลำดับคอลัมน์ใหม่ (คอลัมน์ 1 = จัดการ, คอลัมน์ 2 = ลำดับ) */
+            #table th:nth-child(1),
+            #table td:nth-child(1){
+                width:150px;
+                min-width:150px;
+                max-width:150px;
+            }
+
+            #table th:nth-child(2),
+            #table td:nth-child(2){
+                width:44px;
+                min-width:44px;
+                max-width:44px;
+            }
+
+            /* เพิ่มใหม่: ลบเส้นแบ่งแถว (border-bottom) เฉพาะเซลล์ "จัดการ" */
+            #table td.action-buttons{
+                border-bottom:none;
+            }
+
+            /* =========================
+            เพิ่มใหม่: เลขกรมธรรม์
+            แก้ไข: เดิมความกว้างคอลัมน์นี้ถูกคำนวณอัตโนมัติจากเนื้อหาของแต่ละแถว
+            (input + ปุ่ม 2 ปุ่ม) ทำให้ความกว้างของคอลัมน์ขยับไม่เท่ากันในแต่ละแถว
+            เส้นแบ่งคอลัมน์จึงดูไม่ตรงกัน แก้โดยล็อกความกว้างคอลัมน์นี้ให้คงที่
+            ทั้ง th และ td (ลำดับคอลัมน์ที่ 3: ลำดับ / จัดการ / เลขกรมธรรม์)
+            แล้วให้ช่องกรอกยืดเต็มความกว้างที่ล็อกไว้พอดี ไม่ล้นไม่เกิน
+            ========================= */
+            #table th:nth-child(3),
+            #table td:nth-child(3){
+                width:190px;
+                min-width:190px;
+                max-width:190px;
+                white-space:normal;
+            }
+
+            .policy-cell{
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                gap:4px;
+                width:100%;
+            }
+
+            .policy-input{
+                flex:0 0 auto;
+                width:100px;
+                box-sizing:border-box;
+                padding:5px 10px;
+                border-radius:999px;
+                border:1.5px solid #cfd6e2;
+                font-family:"Kanit",sans-serif;
+                font-size:12px;
+                text-align:center;
+                overflow:hidden;
+                text-overflow:ellipsis;
+            }
+
+            .policy-input:disabled{
+                background:#f2f2f2;
+                color:#555;
+            }
+
+            .policy-input:focus{
+                outline:none;
+                border-color:#2F6FED;
+            }
+
+            .policy-btn{
+                flex:0 0 auto;
+                width:26px;
+                height:26px;
+                border:none;
+                border-radius:6px;
+                font-size:12px;
+                cursor:pointer;
+            }
+
+            .policy-edit-btn{
+                background:#ffc000;
+                color:#002d72;
+            }
+
+            .policy-save-btn{
+                background:#198754;
+                color:#fff;
+            }
+
+            .policy-btn:hover{
+                transform:scale(1.1);
             }
  
             /* =========================
@@ -390,8 +512,90 @@
 .report-card{
     position:relative;
 }
+
+/* เพิ่มใหม่: ข้อความแจ้งเตือนแบบ toast (ใช้แทน alert() ไม่บล็อกหน้าจอ) */
+.app-toast{
+    position:fixed;
+    left:50%;
+    top:50%;
+    transform:translate(-50%, -50%) scale(.95);
+    background:#152A54;
+    color:#fff;
+    padding:16px 28px;
+    border-radius:16px;
+    font-family:"Kanit",sans-serif;
+    font-size:15px;
+    font-weight:600;
+    box-shadow:0 16px 40px rgba(21,42,84,.32);
+    opacity:0;
+    z-index:99999;
+    pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease;
+    white-space:nowrap;
+}
+
+.app-toast.show{
+    opacity:1;
+    transform:translate(-50%, -50%) scale(1);
+}
+
+@media(max-width:480px){
+    .app-toast{
+        white-space:normal;
+        max-width:80vw;
+        text-align:center;
+        font-size:14px;
+    }
+}
             
  
+
+ /* แก้ไข: เดิมปุ่ม "← กลับหน้าหลัก" ลอยแบบ absolute อยู่คนละตำแหน่งกับหัวข้อ
+   เปลี่ยนเป็นจัดปุ่ม + หัวข้อไว้ในแถวเดียวกัน (flex) โดยปุ่มอยู่หน้าข้อความหัวข้อเสมอ
+   ย่อขนาดปุ่มให้เล็กกะทัดรัด ไม่เด่นเกินหัวข้อหลัก */
+.report-card{
+    position:relative;
+}
+
+.report-title-row{
+    display:flex;
+    align-items:center;
+    justify-content:flex-start;
+    gap:10px;
+    flex-wrap:wrap;
+}
+
+.report-title-row h1{
+    width:auto;
+}
+
+.report-back-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    flex:0 0 auto;
+
+    background:#EAF1FF;
+    color:#1E4FC4;
+
+    border:none;
+    padding:6px 14px;
+    border-radius:999px;
+
+    font-family:"Kanit",sans-serif;
+    font-weight:600;
+    font-size:12.5px;
+    white-space:nowrap;
+
+    cursor:pointer;
+    transition:.2s;
+}
+
+.report-back-btn:hover{
+    background:#DCE9FF;
+}
+
+
  
         </style>
  
@@ -425,9 +629,16 @@
  
         <div class="report-card">
 
-        <h1>
-        📊 รายงานข้อมูลประกันทั้งหมด
-        </h1>
+                <div class="report-title-row">
+            <button class="report-back-btn" onclick="location.href='index.html'">
+                ← กลับหน้าหลัก
+            </button>
+
+            <h1>
+            📊 รายงานข้อมูลประกันทั้งหมด
+            </h1>
+        </div>
+ 
  
  
         <div class="summary-panel">
@@ -516,9 +727,10 @@
  
         <thead>
         <tr>
-        <!-- แก้ไข: ย้ายคอลัมน์ "จัดการ" มาไว้หน้าคอลัมน์ "ลำดับ" เพื่อให้กดปุ่มจัดการง่ายขึ้น -->
+        <!-- แก้ไข: ย้ายคอลัมน์ "ลำดับ" กลับไปอยู่หลัง "จัดการ" -->
         <th>จัดการ</th>
         <th>ลำดับ</th>
+        <th>เลขกรมธรรม์</th>
         <th>ชื่อผู้แจ้ง</th>
         <th>วันที่แจ้งงาน</th>
         <th>บริษัท</th>
@@ -556,6 +768,7 @@ import {
     collection,
     onSnapshot,
     deleteDoc,
+    setDoc,
     doc,
     query,
     where
@@ -817,7 +1030,7 @@ if(loggedInEmployee){
 
         <tr>
 
-        <!-- แก้ไข: ย้ายปุ่มจัดการมาไว้คอลัมน์แรกของแถว เพื่อให้กดง่ายขึ้น -->
+        <!-- แก้ไข: ย้ายปุ่มจัดการกลับไปไว้คอลัมน์แรกของแถว -->
         <td class="action-buttons">
 
 
@@ -853,7 +1066,22 @@ if(loggedInEmployee){
 
         </td>
 
+        <!-- แก้ไข: ย้ายคอลัมน์ "ลำดับ" กลับไปอยู่หลังคอลัมน์ "จัดการ" -->
         <td>${i+1}</td>
+
+        <td>
+            <div class="policy-cell">
+                <input type="text"
+                    class="policy-input"
+                    id="policy_${item.id}"
+                    value="${item.policyNumber || ""}"
+                    placeholder="เลขกรมธรรม์"
+                    disabled>
+                <button class="policy-btn policy-edit-btn" onclick="togglePolicyEdit('${item.id}')" title="แก้ไข">✏️</button>
+                <button class="policy-btn policy-save-btn" onclick="savePolicyNumber('${item.id}')" title="บันทึก">💾</button>
+            </div>
+        </td>
+
         <td>${item.employeeName || item.requestName || "-"}</td>
         <td>${item.createDate || "-"}</td>
         <td>${item.company || "-"}</td>
@@ -1560,6 +1788,54 @@ subscribeToData();
  
  
 /* =========================
+   เพิ่มใหม่: เลขกรมธรรม์
+   เก็บไว้ใน field "policyNumber" ของเอกสารเดิมใน Firestore (ไม่กระทบหน้าอื่นเลย
+   เพราะไม่มีหน้าไหนอ่าน field นี้ไปใช้ต่อ ใช้แค่บอกในตารางรายงานว่าออกเลขกรมแล้วหรือยัง)
+========================= */
+function togglePolicyEdit(id){
+    const input = document.getElementById("policy_" + id);
+    if(!input) return;
+    input.disabled = false;
+    input.focus();
+}
+
+/* เพิ่มใหม่: ข้อความแจ้งเตือนแบบ toast (ไม่บล็อกหน้าจอเหมือน alert())
+   เด้งขึ้นมามุมล่างขวา แล้วหายไปเองอัตโนมัติ ไม่ต้องกดปิด */
+function showToast(message){
+    let toast = document.createElement("div");
+    toast.className = "app-toast";
+    toast.innerText = message;
+    document.body.appendChild(toast);
+
+    // trigger reflow เพื่อให้ transition ทำงานตอนเริ่มแสดง
+    requestAnimationFrame(() => toast.classList.add("show"));
+
+    setTimeout(() => {
+        toast.classList.remove("show");
+        setTimeout(() => toast.remove(), 300);
+    }, 2200);
+}
+window.showToast = showToast;
+
+async function savePolicyNumber(id){
+    const input = document.getElementById("policy_" + id);
+    if(!input) return;
+
+    const value = input.value.trim();
+
+    await setDoc(
+        doc(db, "insuranceData", id),
+        { policyNumber: value },
+        { merge: true }
+    );
+
+    input.disabled = true;
+
+    showToast("✅ บันทึกเลขกรมธรรม์เรียบร้อย");
+}
+
+
+/* =========================
    ลบข้อมูล
 ========================= */
  
@@ -1691,6 +1967,8 @@ window.editItem = editItem;
 window.openDoc = openDoc;
 window.openReceipt = openReceipt;
 window.deleteItem = deleteItem;
+window.togglePolicyEdit = togglePolicyEdit;
+window.savePolicyNumber = savePolicyNumber;
  
 if(menuBtn && sidebar && overlay){
  
