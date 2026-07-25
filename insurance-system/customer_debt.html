@@ -13,8 +13,7 @@
 
 <link rel="stylesheet" href="style.css">
 
-<!-- เพิ่มใหม่: บังคับให้ต้อง login ก่อนเข้าใช้งานหน้านี้ (เดิมเข้าตรงผ่าน URL ได้โดยไม่ต้อง login
-     ทำให้ดูข้อมูลลูกหนี้/เบอร์โทรลูกค้าได้โดยไม่ต้องยืนยันตัวตน) -->
+<!-- บังคับให้ต้อง login ก่อนเข้าใช้งานหน้านี้ -->
 <script src="auth.js"></script>
 <script>
     requireLogin();
@@ -53,7 +52,7 @@ body{
 
 .debt-card{
 
-    max-width:1400px;
+    max-width:1500px;
     margin:0 auto;
     min-height:calc(100vh - 60px);
 
@@ -90,21 +89,28 @@ h1{
 
 
 
+/* =========================
+   เพิ่มใหม่: ทำให้ตารางดูเหมือนตาราง Excel
+   - เส้นกรอบครบทุกเซลล์ (ไม่ใช่แค่ border-bottom เหมือนเดิม)
+   - หัวตารางลอยติดด้านบนเวลาเลื่อน (sticky header) เหมือนแถวหัวคอลัมน์ที่ freeze ไว้ใน Excel
+========================= */
 .table-scroll{
 
     width:100%;
+    max-height:75vh;
     overflow:auto;
     -webkit-overflow-scrolling:touch;
     touch-action:pan-x pan-y pinch-zoom;
     margin-top:25px;
     border-radius:12px;
+    border:1px solid var(--border);
 
 }
 
 table{
 
     width:100%;
-    min-width:1500px;
+    min-width:1300px;
     border-collapse:collapse;
 
     font-size:13px;
@@ -119,9 +125,16 @@ th{
     color:white;
     font-weight:600;
 
-    padding:12px 10px;
+    padding:10px 8px;
 
     white-space:nowrap;
+
+    /* เพิ่มใหม่: หัวตารางลอยตามการเลื่อน (เหมือน freeze แถวบนของ Excel) */
+    position:sticky;
+    top:0;
+    z-index:3;
+
+    border:1px solid #2a4276;
 
 }
 
@@ -129,13 +142,15 @@ th{
 
 td{
 
-    padding:10px;
+    padding:6px 8px;
 
-    border-bottom:1px solid var(--border);
+    border:1px solid var(--border);
 
     text-align:center;
 
     white-space:nowrap;
+
+    height:44px;
 
 }
 
@@ -149,7 +164,7 @@ tbody tr:not(.overdue):not(.not-overdue):not(.paid-complete):hover{
     background:var(--blue-light);
 }
 
-/* แถบสีทั้งแถวตามสถานะ */
+/* แถบสีทั้งแถวตามสถานะ (กลับไปใช้พื้นหลังสีทึบแบบเดิม) */
 tr.overdue td{
     background:#ff3737;
     color:#ffffff;
@@ -168,23 +183,144 @@ tr.paid-complete td{
     font-weight:600;
 }
 
-.status-badge{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:5px;
-
-    padding:5px 14px;
-    border-radius:999px;
-
-    font-size:12px;
+/* =========================
+   แก้ไข: แถวที่ "จ่ายครบ 4 งวดแล้ว แต่ยังมียอดค้างอยู่" ให้ขึ้นเป็นสีส้มแทน (ไม่ต้องมีกรอบ)
+========================= */
+tr.debt-carryover td{
+    background:#FF9800 !important;
+    color:#3a2200 !important;
     font-weight:700;
-    white-space:nowrap;
-    background:rgba(255,255,255,.6);
 }
 
+/* =========================
+   เพิ่มใหม่: คอลัมน์ "งวดที่..." ที่เกินจากงวดที่ 4 (กรณีลูกค้าชำระเกิน 4 งวดแล้วยังไม่หมด)
+   ให้ขอบด้านขวาเป็นสีแดงเด่นชัด เพื่อบอกว่านี่คือคอลัมน์งวดที่ต่อขยายเพิ่มมาจากงวดปกติ (1-4)
+========================= */
+th.extra-installment{
+    background:#7a1010;
+    color:#ffe3e3;
+    border-right:3px solid #ff3737 !important;
+}
 
+td.extra-installment-cell{
+    border-right:3px solid #ff3737 !important;
+}
 
+/* =========================
+   เพิ่มใหม่: ช่องกรอกข้อมูลในตาราง (โหมดแก้ไข/บันทึก/ลบ)
+========================= */
+.debt-input{
+    width:100%;
+    min-width:70px;
+    padding:6px 8px;
+    border:1.5px solid var(--border);
+    border-radius:8px;
+    background:var(--surface);
+    font-family:"Kanit",sans-serif;
+    font-size:12.5px;
+    text-align:center;
+    color:var(--navy);
+}
+
+.debt-input:disabled{
+    background:transparent;
+    border-color:transparent;
+    color:inherit;
+    font-weight:600;
+    cursor:default;
+}
+
+.debt-input:not(:disabled){
+    background:#fffef0;
+    border-color:#ffb648;
+    color:#152A54;
+}
+
+.debt-input:not(:disabled):focus{
+    outline:none;
+    border-color:var(--blue);
+    box-shadow:0 0 0 3px var(--blue-light);
+}
+
+/* =========================
+   เพิ่มใหม่: คอลัมน์ "จัดการ" (แก้ไข / บันทึก / ลบ) อยู่ท้ายสุดของตาราง
+========================= */
+th.debt-action-th,
+td.debt-action-td{
+    position:sticky;
+    right:0;
+    z-index:1;
+    background:var(--surface);
+}
+
+th.debt-action-th{
+    z-index:4;
+    background:var(--navy);
+}
+
+.debt-actions{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:4px;
+    white-space:nowrap;
+}
+
+.debt-actions button{
+    width:28px;
+    height:28px;
+    border:none;
+    border-radius:6px;
+    font-size:13px;
+    cursor:pointer;
+    flex:0 0 auto;
+    transition:.15s;
+}
+
+.debt-actions button:hover{
+    transform:scale(1.1);
+}
+
+.debt-edit-btn{
+    background:#ffc000;
+    color:#002d72;
+}
+
+.debt-save-btn{
+    background:#198754;
+    color:#fff;
+}
+
+.debt-delete-btn{
+    background:#dc3545;
+    color:#fff;
+}
+
+/* toast แจ้งเตือนแบบไม่บล็อกหน้าจอ */
+.debt-toast{
+    position:fixed;
+    left:50%;
+    top:50%;
+    transform:translate(-50%, -50%) scale(.95);
+    background:#152A54;
+    color:#fff;
+    padding:16px 28px;
+    border-radius:16px;
+    font-family:"Kanit",sans-serif;
+    font-size:15px;
+    font-weight:600;
+    box-shadow:0 16px 40px rgba(21,42,84,.32);
+    opacity:0;
+    z-index:99999;
+    pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease;
+    white-space:nowrap;
+}
+
+.debt-toast.show{
+    opacity:1;
+    transform:translate(-50%, -50%) scale(1);
+}
 
 .debt-total{
 
@@ -204,7 +340,7 @@ tr.paid-complete td{
 
 }
 
-/* เพิ่มใหม่: แถวบนสุดรวมปุ่มกลับ + ยอดลูกหนี้รวม ให้อยู่แถวเดียวกัน */
+/* แถวบนสุดรวมปุ่มกลับ + ยอดลูกหนี้รวม ให้อยู่แถวเดียวกัน */
 .debt-top-row{
     display:flex;
     align-items:center;
@@ -222,7 +358,6 @@ tr.paid-complete td{
 
 
 
-/* แก้ไข: ย้ายปุ่มกลับมาไว้ด้านบน ข้างยอดลูกหนี้รวม และเปลี่ยนเป็นโทนสีแดงเข้มขึ้น */
 .back-btn-debt{
 
     display:inline-flex;
@@ -272,7 +407,10 @@ tr.paid-complete td{
 💰 รายงานลูกหนี้
 </h1>
 
-<!-- แก้ไข: ย้ายปุ่มกลับมาไว้ด้านบน ข้างยอดลูกหนี้รวม -->
+<div class="debt-subtitle">
+    🍊 คอลัมน์สีส้ม = งวดเกิน 4 งวด (ลูกค้ายังชำระไม่หมด) &nbsp;•&nbsp; กด ✏️ เพื่อแก้ไข, 💾 เพื่อบันทึก, 🗑️ เพื่อลบ
+</div>
+
 <div class="debt-top-row">
     <button class="back-btn-debt"
     onclick="location.href='account_menu.html'">
@@ -290,50 +428,31 @@ tr.paid-complete td{
 
 <thead>
 
-<tr>
+<!-- แก้ไข: จัดเรียงคอลัมน์ใหม่ตามที่ต้องการ:
+     เกินกำหนด -> เงินที่ค้าง -> เบอร์ -> ชื่อ -> ทะเบียน -> วันที่เริ่ม -> รวม(เบี้ย) -> งวดที่ 1..N -> จัดการ
+     คอลัมน์ "งวดที่..." ถูกสร้างแบบไดนามิกด้วย JS (ดูฟังก์ชัน renderDebtHeader ด้านล่าง)
+     เพื่อรองรับกรณีลูกค้าชำระเกิน 4 งวดแล้วยังไม่หมด ระบบจะขยายจำนวนคอลัมน์งวดให้อัตโนมัติ
+     (คอลัมน์งวดที่เกิน 4 จะมีกรอบขวาสีแดงเด่นชัด)
+     เพิ่มใหม่: คอลัมน์ "จัดการ" ไว้ท้ายสุด สำหรับ แก้ไข/บันทึก/ลบ ข้อมูลแต่ละแถวได้โดยตรง -->
+<tr id="debtHeadRow">
 
 <th>ลำดับ</th>
 
-<th>ชื่อผู้แจ้ง</th>
+<th>เกินกำหนด(วัน)</th>
 
-<th>วันที่แจ้งงาน</th>
-
-<th>บริษัทประกันภัย</th>
-
-<th>ชื่อผู้เอาประกัน</th>
-
-<th>ยี่ห้อ</th>
-
-<th>ทะเบียน</th>
-
-<th>วันเริ่ม</th>
-
-<th>วันสิ้นสุด</th>
-
-<th>ทุนประกัน</th>
-
-<th>รวม</th>
-
-<th>กลุ่มสินค้า</th>
-
-<th>งวดที่ 1</th>
-
-<th>งวดที่ 2</th>
-
-<th>งวดที่ 3</th>
-
-<th>งวดที่ 4</th>
-
-<th>ยอดค้าง</th>
+<th>เงินที่ค้าง</th>
 
 <th>เบอร์โทร</th>
 
-<th>วันที่ครบกำหนด</th>
+<th>ชื่อ</th>
 
-<th>เกินกำหนด(วัน)</th>
+<th>ทะเบียน</th>
 
-<th>สถานะ</th>
+<th>วันที่เริ่ม</th>
 
+<th id="debtHeadTotal">รวม(เบี้ย)</th>
+
+<th class="debt-action-th">จัดการ</th>
 
 </tr>
 
@@ -359,20 +478,19 @@ tr.paid-complete td{
 
 
 
-<!-- แก้ไข: เดิมอ่านข้อมูลจาก localStorage.getItem("insuranceData") ซึ่งไม่มีการเขียนคีย์นี้
-     ที่ไหนเลยในระบบ (ทุกฟอร์มบันทึกลง Firebase Firestore collection "insuranceData")
-     ทำให้หน้านี้ว่างเปล่าเสมอ แก้ให้ดึงข้อมูล realtime จาก Firestore แหล่งเดียวกับ
-     report.html / finance.html / script.js โดยไม่แตะตรรกะคำนวณยอดค้าง/สถานะเดิมเลย -->
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
 import {
     getFirestore,
     collection,
-    onSnapshot
+    onSnapshot,
+    doc,
+    setDoc,
+    deleteDoc
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
-/* ตั้งค่าเดียวกับ script.js / report.html เพื่ออ่าน collection "insuranceData" เดียวกัน */
+/* ตั้งค่าเดียวกับ script.js / report.html เพื่ออ่าน/เขียน collection "insuranceData" เดียวกัน */
 const firebaseConfig = {
   apiKey: "AIzaSyCNpaYlwrkJhBA-8tAax022PWWFYMRz7Kw",
   authDomain: "insurance-system-f26b0.firebaseapp.com",
@@ -391,18 +509,10 @@ function calculateOverdue(date){
 
     if(!date) return 0;
 
-
-    // รองรับวันที่แบบ dd/mm/yyyy
-    // แก้ไข: เดิมลบ 543 ออกจากปี โดยสมมติว่าเป็นปี พ.ศ. แต่จริงๆ วันที่ที่บันทึกไว้
-    // ทั้งจาก flatpickr (dateFormat: "d/m/Y") และจาก input type="date" ของฟอร์มเก่า
-    // เป็นปี ค.ศ. (เช่น 2026) เสมอ ไม่ใช่ พ.ศ. การลบ 543 จึงทำให้ได้ปี ~1483
-    // ส่งผลให้ทุกกรมธรรม์ที่มีวันสิ้นสุดกลายเป็น "เกินกำหนด" หลายแสนวันหมด
-    // แก้โดยใช้ปีตามที่กรอกไว้ตรงๆ ไม่แปลงหน่วยปีอีกต่อไป
+    // รองรับวันที่แบบ dd/mm/yyyy (ปี ค.ศ. จริงเสมอ ไม่ใช่ พ.ศ.)
     let parts = date.split("/");
 
-
     let due;
-
 
     if(parts.length === 3){
 
@@ -419,61 +529,107 @@ function calculateOverdue(date){
 
     }
 
-
     let today = new Date();
-
 
     today.setHours(0,0,0,0);
     due.setHours(0,0,0,0);
 
-
-
     let diff = today - due;
-
 
     let days = Math.floor(
         diff / (1000*60*60*24)
     );
-
 
     return days > 0 ? days : 0;
 
 }
 
 
+/* หาจำนวน "งวด" สูงสุดที่ควรแสดงเป็นคอลัมน์
+   - ค่าเริ่มต้นขั้นต่ำคือ 4 งวด (installment1-4) เหมือนเดิม
+   - ขั้นที่ 1: ถ้าข้อมูลรายการไหนมีฟิลด์ installment5, installment6, ... อยู่แล้วจริงใน Firestore
+     (เช่น เคยกรอกไว้จากที่อื่น) ระบบจะขยายจำนวนคอลัมน์งวดตามนั้นก่อน
+   - ขั้นที่ 2 (เพิ่มใหม่): ถ้ารายการไหน "กรอกงวดสุดท้ายที่มีอยู่ครบแล้ว" (มีค่าในช่องงวดสุดท้าย)
+     แต่ยัง "มียอดค้างชำระ" (รวมยังไม่ครบตามยอดรวม) ให้ขยายคอลัมน์งวดถัดไปเพิ่มให้อัตโนมัติ
+     (งวดที่ 5, 6, 7, ... ไปเรื่อยๆ) เพื่อให้กรอกงวดต่อไปได้ทันที
+     ถ้าไม่มีรายการไหนเข้าเงื่อนไขนี้เลย จะไม่ขึ้นคอลัมน์เพิ่มโดยไม่จำเป็น */
+function getMaxInstallmentCount(data){
 
-/* เพิ่มใหม่: item.start / item.end บันทึกไว้จริงเป็นปี ค.ศ. (Gregorian) เสมอ
-   แต่หน้านี้แสดงผลเป็นภาษาไทยทั้งหน้า เดิมเอาค่าดิบมาแสดงตรงๆ (เช่น 2026) ทำให้ผู้ใช้เข้าใจผิด
-   ว่าปีวันเริ่ม/วันสิ้นสุด/วันครบกำหนดผิดพลาด แก้โดยแปลงเป็น พ.ศ. ก่อนแสดงผลเท่านั้น
-   ไม่แตะตรรกะคำนวณเกินกำหนด (calculateOverdue) ที่ต้องใช้ปี ค.ศ. ตัวจริงในการคำนวณอยู่แล้ว */
-function toBEDateDisplay(dateStr){
+    let max = 4;
 
-    if(!dateStr) return "-";
+    // ขั้นที่ 1: ขยายตามฟิลด์ installmentN ที่มีอยู่จริงในข้อมูลก่อน
+    data.forEach(item=>{
+        Object.keys(item).forEach(key=>{
+            const m = key.match(/^installment(\d+)$/);
+            if(m){
+                const n = parseInt(m[1], 10);
+                if(n > max) max = n;
+            }
+        });
+    });
 
-    const s = String(dateStr).trim();
+    // ขั้นที่ 2: ถ้ายังมีรายการที่กรอกงวดสุดท้ายเต็มแล้วแต่ยังค้างอยู่ ให้ขยายคอลัมน์ต่อไปอีกทีละ 1
+    // วนจนกว่าจะไม่มีรายการไหนต้องการคอลัมน์เพิ่มอีกแล้ว
+    let needMore = true;
 
-    let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{3,4})$/);
-    if(m){
-        const day = m[1].padStart(2,"0");
-        const month = m[2].padStart(2,"0");
-        let year = parseInt(m[3],10);
-        if(year < 2400) year += 543;
-        return `${day}/${month}/${year}`;
+    while(needMore){
+
+        needMore = false;
+
+        data.forEach(item=>{
+
+            const total = Number(item.total || 0);
+
+            let paid = 0;
+            for(let i = 1; i <= max; i++){
+                paid += Number(item["installment" + i] || 0);
+            }
+
+            const debtAmount = total - paid;
+
+            const lastVal = item["installment" + max];
+            const lastFilled = lastVal !== undefined && lastVal !== null && String(lastVal).trim() !== "";
+
+            // ยังค้างอยู่จริง (debtAmount > 0) และงวดสุดท้ายที่มีคอลัมน์อยู่ตอนนี้ถูกกรอกแล้ว
+            // แปลว่าต้องเปิดคอลัมน์งวดถัดไปให้กรอกต่อ
+            if(debtAmount > 0 && lastFilled){
+                needMore = true;
+            }
+
+        });
+
+        if(needMore) max++;
+
     }
 
-    m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-    if(m){
-        const day = m[3].padStart(2,"0");
-        const month = m[2].padStart(2,"0");
-        let year = parseInt(m[1],10);
-        if(year < 2400) year += 543;
-        return `${day}/${month}/${year}`;
-    }
-
-    return s;
+    return max;
 }
 
-function renderDebt(data){
+
+/* สร้าง/อัปเดตหัวตารางคอลัมน์ "งวดที่ N" แบบไดนามิกตามจำนวนงวดสูงสุดที่พบ
+   แทรกต่อจากคอลัมน์ "รวม(เบี้ย)" (id="debtHeadTotal") เสมอ
+   เพิ่มใหม่: คอลัมน์งวดที่เกินจากงวดปกติ 4 งวด จะได้ class "extra-installment"
+   เพื่อให้มีกรอบขวาสีแดงเด่นชัด บอกว่าเป็นงวดที่ต่อขยายเพิ่ม */
+function renderDebtHeader(maxInstallments){
+
+    const headRow = document.getElementById("debtHeadRow");
+
+    // ลบคอลัมน์งวดเก่าที่เคยสร้างไว้ก่อนหน้า (กันสร้างซ้ำเวลาข้อมูลอัปเดต)
+    headRow.querySelectorAll(".debt-installment-th").forEach(th => th.remove());
+
+    const totalTh = document.getElementById("debtHeadTotal");
+
+    let html = "";
+    for(let i = 1; i <= maxInstallments; i++){
+        const extraClass = i > 4 ? " extra-installment" : "";
+        html += `<th class="debt-installment-th${extraClass}">งวดที่ ${i}</th>`;
+    }
+
+    totalTh.insertAdjacentHTML("afterend", html);
+}
+
+
+function renderDebt(data, maxInstallments){
 
 
 /*
@@ -490,11 +646,10 @@ debt.forEach(item=>{
     let total = Number(item.total || 0);
 
 
-    let paid = 
-        Number(item.installment1 || 0) +
-        Number(item.installment2 || 0) +
-        Number(item.installment3 || 0) +
-        Number(item.installment4 || 0);
+    let paid = 0;
+    for(let i = 1; i <= maxInstallments; i++){
+        paid += Number(item["installment" + i] || 0);
+    }
 
 
 
@@ -550,89 +705,110 @@ else{
 
 }
 
+/* เพิ่มใหม่: ตรวจว่ารายการนี้ "จ่ายครบ 4 งวดแล้ว (มีค่าในงวดที่ 1-4 ครบ) แต่ยังมียอดค้างอยู่" หรือไม่
+   ถ้าใช่ ให้ติด class "debt-carryover" เพื่อขึ้นกรอบแดงรอบแถว (ไม่กระทบสีพื้นหลังเดิมของแถว) */
+let paidThrough4 = true;
+for(let i = 1; i <= 4; i++){
+    const v = item["installment" + i];
+    if(v === undefined || v === null || String(v).trim() === ""){
+        paidThrough4 = false;
+        break;
+    }
+}
+const isCarryover = paidThrough4 && item.debtAmount > 0;
+if(isCarryover){
+    rowClass += " debt-carryover";
+}
 
 
-let statusLabel = rowClass === "paid-complete"
-    ? "🟦 จ่ายครบแล้ว"
-    : rowClass === "overdue"
-        ? "🟥 เกินกำหนด"
-        : "🟩 ยังไม่เกินกำหนด";
+
+/* เพิ่มใหม่: ช่องกรอกงวดที่ 1..N แบบแก้ไขได้ในตาราง
+   คอลัมน์งวดที่เกิน 4 จะมี class "extra-installment-cell" ให้กรอบขวาเป็นสีแดงตรงกับหัวตาราง */
+let installmentCells = "";
+for(let i = 1; i <= maxInstallments; i++){
+    const extraClass = i > 4 ? " extra-installment-cell" : "";
+    installmentCells += `
+        <td class="${extraClass.trim()}">
+            <input type="number"
+                class="debt-input"
+                data-row="${item.id}"
+                data-field="installment${i}"
+                value="${item["installment" + i] || ""}"
+                disabled>
+        </td>`;
+}
+
+
 
 html+=`
 
-<tr class="${rowClass}">
+<tr class="${rowClass}" data-row="${item.id}">
 
 
 <td>${index+1}</td>
 
-<td>${item.requestName||"-"}</td>
-
-<td>${item.createDate||"-"}</td>
-
-<td>${item.company||"-"}</td>
-
-<td>${item.customer||"-"}</td>
-
-<td>${item.brand||"-"}</td>
-
-<td>${item.plate||"-"}</td>
-
-<td>${toBEDateDisplay(item.start)}</td>
-
-<td>${toBEDateDisplay(item.end)}</td>
-
-
 <td>
-${Number(item.sumInsured||0).toLocaleString()}
+${item.overdue}
 </td>
-
-
-<td>
-${Number(item.total||0).toLocaleString()}
-</td>
-
-
-<td>${item.group||"-"}</td>
-
-
-<td>${item.installment1||"-"}</td>
-
-<td>${item.installment2||"-"}</td>
-
-<td>${item.installment3||"-"}</td>
-
-<td>${item.installment4||"-"}</td>
-
-
 
 <td>
 ${item.debtAmount.toLocaleString()}
 </td>
 
-
 <td>
-${item.phone||"-"}
-</td>
-
-
-
-<td>
-${toBEDateDisplay(item.end)}
-</td>
-
-
-
-<td>
-
-${item.overdue}
-
+    <input type="text"
+        class="debt-input"
+        data-row="${item.id}"
+        data-field="phone"
+        value="${item.phone || ""}"
+        disabled>
 </td>
 
 <td>
-<span class="status-badge">${statusLabel}</span>
+    <input type="text"
+        class="debt-input"
+        data-row="${item.id}"
+        data-field="customer"
+        value="${item.customer || ""}"
+        disabled>
 </td>
 
+<td>
+    <input type="text"
+        class="debt-input"
+        data-row="${item.id}"
+        data-field="plate"
+        value="${item.plate || ""}"
+        disabled>
+</td>
 
+<td>
+    <input type="text"
+        class="debt-input"
+        data-row="${item.id}"
+        data-field="start"
+        value="${item.start || ""}"
+        disabled>
+</td>
+
+<td>
+    <input type="number"
+        class="debt-input"
+        data-row="${item.id}"
+        data-field="total"
+        value="${item.total || ""}"
+        disabled>
+</td>
+
+${installmentCells}
+
+<td class="debt-action-td">
+    <div class="debt-actions">
+        <button class="debt-edit-btn" onclick="window.debtToggleEdit('${item.id}')" title="แก้ไข">✏️</button>
+        <button class="debt-save-btn" onclick="window.debtSaveRow('${item.id}')" title="บันทึก">💾</button>
+        <button class="debt-delete-btn" onclick="window.debtDeleteRow('${item.id}')" title="ลบ">🗑️</button>
+    </div>
+</td>
 
 </tr>
 
@@ -665,8 +841,89 @@ totalDebt.toLocaleString()+
 }
 
 
+/* =========================
+   เพิ่มใหม่: แก้ไข / บันทึก / ลบ ข้อมูลแต่ละแถวโดยตรงในตาราง (เหมือนตาราง Excel ที่แก้ได้)
+========================= */
+
+function showDebtToast(message){
+    let toast = document.createElement("div");
+    toast.className = "debt-toast";
+    toast.innerText = message;
+    document.body.appendChild(toast);
+
+    requestAnimationFrame(() => toast.classList.add("show"));
+
+    setTimeout(() => {
+        toast.classList.remove("show");
+        setTimeout(() => toast.remove(), 300);
+    }, 2200);
+}
+
+/* กด ✏️ แก้ไข: เปิดให้แก้ไขทุกช่องของแถวนั้น (เดิมเป็น disabled ใช้แสดงผลอย่างเดียว) */
+window.debtToggleEdit = function(id){
+    const inputs = document.querySelectorAll(`input[data-row="${id}"]`);
+    inputs.forEach(inp => { inp.disabled = false; });
+    if(inputs.length) inputs[0].focus();
+};
+
+/* กด 💾 บันทึก: รวบรวมค่าจากทุกช่องของแถวนั้น แล้วบันทึกกลับ Firestore ด้วย merge:true
+   (ไม่กระทบ field อื่นที่ไม่ได้แสดงในตารางนี้ เช่น address, chassis, group ฯลฯ) */
+window.debtSaveRow = async function(id){
+
+    const inputs = document.querySelectorAll(`input[data-row="${id}"]`);
+
+    if(!inputs.length) return;
+
+    const fields = {};
+
+    inputs.forEach(inp=>{
+        const field = inp.dataset.field;
+        fields[field] = inp.value;
+    });
+
+    try{
+
+        await setDoc(
+            doc(db, "insuranceData", id),
+            fields,
+            { merge:true }
+        );
+
+        inputs.forEach(inp => { inp.disabled = true; });
+
+        showDebtToast("✅ บันทึกข้อมูลเรียบร้อย");
+
+    }catch(err){
+
+        console.error("บันทึกข้อมูลไม่สำเร็จ:", err);
+        alert("บันทึกข้อมูลไม่สำเร็จ: " + (err.message || "กรุณาลองใหม่อีกครั้ง"));
+
+    }
+
+};
+
+/* กด 🗑️ ลบ: ลบเอกสารออกจาก Firestore โดยตรง (onSnapshot จะอัปเดตตารางให้อัตโนมัติทุกเครื่อง) */
+window.debtDeleteRow = async function(id){
+
+    if(!confirm("ต้องการลบข้อมูลนี้หรือไม่ ?")) return;
+
+    try{
+
+        await deleteDoc(doc(db, "insuranceData", id));
+        showDebtToast("🗑️ ลบข้อมูลเรียบร้อย");
+
+    }catch(err){
+
+        console.error("ลบข้อมูลไม่สำเร็จ:", err);
+        alert("ลบข้อมูลไม่สำเร็จ: " + (err.message || "กรุณาลองใหม่อีกครั้ง"));
+
+    }
+
+};
+
+
 /* ฟังข้อมูลจาก Firestore แบบ realtime — อัปเดตอัตโนมัติทุกครั้งที่มีการบันทึก/แก้ไข/ลบ
-   จากหน้า form_car.html / form_product.html / report.html / finance.html */
+   จากหน้า form_car.html / form_product.html / report.html / finance.html หรือจากตารางนี้เอง */
 onSnapshot(collection(db, "insuranceData"), (snapshot) => {
 
     const data = snapshot.docs.map(d => ({
@@ -674,7 +931,10 @@ onSnapshot(collection(db, "insuranceData"), (snapshot) => {
         ...d.data()
     }));
 
-    renderDebt(data);
+    const maxInstallments = getMaxInstallmentCount(data);
+
+    renderDebtHeader(maxInstallments);
+    renderDebt(data, maxInstallments);
 
 });
 
