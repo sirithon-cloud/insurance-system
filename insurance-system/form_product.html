@@ -295,6 +295,14 @@
                 onclick="openFiles()">
             📄 ไฟล์เอกสารทั้งหมด
         </button>
+
+        <!-- เพิ่มใหม่: ปุ่มเชื่อมไปหน้าใบรับเงิน (receipt_print.html) โดยตรงจากฟอร์มนี้ -->
+        <button type="button"
+                class="document-btn"
+                style="margin-top:12px; background:#2FBF9B;"
+                onclick="openReceiptFromForm()">
+            🧾 ใบรับเงิน
+        </button>
  
         </form>
  
@@ -464,6 +472,10 @@
         return record;
     }
  
+        /* แก้ไข (ตามคำขอ): กด "บันทึกข้อมูล" แล้วไม่ต้องเด้งไปหน้ารายงานอีกต่อไป
+             แค่บันทึกแล้วแจ้งเตือน (alert ของ saveRecord()) แล้วอยู่หน้าเดิมต่อ
+             เพิ่มใหม่: หลังบันทึกครั้งแรกสำเร็จ ตั้ง editingId ให้อัตโนมัติจาก id ที่ saveRecord() คืนกลับมา
+             เพื่อไม่ให้กดบันทึกซ้ำ (หรือกดปุ่มไฟล์เอกสาร/ใบรับเงินต่อ) แล้วกลายเป็นสร้างรายการใหม่ซ้อนขึ้นมาอีกรายการ */
         document.getElementById("productForm").addEventListener("submit", async function (e) {
     e.preventDefault();
  
@@ -475,36 +487,100 @@
     const record = collectFormData("product");
  
     // บันทึกลง Firestore (แหล่งข้อมูลกลางเดียว ทุกเครื่องเห็นตรงกัน)
-    // saveRecord() จะ alert "บันทึกข้อมูลเรียบร้อย" ให้เองแล้ว
-    await window.saveRecord(record);
+    // saveRecord() จะ alert "บันทึกข้อมูลเรียบร้อย" ให้เองแล้ว และคืนค่า id ของเอกสารกลับมา
+    const savedId = await window.saveRecord(record);
+
+    // ตั้ง editingId ของหน้านี้ให้ชี้ไปที่รายการที่เพิ่งบันทึก (ทั้งกรณีบันทึกใหม่และแก้ไขเดิม)
+    if (savedId) {
+        editingId = savedId;
+        record.id = savedId;
+        loadedRecordData = record;
+    }
  
-    // เก็บไว้เฉพาะข้อมูลชั่วคราวสำหรับเปิดเอกสาร PDF ของรายการนี้ทันที
+    // เก็บไว้เฉพาะข้อมูลชั่วคราวสำหรับเปิดเอกสาร PDF ของรายการนี้ทันที (ถ้ากดปุ่มเอกสารต่อ)
     localStorage.setItem(
         "pdfData",
         JSON.stringify(record)
     );
  
-    // เคลียร์ข้อมูลแก้ไขชั่วคราว (ใช้แล้วหมดหน้าที่)
+    // เคลียร์ข้อมูลแก้ไขชั่วคราวของรายการเก่า (ถ้ามี) เพราะตอนนี้ยึดตาม editingId ของหน้านี้แทนแล้ว
     localStorage.removeItem("editIndex");
     localStorage.removeItem("editData");
  
-    location.href="report.html";
+    // ไม่เด้งไปหน้ารายงานอีกต่อไป อยู่หน้าเดิมต่อ (ตามที่ขอ)
  
 });
- 
-    function openFiles() {
-    const pdfData = collectFormData("product");
-    if(!pdfData.company){
-        alert("กรุณาเลือกบริษัทประกันภัย");
-        return;
+
+    /* แก้ไข (ตามคำขอ): ปุ่ม "ไฟล์เอกสารทั้งหมด" ตอนนี้บันทึกข้อมูลลง Firestore ก่อนเสมอ
+       (เดิมแค่เก็บไว้ใน localStorage ชั่วคราว ไม่เคยบันทึกจริง ถ้าไม่เคยกด "บันทึกข้อมูล" มาก่อน
+       ข้อมูลจะหายไปไม่ขึ้นในรายงาน/ลูกหนี้/บันทึกการเงินเลย) */
+    async function openFiles() {
+
+        if (!getInstallmentCount()) {
+            alert("กรุณาเลือกจำนวนงวด");
+            return;
+        }
+
+        const record = collectFormData("product");
+
+        if (!record.company) {
+            alert("กรุณาเลือกบริษัทประกันภัย");
+            return;
+        }
+
+        const savedId = await window.saveRecord(record);
+
+        if (savedId) {
+            editingId = savedId;
+            record.id = savedId;
+            loadedRecordData = record;
+        }
+
+        localStorage.setItem(
+            "pdfData",
+            JSON.stringify(record)
+        );
+
+        localStorage.removeItem("editIndex");
+        localStorage.removeItem("editData");
+
+        window.location.href = "contract_print.html";
     }
-    localStorage.setItem(
-        "pdfData",
-        JSON.stringify(pdfData)
-    );
- 
-    window.location.href = "contract_print.html";
-}
+
+    /* เพิ่มใหม่: ปุ่ม "🧾 ใบรับเงิน" บันทึกข้อมูลลง Firestore ก่อนเช่นเดียวกัน
+       แล้วพาไปหน้า receipt_print.html (หน้านี้อ่านข้อมูลจาก localStorage คีย์ "pdfData" เหมือนกัน) */
+    async function openReceiptFromForm() {
+
+        if (!getInstallmentCount()) {
+            alert("กรุณาเลือกจำนวนงวด");
+            return;
+        }
+
+        const record = collectFormData("product");
+
+        if (!record.company) {
+            alert("กรุณาเลือกบริษัทประกันภัย");
+            return;
+        }
+
+        const savedId = await window.saveRecord(record);
+
+        if (savedId) {
+            editingId = savedId;
+            record.id = savedId;
+            loadedRecordData = record;
+        }
+
+        localStorage.setItem(
+            "pdfData",
+            JSON.stringify(record)
+        );
+
+        localStorage.removeItem("editIndex");
+        localStorage.removeItem("editData");
+
+        window.location.href = "receipt_print.html";
+    }
 
         function attachYearDropdown(instance) {
 

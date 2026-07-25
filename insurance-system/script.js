@@ -111,6 +111,8 @@ function getData() {
    ป้องกันปัญหาเดิมที่แก้ไขข้อมูลแล้วกลายเป็นสร้างซ้ำ */
 async function saveRecord(record) {
 
+    let savedId = record.id || null;
+
     if (record.id) {
 
         // แก้ไขข้อมูลเดิม: ไม่แตะ createDate / employeeName เดิม
@@ -124,20 +126,29 @@ async function saveRecord(record) {
             { merge: true }
         );
 
+        savedId = id;
+
     } else {
 
         // บันทึกข้อมูลใหม่เท่านั้น: ประทับวันที่แจ้งงาน + เวลาบันทึกจริง
         record.createDate = new Date().toLocaleDateString("th-TH");
         record.createdAt = serverTimestamp();
 
-        await addDoc(
+        const docRef = await addDoc(
             collection(db, "insuranceData"),
             record
         );
 
+        savedId = docRef.id;
+
     }
 
     alert("บันทึกข้อมูลเรียบร้อย");
+
+    // เพิ่มใหม่: คืนค่า id ของเอกสารที่บันทึก/แก้ไขกลับไปให้หน้าฟอร์มใช้ต่อได้
+    // (เช่น ตั้ง editingId อัตโนมัติหลังบันทึกครั้งแรก กันไม่ให้กดบันทึกซ้ำ/เปิดเอกสารซ้ำ
+    // แล้วกลายเป็นสร้างรายการใหม่ซ้อนขึ้นมาอีกรายการ)
+    return savedId;
 }
 
 

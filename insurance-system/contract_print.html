@@ -3003,6 +3003,50 @@ function isMobileOrTabletDevice() {
     return /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(ua);
 }
 
+/* แก้ไข: เปิดรูปทั้งหมดในแท็บใหม่ (ฝัง data URL ไว้ในหน้า HTML ธรรมดา) เพื่อให้กดค้างที่รูป
+   แล้วเลือก "บันทึกรูปภาพ" ได้เอง ใช้แทนการคลิกลิงก์ดาวน์โหลด <a download> อัตโนมัติ
+   เหตุผล: เบราว์เซอร์ในตัวแอป/เบราว์เซอร์มือถือหลายตัว (โดยเฉพาะบน iPhone ทุกเบราว์เซอร์ที่ใช้ WebKit
+   เช่น Safari, Chrome บน iOS, และเบราว์เซอร์ในตัวแอปอย่าง LINE/Facebook/Google) ไม่รองรับการดาวน์โหลด
+   ไฟล์ blob ผ่าน <a download> เลย กดปุ่มแล้วจะไม่มีอะไรเกิดขึ้น (เหมือนกดไม่ได้) วิธีเปิดแท็บใหม่แบบนี้
+   เป็นวิธีที่ใช้งานได้แน่นอนในทุกเบราว์เซอร์ เพราะเป็นแค่การเปิดหน้าเว็บปกติ ไม่ใช่การดาวน์โหลดไฟล์ */
+async function openImagesForManualSave(files) {
+
+    const dataUrls = await Promise.all(files.map(file => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    })));
+
+    const win = window.open("", "_blank");
+
+    if (!win) {
+        alert("เบราว์เซอร์บล็อกการเปิดหน้าต่างใหม่ กรุณาอนุญาต Pop-up ของเว็บนี้แล้วกดดาวน์โหลดอีกครั้ง");
+        return;
+    }
+
+    win.document.write(`
+        <!DOCTYPE html>
+        <html lang="th">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>${fileBase}</title>
+            <style>
+                body{ margin:0; padding:16px 12px 40px; background:#111; font-family:"Segoe UI",Tahoma,sans-serif; }
+                p{ color:#fff; text-align:center; margin:0 0 16px; font-size:14px; line-height:1.6; }
+                img{ display:block; width:100%; max-width:650px; margin:0 auto 22px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,.4); }
+            </style>
+        </head>
+        <body>
+            <p>📌 กดค้างที่รูปแต่ละภาพด้านล่าง แล้วเลือก "บันทึกรูปภาพ" (Save Image) เพื่อบันทึกลงเครื่อง</p>
+            ${dataUrls.map(u => `<img src="${u}">`).join("")}
+        </body>
+        </html>
+    `);
+    win.document.close();
+}
+
 async function saveJPG() {
     const btn = document.querySelector(".btn-jpg");
     const originalText = btn ? btn.innerText : "";
@@ -3015,9 +3059,11 @@ async function saveJPG() {
         // ส่วนคอมพิวเตอร์ (แม้เบราว์เซอร์จะรองรับ navigator.share ก็ตาม) จะข้ามไปดาวน์โหลดตรงเสมอ
         if (isMobileOrTabletDevice() && navigator.share && navigator.canShare && navigator.canShare({ files })) {
             try {
+                // แก้ไข: ตัด title ออก (เดิมส่งชื่อไฟล์ที่มีชื่อลูกค้าปนอยู่เป็น title)
+                // ทำให้แอปปลายทาง เช่น LINE แนบชื่อลูกค้าไปเป็นข้อความคู่กับรูปด้วย
+                // ตอนนี้ส่งเฉพาะไฟล์รูปภาพอย่างเดียว ไม่มีข้อความชื่อลูกค้าติดไปด้วย
                 await navigator.share({
-                    files: files,
-                    title: fileBase
+                    files: files
                 });
                 return; // ผู้ใช้เลือกปลายทางเองจากเมนูแชร์เรียบร้อยแล้ว จบการทำงาน
             } catch (shareErr) {
@@ -3025,19 +3071,25 @@ async function saveJPG() {
                 if (shareErr && shareErr.name === "AbortError") {
                     return;
                 }
-                // กรณีอื่น (เช่น แชร์ไม่สำเร็จ) ให้ตกไปดาวน์โหลดตรงแทนด้านล่าง
+                // กรณีอื่น (เช่น แชร์ไม่สำเร็จ) ให้ตกไปเปิดรูปให้บันทึกเองแทนด้านล่าง
             }
         }
 
-        // อุปกรณ์ที่ไม่รองรับการแชร์ไฟล์ (เช่นคอมพิวเตอร์) หรือแชร์ไม่สำเร็จ: ดาวน์โหลดตรงลงเครื่องแทน
-        for (const file of files) {
-            const link = document.createElement("a");
-            link.download = file.name;
-            link.href = URL.createObjectURL(file);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            await new Promise(r => setTimeout(r, 300));
+        // แก้ไข: มือถือ/แท็บเล็ตที่แชร์ไฟล์ไม่ได้ -> เปิดรูปในแท็บใหม่ให้กดค้างบันทึกเอง
+        // (เดิมใช้ <a download> คลิกอัตโนมัติ ซึ่งใช้ไม่ได้เลยในหลายเบราว์เซอร์มือถือ โดยเฉพาะ iPhone)
+        // ส่วนคอมพิวเตอร์ยังคงดาวน์โหลดไฟล์ตรงลงเครื่องแบบเดิม เพราะ <a download> ใช้งานได้ปกติ
+        if (isMobileOrTabletDevice()) {
+            await openImagesForManualSave(files);
+        } else {
+            for (const file of files) {
+                const link = document.createElement("a");
+                link.download = file.name;
+                link.href = URL.createObjectURL(file);
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                await new Promise(r => setTimeout(r, 300));
+            }
         }
     } catch (err) {
         alert("สร้างรูป JPG ไม่สำเร็จ: " + err.message);
