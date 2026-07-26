@@ -717,7 +717,11 @@ function applyCustomerStartDay(date, startDay) {
 
 function getInstallmentDueDate(contractDate, installmentIndex, startDay) {
     const due = new Date(contractDate);
-    due.setDate(due.getDate() + 30 * (installmentIndex + 1));
+    /* แก้ไข: เดิมบวก 30*(installmentIndex+1) ทำให้งวดที่ 1 ถูกเลื่อนไปเดือนถัดไปเสมอ
+       (เช่น เริ่ม 26/07 -> งวดที่ 1 กลายเป็น 26/08) ทั้งที่งวดแรกควรอยู่เดือนเดียวกับวันที่เริ่ม
+       แก้เป็นบวก 30*installmentIndex แทน (งวดที่ 1 = index 0 -> บวก 0 วัน = เดือนเริ่ม,
+       งวดที่ 2 = index 1 -> บวก 30 วัน = เดือนถัดไป, ไล่ไปเรื่อยๆ ตามลำดับ) */
+    due.setDate(due.getDate() + 30 * installmentIndex);
     return applyCustomerStartDay(due, startDay);
 }
 
@@ -815,6 +819,21 @@ function axaGroupSelect(box) {
         if (b.dataset.period === period) b.classList.add("on");
         else b.classList.remove("on");
     });
+
+    /* เพิ่มใหม่: ถ้าเป็นกลุ่มเลือก "ระยะเวลาประกันภัย" (1 เดือน / 3 เดือน / 1 ปี) ของ AXA
+       ให้คำนวณ "วันสิ้นสุด" ใหม่จากวันที่เริ่มจริง (data.start) บวกจำนวนเดือนตามที่เลือกทันที
+       แทนที่จะใช้วันที่สิ้นสุดที่กรอกในฟอร์มตรงๆ (ซึ่งอาจไม่ตรงกับช่วงเวลาที่เลือก) */
+    if (group === "axaPeriod") {
+        const months = period === "m1" ? 1 : period === "m3" ? 3 : 12;
+        const startDate = parseFlexibleDate(data.start);
+        if (startDate) {
+            const newEnd = addMonthsKeepDay(startDate, months);
+            const endLabel = toThaiFullDate(newEnd);
+            document.querySelectorAll("#axaEndDateDisplay").forEach(el => {
+                el.textContent = endLabel;
+            });
+        }
+    }
 }
 
 function axaSelectAmtBox(box, amount) {
@@ -876,6 +895,18 @@ function toBEDateStr(v) {
 const THAI_MONTHS = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
 function toThaiFullDate(d) {
     return `${d.getDate()} ${THAI_MONTHS[d.getMonth()]} ${d.getFullYear() + 543}`;
+}
+
+/* เพิ่มใหม่: บวกจำนวนเดือนให้กับวันที่ โดยพยายามคงตัวเลข "วัน" เดิมไว้เสมอ
+   (ถ้าเดือนปลายทางมีจำนวนวันน้อยกว่าวันที่ตั้งต้น จะใช้วันสุดท้ายของเดือนนั้นแทน
+   กันวันที่เพี้ยนข้ามเดือนไปอีก) ใช้กับตาราง "ระยะเวลาประกันภัย" ของ AXA
+   เมื่อเลือกช่วงเวลา 1 เดือน / 3 เดือน / 1 ปี เพื่อคำนวณ "วันสิ้นสุด" ให้ตรงกับจำนวนเดือนที่เลือกจริง */
+function addMonthsKeepDay(date, months) {
+    const day = date.getDate();
+    const target = new Date(date.getFullYear(), date.getMonth() + months, 1);
+    const lastDayOfTargetMonth = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+    target.setDate(Math.min(day, lastDayOfTargetMonth));
+    return target;
 }
 
 /* ใช้เฉพาะหน้าใบคำขอเอาประกันภัยความรับผิดของผู้ขนส่ง (renderCarrierApplication) เท่านั้น
@@ -1707,6 +1738,14 @@ function renderAxaMain() {
     const isMonth3 = _axaDays !== null && _axaDays > 45 && _axaDays <= 120;
     const isYear1 = !(isMonth1 || isMonth3);
 
+    /* แก้ไข: เดิมแสดง "วันสิ้นสุด" จากค่า data.end ที่กรอกในฟอร์มตรงๆ ซึ่งอาจไม่ตรงกับ
+       ระยะเวลาที่เลือกไว้ (1 เดือน/3 เดือน/1 ปี) พอดี แก้ให้คำนวณวันสิ้นสุดจากวันที่เริ่มจริง
+       บวกจำนวนเดือนตามช่วงเวลาที่เลือก (เช่น เริ่ม 26 ก.ค. เลือก 3 เดือน -> สิ้นสุด 26 ต.ค.)
+       เพื่อให้ตรงกับระยะเวลาที่ระบุเสมอ ไม่ว่าจะกดเลือกช่วงเวลาใหม่ภายหลังหรือไม่ก็ตาม */
+    const _axaPeriodMonths = isMonth1 ? 1 : (isMonth3 ? 3 : 12);
+    const _axaComputedEnd = _axaStart ? addMonthsKeepDay(_axaStart, _axaPeriodMonths) : null;
+    const _axaEndDisplay = _axaComputedEnd ? toThaiFullDate(_axaComputedEnd) : axaFullDate(safe(data.end));
+
     const _axaSumInsured = Number(data.sumInsured) || 0;
     const isAmt = (v) => _axaSumInsured === v;
 
@@ -1754,7 +1793,7 @@ function renderAxaMain() {
 
                             <div class="indent">เริ่มคุ้มภัย</div>
                             <span>วันที่เริ่ม <span class="fill-line" style="display:inline-block;min-width:20px;">${axaFullDate(safe(data.start))}</span></span>
-                            <span>วันสิ้นสุด <span class="fill-line" style="display:inline-block;min-width:20px;">${axaFullDate(safe(data.end))}</span></span>
+                            <span>วันสิ้นสุด <span id="axaEndDateDisplay" class="fill-line" style="display:inline-block;min-width:20px;">${_axaEndDisplay}</span></span>
                         </div>
                     </td>
                 </tr>
