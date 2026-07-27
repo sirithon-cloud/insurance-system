@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="th">
+ 
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+ 
+<title>กราฟรายได้</title>
+ 
+<link rel="stylesheet" href="style.css">
+ 
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- เพิ่มใหม่: บังคับให้ต้อง login ก่อนเข้าใช้งานหน้านี้ (เดิมเข้าตรงผ่าน URL ได้โดยไม่ต้อง login) -->
+<script src="auth.js"></script>
+<script>
+    requireLogin();
+</script>
+ 
+<style>
+ 
+*{ box-sizing:border-box; }
+ 
+body{
+    font-family:"Kanit",sans-serif;
+    background:#F3F6FC;
+}
+ 
+.main{
+    padding-top:80px;
+    padding-bottom:40px;
+}
+ 
+.main h2{
+    margin-top:-20px;
+    text-align:center;
+    color:#152A54;
+}
+ 
+/* ปุ่มกลับมุมซ้ายบน */
+.revenue-back-btn{
+    position:fixed;
+    top:16px;
+    left:16px;
+    z-index:1000;
+ 
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+ 
+    background:#EAF1FF;
+    color:#1E4FC4;
+ 
+    border:none;
+    padding:10px 18px;
+    border-radius:999px;
+ 
+    font-family:"Kanit",sans-serif;
+    font-weight:600;
+    font-size:14px;
+ 
+    cursor:pointer;
+    box-shadow:0 6px 18px rgba(21,42,84,.12);
+    transition:.2s;
+}
+ 
+.revenue-back-btn:hover{
+    background:#DCE9FF;
+}
+ 
+/* Filter panel */
+.revenue-filter-panel{
+    max-width:1100px;
+    margin:0 auto 20px;
+    background:#f8f9fb;
+    border:1px solid #e3e6ec;
+    border-radius:12px;
+    padding:16px 18px;
+}
+ 
+.revenue-filter-group{
+    margin-bottom:12px;
+}
+ 
+.revenue-filter-group:last-of-type{
+    margin-bottom:0;
+}
+ 
+.filter-label{
+    font-size:13px;
+    color:#002d72;
+    font-weight:bold;
+    margin-bottom:6px;
+}
+ 
+.btn-group{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+}
+ 
+.chip-btn{
+    border:1.5px solid #cfd6e2;
+    background:#fff;
+    color:#152A54;
+    padding:7px 14px;
+    border-radius:999px;
+    font-family:"Kanit",sans-serif;
+    font-size:13px;
+    cursor:pointer;
+    transition:.2s;
+    white-space:nowrap;
+}
+ 
+.chip-btn:hover{
+    background:#EAF1FF;
+}
+ 
+.chip-btn.active{
+    background:#2F6FED;
+    border-color:#2F6FED;
+    color:#fff;
+}
+ 
+.view-btn{
+    border:1.5px solid #cfd6e2;
+    background:#fff;
+    color:#152A54;
+    padding:8px 18px;
+    border-radius:999px;
+    font-family:"Kanit",sans-serif;
+    font-weight:600;
+    font-size:13px;
+    cursor:pointer;
+    transition:.2s;
+}
+ 
+.view-btn.active{
+    background:#152A54;
+    border-color:#152A54;
+    color:#fff;
+}
+ 
+.revenue-filter-group select{
+    padding:6px 10px;
+    border-radius:8px;
+    border:1px solid #cfd6e2;
+    font-family:"Kanit",sans-serif;
+    font-size:13px;
+}
+ 
+.revenue-summary-total{
+    font-size:16px;
+    font-weight:bold;
+    color:#002d72;
+    margin-top:10px;
+}
+ 
+/* Chart box */
+.revenue-chart-box{
+    max-width:1100px;
+    margin:0 auto 10px;
+    background:#fff;
+    border:1px solid #e3e6ec;
+    border-radius:12px;
+    padding:18px;
+}
+ 
+.revenue-chart-box h3{
+    text-align:center;
+    color:#152A54;
+    margin-bottom:14px;
+    font-size:16px;
+}
+ 
+.revenue-chart-box canvas{
+    max-height:420px;
+}
+ 
+</style>
+ 
+</head>
+ 
+<body>
+ 
+<button class="revenue-back-btn" onclick="location.href='account_menu.html'">
+    ← กลับ
+</button>
+ 
+<div class="main">
+ 
+<h2>📈 กราฟรายได้</h2>
+ 
+<div class="revenue-filter-panel">
+ 
+    <div class="revenue-filter-group">
+        <div class="filter-label">👤 พนักงาน</div>
+        <select id="employeeSelect"></select>
+    </div>
+ 
+    <div class="revenue-filter-group" id="yearFilterGroup">
+        <div class="filter-label">🗓️ ปี (สำหรับมุมมองรายเดือน)</div>
+        <select id="yearSelect"></select>
+    </div>
+ 
+    <div class="revenue-filter-group">
+        <div class="filter-label">📊 มุมมอง</div>
+        <div class="btn-group" id="viewModeButtons">
+            <button type="button" class="view-btn active" data-mode="month">รายเดือน</button>
+            <button type="button" class="view-btn" data-mode="year">รายปี</button>
+        </div>
+    </div>
+ 
+    <div id="revenueSummary" class="revenue-summary-total"></div>
+ 
+</div>
+ 
+<div class="revenue-chart-box">
+    <h3 id="chartTitle">📈 รายได้รายเดือน แยกตามบริษัทประกันภัย</h3>
+    <canvas id="revenueChart"></canvas>
+</div>
+ 
+</div>
+ 
+<!-- ไลบรารีกราฟ (โหลดจาก cdnjs เหมือน finance.html) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+ 
+<script type="module">
+ 
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+import {
+    getFirestore,
+    collection,
+    onSnapshot
+} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+ 
+/* ตั้งค่าเดียวกับ script.js / report.html / finance.html เพื่ออ่าน collection "insuranceData" เดียวกัน */
+const firebaseConfig = {
+  apiKey: "AIzaSyCNpaYlwrkJhBA-8tAax022PWWFYMRz7Kw",
+  authDomain: "insurance-system-f26b0.firebaseapp.com",
+  projectId: "insurance-system-f26b0",
+  storageBucket: "insurance-system-f26b0.firebasestorage.app",
+  messagingSenderId: "438698153100",
+  appId: "1:438698153100:web:a553b97b59701883f057a9",
+  measurementId: "G-XXWCQEMT0B"
+};
+ 
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+ 
+let allData = [];
+let chartInstance = null;
+ 
+// state ของตัวกรอง
+let selectedEmployee = "all";
+let selectedYear = "2569";
+let selectedViewMode = "month"; // "month" | "year"
+ 
+const THAI_MONTHS = [
+    "มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน",
+    "กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"
+];
+ 
+const KNOWN_COMPANIES = ["วิริยะ","เมืองไทย","AIG"];
+ 
+const COMPANY_COLORS = {
+    "วิริยะ":"#2F6FED",
+    "เมืองไทย":"#FF8A65",
+    "AIG":"#2FBF9B",
+    "AXA":"#B24BF3" 
+};
+ 
+const EXTRA_COLOR_PALETTE = ["#8C7CF0","#F7628C","#FFB648","#3E7BFA","#00BFA6","#FF6B6B","#B24BF3"];
+ 
+const YEAR_START = 2569;
+const YEAR_END = 2575;
+ 
+function parseCreateDate(createDate){
+    if(!createDate) return { month:null, year:null };
+ 
+    const parts = createDate.split("/");
+    if(parts.length !== 3) return { month:null, year:null };
+ 
+    const month = parseInt(parts[1],10);
+    const year = parts[2];
+ 
+    if(isNaN(month) || month < 1 || month > 12){
+        return { month:null, year:null };
+    }
+ 
+    return { month:String(month).padStart(2,"0"), year:year };
+}
+ 
+/* =========================
+   รายชื่อบริษัท (Real-time จากข้อมูลจริง + บริษัทที่รู้จักอยู่แล้ว)
+========================= */
+function getCompanies(){
+ 
+    const companiesFromData = [...new Set(allData.map(i=>i.company).filter(Boolean))];
+    const extraCompanies = companiesFromData.filter(c=>!KNOWN_COMPANIES.includes(c));
+ 
+    return [...KNOWN_COMPANIES, ...extraCompanies];
+}
+ 
+function colorForCompany(company, index){
+ 
+    if(COMPANY_COLORS[company]) return COMPANY_COLORS[company];
+ 
+    return EXTRA_COLOR_PALETTE[index % EXTRA_COLOR_PALETTE.length];
+}
+ 
+/* =========================
+   ตัวกรอง: พนักงาน (Dropdown แบบเดียวกับตัวกรองปี, Real-time จากข้อมูลจริง)
+========================= */
+function renderEmployeeButtons(){
+ 
+    const employeeSelect = document.getElementById("employeeSelect");
+ 
+    const prevValue = employeeSelect.value || selectedEmployee;
+ 
+    const employees = [...new Set(allData.map(i=>i.requestName).filter(Boolean))];
+ 
+    let options = `<option value="all">ทุกคน</option>`;
+    employees.forEach(e=>{
+        options += `<option value="${e}">${e}</option>`;
+    });
+ 
+    employeeSelect.innerHTML = options;
+ 
+    const validValues = ["all", ...employees];
+    employeeSelect.value = validValues.includes(prevValue) ? prevValue : "all";
+    selectedEmployee = employeeSelect.value;
+ 
+    employeeSelect.onchange = function(){
+        selectedEmployee = employeeSelect.value;
+        renderChart();
+        renderSummary();
+    };
+}
+ 
+/* =========================
+   ตัวกรอง: ปี (ใช้กับมุมมองรายเดือนเท่านั้น)
+========================= */
+function populateYearSelect(){
+ 
+    const yearSelect = document.getElementById("yearSelect");
+ 
+    const prevYear = yearSelect.value || selectedYear;
+ 
+    let years = [];
+    for(let y = YEAR_START; y <= YEAR_END; y++) years.push(String(y));
+ 
+    yearSelect.innerHTML = years.map(y=>`<option value="${y}">${y}</option>`).join("");
+ 
+    yearSelect.value = years.includes(prevYear) ? prevYear : String(YEAR_START);
+    selectedYear = yearSelect.value;
+ 
+    yearSelect.onchange = function(){
+        selectedYear = yearSelect.value;
+        renderChart();
+        renderSummary();
+    };
+}
+ 
+/* =========================
+   มุมมองกราฟ (รายเดือน / รายปี)
+========================= */
+function bindViewModeButtons(){
+ 
+    document.querySelectorAll(".view-btn").forEach(btn=>{
+        btn.addEventListener("click", ()=>{
+ 
+            selectedViewMode = btn.dataset.mode;
+ 
+            document.querySelectorAll(".view-btn").forEach(b=>b.classList.remove("active"));
+            btn.classList.add("active");
+ 
+            document.getElementById("yearFilterGroup").style.display =
+                selectedViewMode === "month" ? "block" : "none";
+ 
+            renderChart();
+            renderSummary();
+        });
+    });
+}
+ 
+/* =========================
+   คำนวณข้อมูลกราฟ แยกตามบริษัท
+========================= */
+function computeMonthlyByCompany(){
+ 
+    const companies = getCompanies();
+ 
+    const datasets = companies.map((c,idx)=>{
+ 
+        const data = new Array(12).fill(0);
+ 
+        allData.forEach(item=>{
+ 
+            const employeeOK = selectedEmployee === "all" || item.requestName === selectedEmployee;
+            const companyOK = item.company === c;
+ 
+            const parsed = parseCreateDate(item.createDate);
+            const yearOK = parsed.year === selectedYear;
+ 
+            if(employeeOK && companyOK && yearOK && parsed.month){
+                data[parseInt(parsed.month,10) - 1] += Number(item.total || 0);
+            }
+        });
+ 
+        return {
+            label: c,
+            data: data,
+            backgroundColor: colorForCompany(c, idx),
+            borderRadius: 6
+        };
+    });
+ 
+    return { labels: THAI_MONTHS, datasets };
+}
+ 
+function computeYearlyByCompany(){
+ 
+    let years = [];
+    for(let y = YEAR_START; y <= YEAR_END; y++) years.push(String(y));
+ 
+    const companies = getCompanies();
+ 
+    const datasets = companies.map((c,idx)=>{
+ 
+        const data = years.map(y=>{
+ 
+            return allData
+                .filter(item=>{
+                    const employeeOK = selectedEmployee === "all" || item.requestName === selectedEmployee;
+                    const companyOK = item.company === c;
+                    const parsed = parseCreateDate(item.createDate);
+                    return employeeOK && companyOK && parsed.year === y;
+                })
+                .reduce((sum,i)=> sum + Number(i.total || 0), 0);
+        });
+ 
+        return {
+            label: c,
+            data: data,
+            backgroundColor: colorForCompany(c, idx),
+            borderRadius: 6
+        };
+    });
+ 
+    return { labels: years, datasets };
+}
+ 
+/* =========================
+   วาด/อัปเดตกราฟ
+========================= */
+function renderChart(){
+ 
+    if(typeof Chart === "undefined"){
+        console.error("ไม่สามารถโหลด Chart.js ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต");
+        return;
+    }
+ 
+    const { labels, datasets } = selectedViewMode === "month"
+        ? computeMonthlyByCompany()
+        : computeYearlyByCompany();
+ 
+    document.getElementById("chartTitle").innerText = selectedViewMode === "month"
+        ? `📈 รายได้รายเดือน แยกตามบริษัทประกันภัย (ปี ${selectedYear})`
+        : "📈 รายได้รายปี แยกตามบริษัทประกันภัย";
+ 
+    if(chartInstance){
+        chartInstance.data.labels = labels;
+        chartInstance.data.datasets = datasets;
+        chartInstance.update();
+        return;
+    }
+ 
+    const ctx = document.getElementById("revenueChart");
+ 
+    chartInstance = new Chart(ctx, {
+        type: "bar",
+        data: { labels, datasets },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: true, position: "top" }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value){
+                            return Number(value).toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+ 
+/* =========================
+   สรุปยอดรวม
+========================= */
+function renderSummary(){
+ 
+    let total = 0;
+ 
+    allData.forEach(item=>{
+ 
+        const employeeOK = selectedEmployee === "all" || item.requestName === selectedEmployee;
+        const parsed = parseCreateDate(item.createDate);
+ 
+        const periodOK = selectedViewMode === "month"
+            ? parsed.year === selectedYear
+            : true;
+ 
+        if(employeeOK && periodOK){
+            total += Number(item.total || 0);
+        }
+    });
+ 
+    const employeeLabel = selectedEmployee === "all" ? "ทุกคน" : selectedEmployee;
+    const periodLabel = selectedViewMode === "month" ? `ปี ${selectedYear}` : "ทุกปี";
+ 
+    document.getElementById("revenueSummary").innerText =
+        `💰 ยอดรวม (${employeeLabel} · ${periodLabel}): ${total.toLocaleString()} บาท`;
+}
+ 
+/* =========================
+   อัปเดตทุกส่วนพร้อมกัน (ไม่รีเฟรชหน้า)
+========================= */
+function updateAll(){
+    renderEmployeeButtons();
+    renderChart();
+    renderSummary();
+}
+ 
+/* ฟังข้อมูลจาก Firestore แบบ realtime — collection เดียวกับ report.html / finance.html / customer_debt.html
+   หมายเหตุ: เรียก populateYearSelect() ก่อนเสมอ เพื่อให้ selectedYear พร้อมค่าเริ่มต้น ("2569")
+   ก่อนคำนวณ/แสดงกราฟ ป้องกันปัญหากราฟว่างตั้งแต่รอบแรกที่เปิดหน้า */
+onSnapshot(collection(db, "insuranceData"), (snapshot) => {
+ 
+    allData = snapshot.docs.map(d => ({
+        id: d.id,
+        ...d.data()
+    }));
+ 
+    populateYearSelect();
+    updateAll();
+});
+ 
+bindViewModeButtons();
+ 
+</script>
+ 
+</body>
+</html>

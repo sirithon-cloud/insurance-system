@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ฟอร์มประกันรถยนต์</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- เพิ่มใหม่: บังคับให้ต้อง login ก่อนเข้าใช้งานหน้านี้ (เดิมเข้าตรงผ่าน URL ได้โดยไม่ต้อง login) -->
+    <script src="auth.js"></script>
+    <script>
+        requireLogin();
+    </script>
+</head>
+
+<body class="form-page">
+
+    <div class="topbar">
+        <button id="menuBtn">☰</button>
+        <span class="apptitle">บันทึกข้อมูลประกันรถยนต์</span>
+    </div>
+
+    <main class="form-card">
+
+        <h1 class="form-title">🚗 ประกันรถยนต์</h1>
+
+        <form id="carForm">
+
+            <div class="section-title">🏢 ข้อมูลบริษัท</div>
+
+            <label>บริษัทประกันภัย</label>
+            <select id="company" required>
+                <option value="">-- เลือกบริษัท --</option>
+                <option value="วิริยะ">วิริยะ</option>
+                <option value="เมืองไทย">เมืองไทย</option>
+                <option value="AIG">AIG</option>
+                <option value="AXA">AXA</option>
+                <option value="KWI">KWI</option>
+                <option value="กรุงเทพ">กรุงเทพ</option>
+            </select>
+
+            <div class="section-title">👤 ข้อมูลผู้เอาประกัน</div>
+
+            <label>ชื่อผู้แจ้ง</label>
+            <input type="text" id="requestName" required>
+
+            <label>ชื่อผู้เอาประกัน</label>
+            <input type="text" id="name" required>
+
+            <label>ที่อยู่</label>
+            <textarea id="address"></textarea>
+
+            <div class="section-title">🚗 ข้อมูลรถ</div>
+
+            <label>ยี่ห้อ</label>
+            <input type="text" id="brand">
+
+            <label>ทะเบียน</label>
+            <input type="text" id="plate">
+
+            <label>เลขตัวถัง</label>
+            <input type="text" id="chassis">
+
+            <div class="section-title">📅 ระยะเวลาคุ้มครอง</div>
+
+            <div class="row">
+                <div>
+                    <label>วันเริ่ม</label>
+                    <input type="date" id="start">
+                </div>
+
+                <div>
+                    <label>วันสิ้นสุด</label>
+                    <input type="date" id="end">
+                </div>
+            </div>
+
+            <div class="section-title">💰 ข้อมูลการเงิน</div>
+
+            <div class="row">
+                <div>
+                    <label>ทุนประกัน</label>
+                    <input type="number" id="sumInsured">
+                </div>
+
+                <div>
+                    <label>รวม</label>
+                    <input type="number" id="total">
+                </div>
+            </div>
+
+            <label>กลุ่มสินค้า</label>
+            <input type="text" id="group">
+
+            <div class="section-title">💳 งวดชำระ</div>
+
+            <div class="row">
+                <input type="number" id="installment1" placeholder="งวดที่ 1">
+                <input type="number" id="installment2" placeholder="งวดที่ 2">
+            </div>
+
+            <!-- เพิ่มใหม่: margin-top กันแถวงวดที่ 3-4 ชิดกับแถวงวดที่ 1-2 มากเกินไป
+                 (เดิม .row แต่ละแถวไม่มีระยะห่างแนวตั้งระหว่างกันเลย ใช้แค่ gap คอลัมน์ในแถวเดียวกัน) -->
+            <div class="row" style="margin-top:20px;">
+                <input type="number" id="installment3" placeholder="งวดที่ 3">
+                <input type="number" id="installment4" placeholder="งวดที่ 4">
+            </div>
+
+            <div class="button-group">
+
+                <button type="button" class="back-btn" onclick="location.href='index.html'">
+                    ⬅ กลับหน้าหลัก
+                </button>
+
+                <button type="submit" class="save-btn">
+                    💾 บันทึกข้อมูล
+                </button>
+
+                <button type="button" class="pdf-btn" onclick="openPDF('car')">
+                    📄 ดู PDF
+                </button>
+
+            </div>
+
+        </form>
+
+    </main>
+
+    <!-- แก้ไข: เดิมโหลดด้วย <script src="script.js"> (ไม่ใส่ type="module")
+         แต่ script.js มีคำสั่ง import ข้างใน ทำให้เบราว์เซอร์ throw SyntaxError
+         และทั้งไฟล์ใช้งานไม่ได้เลย (ปุ่มเมนู / การเชื่อม Firebase ใช้ไม่ได้)
+         แก้เป็น type="module" ให้ตรงกับ form_product.html และ report.html
+         เพื่อให้บันทึกข้อมูลลง Firestore แหล่งเดียวกับทุกหน้า -->
+    <script type="module" src="script.js"></script>
+
+    <!-- เพิ่มใหม่: โหลด auth.js เพื่อใช้ getEmployeeName() ตอนบันทึกข้อมูล -->
+    <script src="auth.js"></script>
+
+    <script>
+    function collectFormData(type) {
+        return {
+            type: type,
+            createDate: new Date().toLocaleDateString("th-TH"),
+            company: document.getElementById("company")?.value,
+            requestName: document.getElementById("requestName")?.value,
+            customer: document.getElementById("name")?.value,
+            address: document.getElementById("address")?.value,
+
+            brand: document.getElementById("brand")?.value,
+            plate: document.getElementById("plate")?.value,
+            chassis: document.getElementById("chassis")?.value,
+
+            start: document.getElementById("start")?.value,
+            end: document.getElementById("end")?.value,
+
+            sumInsured: document.getElementById("sumInsured")?.value,
+            total: document.getElementById("total")?.value,
+            group: document.getElementById("group")?.value,
+
+            installment1: document.getElementById("installment1")?.value,
+            installment2: document.getElementById("installment2")?.value,
+            installment3: document.getElementById("installment3")?.value,
+            installment4: document.getElementById("installment4")?.value,
+
+            // เพิ่มใหม่: ชื่อพนักงานผู้แจ้งงานที่ล็อกอินอยู่ (จากระบบ login แบบง่าย auth.js)
+            // ข้อมูลเก่าที่ไม่มี field นี้จะยังใช้งานได้ตามปกติ
+            employeeName: (typeof getEmployeeName === "function") ? getEmployeeName() : ""
+        };
+    }
+
+    /* แก้ไข (สำคัญ): ฟอร์มประกันรถยนต์หน้านี้ยังไม่เปิดให้ใช้งานจริง
+       ห้ามบันทึกข้อมูลลง Firestore และห้ามเชื่อม/ส่งต่อข้อมูลไปหน้าอื่นเด็ดขาด
+       (เดิมเรียก window.saveRecord(record) บันทึกจริง — ตัดออกทั้งหมด)
+       เหลือไว้แค่แจ้งเตือนผู้ใช้ว่ายังใช้งานไม่ได้ ปุ่ม "⬅ กลับหน้าหลัก" ยังกดออกได้ตามปกติ */
+    document.getElementById("carForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        alert("ขณะนี้ฟอร์มประกันรถยนต์ยังไม่เปิดให้บันทึกข้อมูล กรุณาติดต่อผู้ดูแลระบบ");
+    });
+
+    // แก้ไข: ปิดการดู PDF ของฟอร์มนี้ไว้ก่อนเช่นกัน (ยังไม่มีข้อมูลจริงให้เชื่อมโยง)
+    function openPDF(type) {
+        alert("ขณะนี้ฟอร์มประกันรถยนต์ยังไม่เปิดให้ใช้งานส่วนนี้ กรุณาติดต่อผู้ดูแลระบบ");
+    }
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบบันทึกการเงิน</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <!-- สำหรับปุ่ม "Export Excel" -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <!-- เพิ่มใหม่: flatpickr สำหรับ Date Picker / Time Picker แบบกดเลือกจาก popup เท่านั้น
+         (ห้ามผู้ใช้พิมพ์วันที่/เวลาเอง ใช้ allowInput:false บังคับให้กดเลือกจาก popup อย่างเดียว) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/th.js"></script>
+
+    <!-- บังคับให้ต้อง login ก่อนเข้าใช้งานหน้านี้ เหมือนหน้าอื่นๆ ในระบบ -->
+    <script src="auth.js"></script>
+    <script>
+        requireLogin();
+    </script>
+
+    <style>
+        body { font-family: 'Prompt', sans-serif; }
+
+        /* กันไว้เผื่อโหลด Tailwind จาก CDN ไม่สำเร็จ (เช่น เน็ตช้า/ถูกบล็อก)
+           ทำให้คลาส hidden ยังคงซ่อนองค์ประกอบได้แน่นอนเสมอ ไม่ใช่แค่พึ่งพา Tailwind อย่างเดียว
+           (ค่าเดียวกับที่ Tailwind กำหนดไว้ให้ .hidden อยู่แล้ว จึงไม่ชนกัน) */
+        .hidden{
+            display:none !important;
+        }
+
+        .method-btn.active{
+            background:#2563eb;
+            color:#fff;
+            box-shadow:0 8px 18px rgba(37,99,235,.32);
+        }
+
+        /* แก้ไข: ย่อขนาดตัวเลือกเวลาให้เล็กกะทัดรัดลง (เดิมใหญ่เกินไป) และเปลี่ยนจาก <select> จริง
+           มาเป็นปุ่ม + รายการตัวเลือกที่ควบคุมเอง เพื่อบังคับให้รายการตัวเลือกกางลง "ด้านล่าง" เสมอ
+           (ของเดิมเป็น <select> ธรรมดา เบราว์เซอร์จะเลือกกางขึ้นบนเองถ้าพื้นที่ด้านล่างไม่พอ
+           ควบคุมไม่ได้ ใช้ปุ่ม+รายการของเราเอง กำหนด position:absolute ให้อยู่ใต้ปุ่มเสมอแทน) */
+        .fin-time-flip{
+            display:flex;
+            align-items:flex-start;
+            justify-content:center;
+            gap:8px;
+        }
+
+        .fin-flip-card{
+            position:relative;
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            gap:3px;
+        }
+
+        .fin-flip-card-label{
+            font-size:10px;
+            font-weight:600;
+            letter-spacing:.3px;
+            color:#9ca3af;
+        }
+
+        .fin-flip-btn{
+            width:52px;
+            height:40px;
+            margin:0;
+            padding:0;
+
+            background:#17181c;
+            color:#e5e7eb;
+
+            border:none;
+            border-radius:10px;
+            box-shadow:0 4px 10px rgba(0,0,0,.25);
+
+            font-family:'Prompt',sans-serif;
+            font-size:18px;
+            font-weight:700;
+            text-align:center;
+
+            cursor:pointer;
+            transition:.15s;
+        }
+
+        .fin-flip-btn:hover{
+            background:#202127;
+        }
+
+        .fin-flip-btn:focus{
+            outline:none;
+            box-shadow:0 0 0 3px rgba(37,99,235,.45);
+        }
+
+        .fin-time-flip-colon{
+            font-size:18px;
+            font-weight:700;
+            color:#111827;
+            line-height:1;
+            margin-top:10px;
+        }
+
+        /* รายการตัวเลือก (แทน <option> ของ select เดิม) กางลงด้านล่างปุ่มเสมอ ไม่มีทางขึ้นบน */
+        .fin-flip-list{
+            position:absolute;
+            top:calc(100% + 4px);
+            left:50%;
+            transform:translateX(-50%);
+            width:56px;
+            max-height:150px;
+            overflow-y:auto;
+
+            background:#17181c;
+            border-radius:10px;
+            box-shadow:0 12px 26px rgba(0,0,0,.35);
+            padding:4px;
+
+            display:none;
+            z-index:60;
+        }
+
+        .fin-flip-list.show{
+            display:block;
+        }
+
+        .fin-flip-option{
+            padding:7px 0;
+            text-align:center;
+            font-family:'Prompt',sans-serif;
+            font-size:13px;
+            color:#e5e7eb;
+            border-radius:6px;
+            cursor:pointer;
+        }
+
+        .fin-flip-option:hover,
+        .fin-flip-option.active{
+            background:#2563eb;
+            color:#fff;
+        }
+
+        .fin-toast{
+            position:fixed;
+            left:50%;
+            top:50%;
+            transform:translate(-50%,-50%) scale(.95);
+            background:#152A54;
+            color:#fff;
+            padding:16px 28px;
+            border-radius:16px;
+            font-weight:600;
+            box-shadow:0 16px 40px rgba(21,42,84,.32);
+            opacity:0;
+            z-index:99999;
+            pointer-events:none;
+            transition:opacity .25s ease, transform .25s ease;
+            text-align:center;
+        }
+        .fin-toast.show{
+            opacity:1;
+            transform:translate(-50%,-50%) scale(1);
+        }
+
+        .status-badge{
+            display:inline-block;
+            padding:3px 10px;
+            border-radius:999px;
+            font-size:11px;
+            font-weight:600;
+            white-space:nowrap;
+        }
+        .status-overdue{ background:#fee2e2; color:#b91c1c; }
+        .status-normal{ background:#dcfce7; color:#15803d; }
+
+        .fin-tab-panel{ display:none; }
+        .fin-tab-panel.active{ display:block; }
+
+        .fin-tab-btn.active{
+            background:#152A54;
+            color:#fff;
+        }
+
+        /* แถวลูกค้าที่เลือกได้ (คลิกทั้งแถวเพื่อเลือก/ยกเลิก) */
+        .customer-row{
+            cursor:pointer;
+            transition:.15s;
+        }
+        .customer-row.selected{
+            background:#eff6ff;
+        }
+
+        .pick-btn{
+            padding:5px 12px;
+            border-radius:999px;
+            font-size:12px;
+            font-weight:600;
+            border:1.5px solid #cbd5e1;
+            background:#fff;
+            color:#334155;
+            white-space:nowrap;
+            transition:.15s;
+        }
+        .pick-btn.picked{
+            background:#2563eb;
+            border-color:#2563eb;
+            color:#fff;
+        }
+
+        .chip{
+            display:inline-flex;
+            align-items:center;
+            gap:6px;
+            background:#eff6ff;
+            border:1px solid #bfdbfe;
+            color:#1e40af;
+            padding:5px 6px 5px 12px;
+            border-radius:999px;
+            font-size:13px;
+            font-weight:600;
+        }
+        .chip button{
+            background:#dbeafe;
+            border-radius:999px;
+            width:20px;
+            height:20px;
+            font-size:12px;
+            line-height:1;
+            color:#1e40af;
+        }
+
+        .check-status-btn{
+            padding:6px 12px;
+            border-radius:999px;
+            font-size:12px;
+            font-weight:700;
+            white-space:nowrap;
+            border:none;
+            cursor:pointer;
+        }
+        .check-status-pending{ background:#fef3c7; color:#92400e; }
+        .check-status-done{ background:#dcfce7; color:#15803d; }
+
+        /* โมดัลประวัติการชำระ */
+        .fin-modal-overlay{
+            position:fixed; inset:0; background:rgba(15,23,42,.55);
+            display:flex; align-items:center; justify-content:center;
+            padding:16px; z-index:9999;
+        }
+        .fin-modal-box{
+            background:#fff; border-radius:20px; max-width:640px; width:100%;
+            max-height:85vh; overflow-y:auto; padding:22px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 p-4 md:p-6">
+
+    <div class="max-w-6xl mx-auto bg-white shadow-lg rounded-2xl p-4 md:p-8">
+
+        <div class="grid grid-cols-3 items-center mb-6 border-b pb-3">
+            <div class="flex items-center gap-3 justify-self-start">
+                <button onclick="location.href='account_menu.html'"
+                    class="px-4 py-2 rounded-full bg-gray-100 text-gray-600 font-medium hover:bg-gray-200 transition text-sm">
+                    ← กลับเมนูบัญชี
+                </button>
+            </div>
+            <h1 class="text-xl md:text-2xl font-bold text-blue-600 justify-self-center text-center">บันทึกการเงิน</h1>
+            <div class="justify-self-end"></div>
+        </div>
+
+        <!-- แท็บสลับ: บันทึกการชำระเงิน / รายงานการเงิน / ประวัติการชำระ -->
+        <div class="flex gap-2 mb-6 flex-wrap">
+            <button type="button" id="tabBtnPay" class="fin-tab-btn active px-5 py-2.5 rounded-xl font-semibold text-sm bg-gray-100 text-gray-700 transition">
+                💳 บันทึกการชำระเงิน
+            </button>
+            <button type="button" id="tabBtnReport" class="fin-tab-btn px-5 py-2.5 rounded-xl font-semibold text-sm bg-gray-100 text-gray-700 transition">
+                📊 รายงานการเงิน
+            </button>
+            <button type="button" id="btnAllHistory"
+                class="px-5 py-2.5 rounded-xl font-semibold text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 transition">
+                🕒 ประวัติการชำระ
+            </button>
+        </div>
+
+        <!-- ============================================================
+             TAB 1: บันทึกการชำระเงิน
+             ลำดับใหม่: 1) เลือกลูกค้าก่อน 2) ค่อยแสดงส่วนบันทึกการชำระ
+        ============================================================= -->
+        <div id="panelPay" class="fin-tab-panel active">
+
+            <!-- ขั้นที่ 2: แสดงต่อเมื่อเลือกลูกค้าอย่างน้อย 1 ราย (ย้ายมาไว้บนสุด อยู่เหนือของตารางลูกค้า) -->
+            <div id="paymentStage" class="hidden pb-6 mb-6 border-b">
+
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">2️⃣ ลูกค้าที่เลือก</h3>
+
+                <div class="flex flex-wrap items-center gap-2 mb-6" id="selectedChips"></div>
+
+                <button type="button" onclick="clearSelection()"
+                    class="mb-6 -mt-4 text-xs text-red-500 hover:text-red-700 font-medium underline">
+                    ล้างการเลือกทั้งหมด
+                </button>
+
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">3️⃣ บันทึกการชำระเงิน</h3>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <button data-method="transfer" onclick="selectMethod('transfer')" id="btn-transfer"
+                        class="method-btn py-3 px-4 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 font-medium rounded-xl transition shadow-sm">
+                        1. โอน
+                    </button>
+                    <button data-method="cash" onclick="selectMethod('cash')" id="btn-cash"
+                        class="method-btn py-3 px-4 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 font-medium rounded-xl transition shadow-sm">
+                        2. จ่ายสด
+                    </button>
+                    <button data-method="check" onclick="selectMethod('check')" id="btn-check"
+                        class="method-btn py-3 px-4 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 font-medium rounded-xl transition shadow-sm">
+                        3. เช็ค
+                    </button>
+                    <button data-method="direct" onclick="selectMethod('direct')" id="btn-direct"
+                        class="method-btn py-3 px-4 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 font-medium rounded-xl transition shadow-sm">
+                        4. จ่ายตรง
+                    </button>
+                </div>
+
+                <div id="paymentFormSection" class="hidden bg-blue-50/50 border border-blue-200 rounded-2xl p-5 mb-2 transition-all duration-300"></div>
+            </div>
+
+            <!-- ขั้นที่ 1: รายการลูกค้าค้างชำระทั้งหมด -->
+            <div class="mb-6" id="customerTableSection">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-3">
+                    <h3 class="text-lg font-semibold text-gray-800">
+                        1️⃣ เลือกลูกค้าที่จะบันทึกการชำระเงิน
+                        <span id="debtCount" class="text-sm font-normal text-gray-500 block md:inline"></span>
+                    </h3>
+                    <input type="text" id="debtSearch" placeholder="🔍 ค้นหาชื่อลูกค้า / ทะเบียนรถ..."
+                        class="border border-gray-300 rounded-xl px-4 py-2 text-sm w-full md:w-72 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div class="overflow-x-auto rounded-xl border border-gray-200">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-gray-100 text-gray-700">
+                                <th class="p-3 text-center">เลือก</th>
+                                <th class="p-3">ชื่อผู้เอาประกัน</th>
+                                <th class="p-3">บริษัท</th>
+                                <th class="p-3">ทะเบียน</th>
+                                <th class="p-3">วันเริ่ม</th>
+                                <th class="p-3">ยอดเงิน</th>
+                                <th class="p-3">เบอร์โทร</th>
+                                <th class="p-3 text-center">สถานะ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="debtTableBody" class="divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ============================================================
+             TAB 2: รายงานการเงิน
+        ============================================================= -->
+        <div id="panelReport" class="fin-tab-panel">
+
+            <div class="bg-gray-50 border border-gray-200 rounded-2xl p-4 mb-5">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-blue-900 mb-1">วันที่</label>
+                        <select id="reportFilterDay" class="w-full border border-gray-300 rounded-lg px-2 py-2 text-sm"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-blue-900 mb-1">เดือน</label>
+                        <select id="reportFilterMonth" class="w-full border border-gray-300 rounded-lg px-2 py-2 text-sm"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-blue-900 mb-1">ปี</label>
+                        <select id="reportFilterYear" class="w-full border border-gray-300 rounded-lg px-2 py-2 text-sm"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-blue-900 mb-1">บริษัท</label>
+                        <select id="reportFilterCompany" class="w-full border border-gray-300 rounded-lg px-2 py-2 text-sm"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-blue-900 mb-1">วิธีชำระ</label>
+                        <select id="reportFilterMethod" class="w-full border border-gray-300 rounded-lg px-2 py-2 text-sm">
+                            <option value="all">ทั้งหมด</option>
+                            <option value="transfer">โอน</option>
+                            <option value="cash">จ่ายสด</option>
+                            <option value="check">เช็ค</option>
+                            <option value="direct">จ่ายตรง</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-blue-900 mb-1">สถานะตรวจสอบ</label>
+                        <select id="reportFilterStatus" class="w-full border border-gray-300 rounded-lg px-2 py-2 text-sm">
+                            <option value="all">ทั้งหมด</option>
+                            <option value="pending">รอตรวจสอบ</option>
+                            <option value="checked">เช็คแล้ว</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-blue-900 mb-1">🔍 ค้นหา</label>
+                        <input type="text" id="reportSearch" placeholder="ชื่อ / ทะเบียน"
+                            class="w-full border border-gray-300 rounded-lg px-2 py-2 text-sm">
+                    </div>
+                </div>
+
+                <div class="flex flex-col md:flex-row justify-between items-center gap-3">
+                    <div id="reportTotal" class="font-bold text-blue-900 text-sm md:text-base"></div>
+                    <button onclick="exportExcel()"
+                        class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition shadow-sm">
+                        📥 Export Excel
+                    </button>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto rounded-xl border border-gray-200">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                        <tr class="bg-blue-900 text-white">
+                            <th class="p-3 whitespace-nowrap text-center">สถานะ</th>
+                            <th class="p-3">ชื่อ</th>
+                            <th class="p-3">บริษัท</th>
+                            <th class="p-3">ทะเบียน</th>
+                            <th class="p-3 whitespace-nowrap">วันเริ่ม</th>
+                            <th class="p-3">วิธีการชำระ</th>
+                            <th class="p-3 whitespace-nowrap">ยอดเงินที่ชำระ</th>
+                            <th class="p-3">ผู้บันทึก</th>
+                            <th class="p-3 text-center">ประวัติ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportTableBody" class="divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- โมดัลประวัติการชำระ -->
+    <div id="historyModalOverlay" class="fin-modal-overlay hidden" onclick="if(event.target===this) closeHistoryModal()">
+        <div class="fin-modal-box">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-blue-900" id="historyModalTitle">ประวัติการชำระ</h3>
+                <button onclick="closeHistoryModal()" class="text-gray-400 hover:text-gray-700 text-xl leading-none">✕</button>
+            </div>
+            <div id="historyModalBody" class="space-y-3"></div>
+        </div>
+    </div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+import {
+    getFirestore,
+    collection,
+    onSnapshot,
+    addDoc,
+    updateDoc,
+    doc,
+    serverTimestamp
+} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+/* ตั้งค่าเดียวกับทุกหน้าในระบบ เพื่ออ่าน/เขียน collection เดียวกัน */
+const firebaseConfig = {
+  apiKey: "AIzaSyCNpaYlwrkJhBA-8tAax022PWWFYMRz7Kw",
+  authDomain: "insurance-system-f26b0.firebaseapp.com",
+  projectId: "insurance-system-f26b0",
+  storageBucket: "insurance-system-f26b0.firebasestorage.app",
+  messagingSenderId: "438698153100",
+  appId: "1:438698153100:web:a553b97b59701883f057a9",
+  measurementId: "G-XXWCQEMT0B"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* =========================================================
+   CONST / HELPERS
+========================================================= */
+const THAI_MONTHS = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน",
+    "กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+
+const METHOD_LABELS = { transfer:"โอน", cash:"จ่ายสด", check:"เช็ค", direct:"จ่ายตรง" };
+
+function fmt(n){ return Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2}); }
+function safe(v){ return (v===undefined||v===null||v==="") ? "-" : v; }
+
+function showToast(message){
+    const toast = document.createElement("div");
+    toast.className = "fin-toast";
+    toast.innerText = message;
+    document.body.appendChild(toast);
+    requestAnimationFrame(()=>toast.classList.add("show"));
+    setTimeout(()=>{
+        toast.classList.remove("show");
+        setTimeout(()=>toast.remove(), 300);
+    }, 2200);
+}
+
+function calcDebt(item){
+    const total = Number(item.total || 0);
+    let paid = 0;
+    for(let i=1;i<=4;i++) paid += Number(item["installment"+i] || 0);
+    Object.keys(item).forEach(k=>{
+        const m = k.match(/^installment(\d+)$/);
+        if(m && parseInt(m[1],10) > 4) paid += Number(item[k] || 0);
+    });
+    return total - paid;
+}
+
+function calculateOverdue(dateStr){
+    if(!dateStr) return 0;
+    let due;
+    const parts = String(dateStr).split("/");
+    if(parts.length === 3){
+        due = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+    } else {
+        due = new Date(dateStr);
+    }
+    if(isNaN(due.getTime())) return 0;
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    due.setHours(0,0,0,0);
+    const diff = today - due;
+    const days = Math.floor(diff / (1000*60*60*24));
+    return days > 0 ? days : 0;
+}
+
+function toThaiDateDisplay(isoDate){
+    if(!isoDate) return "-";
+    const [y,m,d] = isoDate.split("-");
+    if(!y || !m || !d) return isoDate;
+    return `${d}/${m}/${Number(y)+543}`;
+}
+
+/* =========================================================
+   STATE
+========================================================= */
+let insuranceData = [];
+let debtList = [];
+let hiddenIds = new Set();     // ลูกค้าที่เพิ่งบันทึกชำระในเซสชันนี้ (ซ่อนออกจากตารางค้างชำระ)
+let selectedIds = new Set();   // ลูกค้าที่ถูกเลือกอยู่ (รอบันทึกการชำระ)
+let currentMethod = null;
+let paymentRecords = [];
+
+/* =========================================================
+   โหลดข้อมูลลูกค้าค้างชำระแบบ realtime
+========================================================= */
+onSnapshot(collection(db, "insuranceData"), (snapshot) => {
+    insuranceData = snapshot.docs.map(d => ({ id:d.id, ...d.data() }));
+    rebuildDebtList();
+});
+
+function rebuildDebtList(){
+    debtList = insuranceData
+        .map(item => ({ ...item, debtAmount: calcDebt(item), overdue: calculateOverdue(item.end) }))
+        .filter(item => item.debtAmount > 0 && !hiddenIds.has(item.id))
+        .sort((a,b) => b.overdue - a.overdue);
+
+    [...selectedIds].forEach(id => {
+        if(!debtList.find(x => x.id === id)) selectedIds.delete(id);
+    });
+
+    renderDebtTable();
+    renderSelectionStage();
+}
+
+/* =========================================================
+   ขั้นที่ 1: ตารางลูกค้าค้างชำระ + ปุ่มเลือกลูกค้า
+========================================================= */
+function getFilteredDebtList(){
+    const term = (document.getElementById("debtSearch").value || "").trim().toLowerCase();
+    if(!term) return debtList;
+    return debtList.filter(item =>
+        (item.customer || "").toLowerCase().includes(term) ||
+        (item.plate || "").toLowerCase().includes(term)
+    );
+}
+
+function renderDebtTable(){
+    const list = getFilteredDebtList();
+    const tbody = document.getElementById("debtTableBody");
+
+    document.getElementById("debtCount").innerText = `(ทั้งหมด ${list.length} รายการ)`;
+
+    tbody.innerHTML = list.map(item => {
+        const picked = selectedIds.has(item.id);
+        return `
+        <tr class="customer-row hover:bg-gray-50 ${picked ? "selected" : ""}" onclick="toggleSelectCustomer('${item.id}')">
+            <td class="p-3 text-center" onclick="event.stopPropagation(); toggleSelectCustomer('${item.id}')">
+                <button type="button" class="pick-btn ${picked ? "picked" : ""}">
+                    ${picked ? "✓ เลือกแล้ว" : "+ เลือก"}
+                </button>
+            </td>
+            <td class="p-3 font-medium text-gray-900">${safe(item.customer)}</td>
+            <td class="p-3 text-gray-600">${safe(item.company)}</td>
+            <td class="p-3 text-gray-600">${safe(item.plate)}</td>
+            <td class="p-3 text-gray-600 whitespace-nowrap">${safe(item.start)}</td>
+            <td class="p-3 text-blue-600 font-semibold whitespace-nowrap">${fmt(item.debtAmount)} ฿</td>
+            <td class="p-3 text-gray-600 whitespace-nowrap">${safe(item.phone)}</td>
+            <td class="p-3 text-center">
+                <span class="status-badge ${item.overdue > 0 ? "status-overdue" : "status-normal"}">
+                    ${item.overdue > 0 ? "เกินกำหนด " + item.overdue + " วัน" : "ปกติ"}
+                </span>
+            </td>
+        </tr>`;
+    }).join("") || `<tr><td colspan="8" class="p-6 text-center text-gray-400">ไม่มีลูกค้าค้างชำระ</td></tr>`;
+}
+
+window.toggleSelectCustomer = function(id){
+    if(selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
+    renderDebtTable();
+    renderSelectionStage();
+};
+
+window.clearSelection = function(){
+    selectedIds.clear();
+    currentMethod = null;
+    renderDebtTable();
+    renderSelectionStage();
+};
+
+document.getElementById("debtSearch").addEventListener("input", renderDebtTable);
+
+/* =========================================================
+   ขั้นที่ 2: แสดงลูกค้าที่เลือก + ปุ่มวิธีชำระ (โผล่มาก็ต่อเมื่อเลือกลูกค้าแล้ว)
+========================================================= */
+function renderSelectionStage(){
+
+    const stage = document.getElementById("paymentStage");
+
+    if(selectedIds.size === 0){
+        stage.classList.add("hidden");
+        document.getElementById("paymentFormSection").classList.add("hidden");
+        return;
+    }
+
+    stage.classList.remove("hidden");
+
+    const chipsWrap = document.getElementById("selectedChips");
+    chipsWrap.innerHTML = [...selectedIds].map(id => {
+        const item = debtList.find(x => x.id === id);
+        const name = item ? item.customer : "-";
+        return `
+            <span class="chip">
+                👤 ${safe(name)}
+                <button type="button" onclick="toggleSelectCustomer('${id}')" title="เอาออก">✕</button>
+            </span>
+        `;
+    }).join("");
+
+    // ทุกครั้งที่เลือก/ยกเลิกเลือกลูกค้า ให้เลื่อนทั้งหน้าจอขึ้นไปบนสุดเลย
+    window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/* =========================================================
+   ปุ่มวิธีชำระ + ฟอร์ม
+========================================================= */
+window.selectMethod = function(method){
+
+    if(currentMethod === method){
+        currentMethod = null;
+        resetMethodButtons();
+        document.getElementById("paymentFormSection").classList.add("hidden");
+        return;
+    }
+
+    currentMethod = method;
+    resetMethodButtons();
+    document.getElementById("btn-" + method).classList.add("active");
+    renderPaymentForm(method);
+};
+
+function resetMethodButtons(){
+    ["transfer","cash","check","direct"].forEach(m => {
+        document.getElementById("btn-" + m).classList.remove("active");
+    });
+}
+
+/* เลือกบัญชี "อื่นๆ" ของการโอนเงิน -> โชว์ช่องกรอกชื่อบัญชีเพิ่ม */
+window.onFinTransferAccountChange = function(){
+    const selected = document.querySelector('input[name="fin_tf_account"]:checked');
+    const otherInput = document.getElementById("fin_tf_account_other");
+    if(!otherInput) return;
+
+    if(selected && selected.value === "อื่นๆ"){
+        otherInput.classList.remove("hidden");
+    } else {
+        otherInput.classList.add("hidden");
+    }
+};
+
+/* แก้ไข: ย่อขนาดตัวเลือกเวลาให้เล็กลง และเปลี่ยนจาก <select> จริง (ที่เบราว์เซอร์อาจกางรายการ
+   ขึ้นด้านบนเองถ้าพื้นที่ด้านล่างไม่พอ) มาเป็นปุ่ม + รายการที่คุมตำแหน่งเอง เพื่อบังคับให้รายการ
+   ตัวเลขกางลง "ด้านล่างปุ่ม" เสมอ ยังคงกดเลือกได้อย่างเดียว พิมพ์เองไม่ได้เหมือนเดิม
+   getFinCurrentHour/Minute ใช้ตั้งค่าเริ่มต้นตอนสร้างฟอร์ม (เวลาปัจจุบัน)
+   buildFinTimeListItems ใช้สร้างรายการตัวเลขให้กดเลือกทีหลัง (เรียกจาก initFinTimeDropdowns) */
+function getFinCurrentHour(){
+    return String(new Date().getHours()).padStart(2, "0");
+}
+
+function getFinCurrentMinute(){
+    return String(new Date().getMinutes()).padStart(2, "0");
+}
+
+function buildFinTimeListItems(type, currentValue){
+
+    const max = type === "hour" ? 24 : 60;
+    let html = "";
+
+    for(let i = 0; i < max; i++){
+        const value = String(i).padStart(2, "0");
+        const activeClass = value === currentValue ? " active" : "";
+        html += `<div class="fin-flip-option${activeClass}" onclick="finSelectTime('${type}','${value}')">${value}</div>`;
+    }
+
+    return html;
+}
+
+/* เรียกหลังสร้างฟอร์ม (section.innerHTML) เสร็จทุกครั้ง เพื่อเติมรายการตัวเลขลงใน
+   กล่อง .fin-flip-list ที่ยังว่างอยู่ (แยกจาก HTML หลักเพื่อไม่ให้ template ยาวเกินไป) */
+function initFinTimeDropdowns(){
+
+    const hourBtn = document.getElementById("fin_hour_btn");
+    const minuteBtn = document.getElementById("fin_minute_btn");
+    const hourList = document.getElementById("fin_hour_list");
+    const minuteList = document.getElementById("fin_minute_list");
+
+    if(hourList) hourList.innerHTML = buildFinTimeListItems("hour", hourBtn?.dataset.value);
+    if(minuteList) minuteList.innerHTML = buildFinTimeListItems("minute", minuteBtn?.dataset.value);
+}
+
+/* กดที่ปุ่มชั่วโมง/นาที -> เปิด/ปิดรายการตัวเลขของกล่องนั้น (ปิดอีกกล่องที่อาจเปิดค้างไว้ก่อนเสมอ) */
+window.finToggleTimeList = function(type){
+
+    const listId = type === "hour" ? "fin_hour_list" : "fin_minute_list";
+    const otherId = type === "hour" ? "fin_minute_list" : "fin_hour_list";
+
+    const list = document.getElementById(listId);
+    const other = document.getElementById(otherId);
+
+    if(other) other.classList.remove("show");
+    if(list) list.classList.toggle("show");
+};
+
+/* กดเลือกตัวเลขในรายการ -> บันทึกค่าไว้ที่ data-value ของปุ่ม + อัปเดตตัวเลขที่แสดง แล้วปิดรายการ */
+window.finSelectTime = function(type, value){
+
+    const btnId = type === "hour" ? "fin_hour_btn" : "fin_minute_btn";
+    const listId = type === "hour" ? "fin_hour_list" : "fin_minute_list";
+
+    const btn = document.getElementById(btnId);
+    if(btn){
+        btn.dataset.value = value;
+        btn.textContent = value;
+    }
+
+    const list = document.getElementById(listId);
+    if(list) list.classList.remove("show");
+};
+
+/* กดที่อื่นนอกกล่องเวลา -> ปิดรายการที่เปิดค้างไว้ทั้งหมด */
+document.addEventListener("click", function(e){
+    if(e.target.closest(".fin-flip-card")) return;
+    document.querySelectorAll(".fin-flip-list.show").forEach(l => l.classList.remove("show"));
+});
+
+function renderPaymentForm(method){
+
+    const section = document.getElementById("paymentFormSection");
+    section.classList.remove("hidden");
+
+    let extraFieldsHtml = "";
+
+    /* "โอน" แสดงเป็นการ์ดในหน้าเดียวกันแทนโมดัลแยก: เลือกบัญชีก่อน แล้วค่อยกรอกยอดเงิน/วันที่/เวลา */
+    if(method === "transfer"){
+        extraFieldsHtml = `
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">เลือกบัญชี:</label>
+                <div class="flex flex-col sm:flex-row flex-wrap gap-3">
+                    <label class="flex items-center gap-2 cursor-pointer bg-white px-4 py-2.5 rounded-xl border border-gray-200 shadow-sm">
+                        <input type="radio" name="fin_tf_account" value="บัญชีพี่พลอย" class="text-blue-600 focus:ring-blue-500" onchange="onFinTransferAccountChange()">
+                        <span class="text-sm">บัญชีพี่พลอย</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer bg-white px-4 py-2.5 rounded-xl border border-gray-200 shadow-sm">
+                        <input type="radio" name="fin_tf_account" value="บัญชีพี่เอ" class="text-blue-600 focus:ring-blue-500" onchange="onFinTransferAccountChange()">
+                        <span class="text-sm">บัญชีพี่เอ</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer bg-white px-4 py-2.5 rounded-xl border border-gray-200 shadow-sm">
+                        <input type="radio" name="fin_tf_account" value="อื่นๆ" class="text-blue-600 focus:ring-blue-500" onchange="onFinTransferAccountChange()">
+                        <span class="text-sm">อื่นๆ</span>
+                    </label>
+                </div>
+                <input type="text" id="fin_tf_account_other" placeholder="ระบุชื่อบัญชี"
+                    class="hidden mt-2 w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+        `;
+    }
+
+    if(method === "check"){
+        extraFieldsHtml = `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">ธนาคาร</label>
+                    <input type="text" id="fin_bank" class="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">เลขที่เช็ค</label>
+                    <input type="text" id="fin_checkNo" class="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+        `;
+    }
+
+    if(method === "direct"){
+        extraFieldsHtml = `
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อผู้รับเงิน</label>
+                <input type="text" id="fin_payee" class="w-full md:w-1/2 bg-white border border-gray-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+        `;
+    }
+
+    const titleText = method === "transfer" ? "รายละเอียดการโอนเงิน" : `บันทึกการชำระเงิน (${METHOD_LABELS[method]})`;
+    const amountLabel = method === "transfer" ? "ยอดเงินที่โอน" : "ยอดเงิน";
+    const dateLabel = method === "transfer" ? "วันที่โอน" : "วันที่";
+
+    section.innerHTML = `
+        <h3 class="font-semibold text-blue-800 mb-3">${titleText}</h3>
+
+        ${extraFieldsHtml}
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">${amountLabel}</label>
+                <input type="number" id="fin_amount" placeholder="0.00" min="0" step="0.01"
+                    class="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">${dateLabel}</label>
+                <input type="text" id="fin_date" placeholder="เลือกวันที่" readonly
+                    class="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">เวลา</label>
+                <!-- แก้ไข: ย่อขนาดให้เล็กกะทัดรัดลง และเปลี่ยนจาก <select> จริงมาเป็นปุ่ม + รายการ
+                     ที่คุมเอง (ดู finToggleTimeList / finSelectTime ด้านล่าง) เพื่อบังคับให้รายการ
+                     ตัวเลขกางลง "ด้านล่างปุ่ม" เสมอ ไม่มีทางกางขึ้นบนแบบ select ธรรมดา -->
+                <div class="fin-time-flip">
+                    <div class="fin-flip-card">
+                        <button type="button" class="fin-flip-btn" id="fin_hour_btn"
+                            data-value="${getFinCurrentHour()}"
+                            onclick="finToggleTimeList('hour')">${getFinCurrentHour()}</button>
+                        <span class="fin-flip-card-label">ชม.</span>
+                        <div class="fin-flip-list" id="fin_hour_list"></div>
+                    </div>
+                    <span class="fin-time-flip-colon">:</span>
+                    <div class="fin-flip-card">
+                        <button type="button" class="fin-flip-btn" id="fin_minute_btn"
+                            data-value="${getFinCurrentMinute()}"
+                            onclick="finToggleTimeList('minute')">${getFinCurrentMinute()}</button>
+                        <span class="fin-flip-card-label">นาที</span>
+                        <div class="fin-flip-list" id="fin_minute_list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ (ไม่บังคับ)</label>
+            <input type="text" id="fin_note"
+                class="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <div class="flex justify-end gap-3">
+            <button type="button" onclick="cancelPaymentForm()"
+                class="px-5 py-2.5 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium text-sm transition">
+                ยกเลิก
+            </button>
+            <button type="button" onclick="savePayment()"
+                class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition">
+                💾 บันทึก
+            </button>
+        </div>
+    `;
+
+    initFinDateTimePickers();
+    initFinTimeDropdowns();
+}
+
+/* เพิ่มใหม่: ผูก flatpickr เข้ากับช่อง "วันที่" ทุกครั้งที่สร้างฟอร์มขึ้นใหม่
+   (ต้องเรียกใหม่ทุกครั้ง เพราะ section.innerHTML แทนที่ element เดิมทั้งหมด)
+   allowInput:false + clickOpens:true = กดเพื่อเปิด popup เลือกได้อย่างเดียว พิมพ์เองไม่ได้เด็ดขาด
+   ส่วนช่อง "เวลา" เปลี่ยนไปใช้ปุ่ม + รายการที่คุมเอง (ดู finToggleTimeList() / finSelectTime()) */
+function initFinDateTimePickers(){
+
+    if(typeof flatpickr !== "function") return;
+
+    const thaiLocale = (flatpickr.l10ns && flatpickr.l10ns.th) ? "th" : undefined;
+
+    const dateInput = document.getElementById("fin_date");
+    if(dateInput){
+        flatpickr(dateInput, {
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "d/m/Y",
+            allowInput: false,
+            clickOpens: true,
+            locale: thaiLocale
+        });
+    }
+
+    // แก้ไข: ช่อง "เวลา" เปลี่ยนเป็นปุ่ม + รายการที่คุมเอง (ดู finToggleTimeList() / finSelectTime())
+    // ไม่ต้องผูก flatpickr อีกต่อไป เพราะ dropdown เลือกได้อย่างเดียวอยู่แล้วโดยธรรมชาติ
+}
+
+window.cancelPaymentForm = function(){
+    currentMethod = null;
+    resetMethodButtons();
+    document.getElementById("paymentFormSection").classList.add("hidden");
+};
+
+/* =========================================================
+   บันทึกข้อมูลจริงลง Firestore (ใช้ร่วมกันทั้งการ์ดชำระเงินแบบเดิม
+   สำหรับ จ่ายสด/เช็ค/จ่ายตรง และโมดัล "บันทึกการโอนเงิน")
+   หมายเหตุ: บันทึกเป็น "1 เอกสารต่อ 1 ลูกค้า" ใน collection paymentRecords
+   เพื่อให้ผู้จัดการกดปุ่ม "เช็คแล้ว/รอตรวจสอบ" และดูประวัติได้เป็นรายบุคคลชัดเจน
+   ถ้าเลือกหลายลูกค้าพร้อมกัน ยอดเงิน/วันที่/วิธีชำระที่กรอกจะถูกใช้ร่วมกันทุกคนที่เลือก
+
+   แก้ไข: เดิมซ่อนลูกค้าออกจากตารางค้างชำระทันทีไม่ว่าจะจ่ายครบหรือไม่ก็ตาม
+   ตอนนี้จะซ่อนก็ต่อเมื่อยอดชำระสะสมของลูกค้าคนนั้น (รวมรายการที่เพิ่งบันทึก)
+   ครบตามยอดค้างชำระ (ตามตารางลูกหนี้) แล้วเท่านั้น ถ้ายังจ่ายไม่ครบ ลูกค้าจะยังคง
+   แสดงอยู่ในรายการค้างชำระตามปกติ เพื่อให้บันทึกงวดถัดไปต่อได้
+========================================================= */
+async function persistPaymentRecords(fields){
+
+    if(selectedIds.size === 0){
+        alert("กรุณาเลือกลูกค้าอย่างน้อย 1 ราย");
+        return false;
+    }
+
+    const recordedBy = (typeof getEmployeeName === "function") ? getEmployeeName() : "";
+    const targets = [...selectedIds].map(id => debtList.find(x => x.id === id)).filter(Boolean);
+
+    try{
+
+        await Promise.all(targets.map(item => addDoc(collection(db, "paymentRecords"), {
+            customerId: item.id,
+            customer: item.customer || "",
+            company: item.company || "",
+            plate: item.plate || "",
+            start: item.start || "",
+            phone: item.phone || "",
+            ...fields,
+            recordedBy: recordedBy,
+            checked: false,
+            checkedBy: "",
+            checkedAt: null,
+            createdAt: serverTimestamp()
+        })));
+
+        // ซ่อนเฉพาะลูกค้าที่ยอดชำระสะสม (รวมรายการที่เพิ่งบันทึกนี้) ครบตามยอดค้างชำระแล้วเท่านั้น
+        targets.forEach(item => {
+            const paidBefore = paymentRecords
+                .filter(r => r.customerId === item.id)
+                .reduce((sum, r) => sum + Number(r.amount || 0), 0);
+            const paidTotal = paidBefore + Number(fields.amount || 0);
+            if(paidTotal >= Number(item.debtAmount || 0)){
+                hiddenIds.add(item.id);
+            }
+        });
+
+        selectedIds.clear();
+        currentMethod = null;
+        rebuildDebtList();
+
+        showToast("✅ บันทึกข้อมูลเรียบร้อย");
+
+        // กดบันทึกแล้วพาไปหน้ารายงานการเงินทันที เพื่อรอผู้จัดการตรวจสอบ
+        switchTab("report");
+
+        return true;
+
+    }catch(err){
+        console.error("บันทึกข้อมูลไม่สำเร็จ:", err);
+        alert("บันทึกข้อมูลไม่สำเร็จ: " + (err.message || "กรุณาลองใหม่อีกครั้ง"));
+        return false;
+    }
+}
+
+/* บันทึกการชำระเงิน: โอน / จ่ายสด / เช็ค / จ่ายตรง (จากการ์ดฝัง inline เดียวกันทั้งหมด) */
+window.savePayment = async function(){
+
+    if(!currentMethod){
+        alert("กรุณาเลือกวิธีชำระเงิน");
+        return;
+    }
+
+    const savedMethod = currentMethod;
+
+    let account = "";
+    if(savedMethod === "transfer"){
+        const selectedAccount = document.querySelector('input[name="fin_tf_account"]:checked');
+        if(!selectedAccount){
+            alert("กรุณาเลือกบัญชีรับเงิน");
+            return;
+        }
+        account = selectedAccount.value;
+        if(account === "อื่นๆ"){
+            const other = document.getElementById("fin_tf_account_other")?.value.trim();
+            if(!other){
+                alert("กรุณาระบุชื่อบัญชี");
+                return;
+            }
+            account = other;
+        }
+    }
+
+    const amount = Number(document.getElementById("fin_amount")?.value || 0);
+    if(!amount || amount <= 0){
+        alert(savedMethod === "transfer" ? "กรุณากรอกยอดเงินที่โอน" : "กรุณากรอกยอดเงิน");
+        return;
+    }
+
+    const dateVal = document.getElementById("fin_date")?.value;
+    if(!dateVal){
+        alert(savedMethod === "transfer" ? "กรุณาเลือกวันที่โอน" : "กรุณาเลือกวันที่");
+        return;
+    }
+
+    // แก้ไข: เวลาตอนนี้มาจากปุ่ม 2 กล่องแยก (ชั่วโมง/นาที) อ่านค่าจาก data-value รวมเป็น "HH:MM" เหมือนเดิม
+    const hourVal = document.getElementById("fin_hour_btn")?.dataset.value;
+    const minuteVal = document.getElementById("fin_minute_btn")?.dataset.value;
+    const timeVal = (hourVal !== undefined && hourVal !== "" && minuteVal !== undefined && minuteVal !== "")
+        ? `${hourVal}:${minuteVal}`
+        : "";
+    if(!timeVal){
+        alert("กรุณาเลือกเวลา");
+        return;
+    }
+
+    const bank = savedMethod === "check" ? (document.getElementById("fin_bank")?.value || "") : "";
+    const checkNo = savedMethod === "check" ? (document.getElementById("fin_checkNo")?.value || "") : "";
+    const payee = savedMethod === "direct" ? (document.getElementById("fin_payee")?.value || "") : "";
+    const note = document.getElementById("fin_note")?.value || "";
+
+    const ok = await persistPaymentRecords({
+        method: savedMethod,
+        methodLabel: METHOD_LABELS[savedMethod],
+        account, bank, checkNo, payee,
+        amount: amount,
+        date: dateVal,
+        dateDisplay: toThaiDateDisplay(dateVal),
+        time: timeVal,
+        note: note
+    });
+
+    if(ok){
+        document.getElementById("paymentFormSection").classList.add("hidden");
+        resetMethodButtons();
+    }
+};
+
+/* =========================================================
+   รายงานการเงิน (อ่านจาก paymentRecords แบบ realtime)
+========================================================= */
+onSnapshot(collection(db, "paymentRecords"), (snapshot) => {
+    paymentRecords = snapshot.docs.map(d => ({ id:d.id, ...d.data() }));
+    populateReportFilters();
+    renderReportTable();
+});
+
+function populateReportFilters(){
+
+    const daySelect = document.getElementById("reportFilterDay");
+    const monthSelect = document.getElementById("reportFilterMonth");
+    const yearSelect = document.getElementById("reportFilterYear");
+    const companySelect = document.getElementById("reportFilterCompany");
+
+    // เพิ่มใหม่: ตัวเลือก "วันที่" (1-31) เหมือนตัวเลือกเดือน/ปี ใช้กรองวันที่ชำระแบบเจาะจงวันได้
+    if(!daySelect.dataset.ready){
+        let dayOptions = `<option value="all">ทั้งหมด</option>`;
+        for(let d = 1; d <= 31; d++){
+            const key = String(d).padStart(2, "0");
+            dayOptions += `<option value="${key}">${d}</option>`;
+        }
+        daySelect.innerHTML = dayOptions;
+        daySelect.dataset.ready = "true";
+    }
+
+    if(!monthSelect.dataset.ready){
+        monthSelect.innerHTML = `<option value="all">ทั้งหมด</option>` +
+            THAI_MONTHS.map((m,i)=>`<option value="${String(i+1).padStart(2,"0")}">${m}</option>`).join("");
+        monthSelect.dataset.ready = "true";
+    }
+
+    const prevYear = yearSelect.value || "all";
+    const years = new Set();
+    paymentRecords.forEach(r => { if(r.date){ years.add(r.date.split("-")[0]); } });
+    const yearList = [...years].sort();
+    yearSelect.innerHTML = `<option value="all">ทั้งหมด</option>` +
+        yearList.map(y=>`<option value="${y}">${Number(y)+543}</option>`).join("");
+    yearSelect.value = yearList.includes(prevYear) ? prevYear : "all";
+
+    const prevCompany = companySelect.value || "all";
+    const companies = new Set();
+    paymentRecords.forEach(r => { if(r.company) companies.add(r.company); });
+    const companyList = [...companies];
+    companySelect.innerHTML = `<option value="all">ทั้งหมด</option>` +
+        companyList.map(c=>`<option value="${c}">${c}</option>`).join("");
+    companySelect.value = companyList.includes(prevCompany) ? prevCompany : "all";
+}
+
+function getFilteredReportRows(){
+
+    const day = document.getElementById("reportFilterDay").value;
+    const month = document.getElementById("reportFilterMonth").value;
+    const year = document.getElementById("reportFilterYear").value;
+    const company = document.getElementById("reportFilterCompany").value;
+    const method = document.getElementById("reportFilterMethod").value;
+    const status = document.getElementById("reportFilterStatus").value;
+    const term = (document.getElementById("reportSearch").value || "").trim().toLowerCase();
+
+    return paymentRecords.filter(row => {
+
+        const parts = (row.date || "").split("-");
+        const rowYear = parts[0] || "";
+        const rowMonth = parts[1] || "";
+        const rowDay = parts[2] || "";
+
+        const dayOK = day === "all" || rowDay === day;
+        const monthOK = month === "all" || rowMonth === month;
+        const yearOK = year === "all" || rowYear === year;
+        const companyOK = company === "all" || row.company === company;
+        const methodOK = method === "all" || row.method === method;
+        const statusOK = status === "all" || (status === "checked" ? !!row.checked : !row.checked);
+        const searchOK = !term ||
+            (row.customer || "").toLowerCase().includes(term) ||
+            (row.plate || "").toLowerCase().includes(term);
+
+        return dayOK && monthOK && yearOK && companyOK && methodOK && statusOK && searchOK;
+
+    }).sort((a,b) => ((b.date||"")+(b.time||"")).localeCompare((a.date||"")+(a.time||"")));
+}
+
+function accountDisplay(row){
+    if(row.method === "transfer") return row.account || "-";
+    if(row.method === "check") return `${row.bank || "-"} เลขที่ ${row.checkNo || "-"}`;
+    if(row.method === "direct") return row.payee || "-";
+    return "-";
+}
+
+function renderReportTable(){
+
+    const rows = getFilteredReportRows();
+    const tbody = document.getElementById("reportTableBody");
+
+    tbody.innerHTML = rows.map(row => `
+        <tr class="hover:bg-gray-50">
+            <td class="p-3 text-center">
+                <button type="button"
+                    class="check-status-btn ${row.checked ? "check-status-done" : "check-status-pending"}"
+                    onclick="toggleChecked('${row.id}', ${row.checked ? "true" : "false"})">
+                    ${row.checked ? "✅ เช็คแล้ว" : "⏳ รอตรวจสอบ"}
+                </button>
+            </td>
+            <td class="p-3 font-medium text-gray-900">${safe(row.customer)}</td>
+            <td class="p-3">${safe(row.company)}</td>
+            <td class="p-3">${safe(row.plate)}</td>
+            <td class="p-3 whitespace-nowrap">${safe(row.start)}</td>
+            <td class="p-3">${row.methodLabel || METHOD_LABELS[row.method] || "-"}</td>
+            <td class="p-3 text-blue-700 font-semibold whitespace-nowrap">${fmt(row.amount)} ฿</td>
+            <td class="p-3">${safe(row.recordedBy)}</td>
+            <td class="p-3 text-center">
+                <button type="button" onclick="openHistoryModal('${row.customerId}', '${(row.customer||"").replace(/'/g,"\\'")}')"
+                    class="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold">
+                    🕒 ดูประวัติ
+                </button>
+            </td>
+        </tr>
+    `).join("") || `<tr><td colspan="9" class="p-6 text-center text-gray-400">ไม่มีข้อมูล</td></tr>`;
+
+    const total = rows.reduce((s,r)=>s+Number(r.amount||0), 0);
+    document.getElementById("reportTotal").innerText = `💰 ยอดรวม: ${fmt(total)} บาท (${rows.length} รายการ)`;
+}
+
+["reportFilterDay","reportFilterMonth","reportFilterYear","reportFilterCompany","reportFilterMethod","reportFilterStatus"].forEach(id=>{
+    document.getElementById(id).addEventListener("change", renderReportTable);
+});
+document.getElementById("reportSearch").addEventListener("input", renderReportTable);
+
+/* ปุ่มสถานะ: สลับ "รอตรวจสอบ" <-> "เช็คแล้ว" — ให้ผู้จัดการกดยืนยันเมื่อตรวจสอบเสร็จ
+   เช็คแล้วจะยังคงอยู่ในรายงานเสมอ (ไม่ลบ/ไม่ซ่อน) เพื่อเก็บเป็นประวัติ */
+window.toggleChecked = async function(id, currentlyChecked){
+    try{
+        const nowChecked = !currentlyChecked;
+        await updateDoc(doc(db, "paymentRecords", id), {
+            checked: nowChecked,
+            checkedBy: nowChecked ? ((typeof getEmployeeName === "function") ? getEmployeeName() : "") : "",
+            checkedAt: nowChecked ? serverTimestamp() : null
+        });
+        showToast(nowChecked ? "✅ ทำเครื่องหมายว่าเช็คแล้ว" : "↩️ เปลี่ยนกลับเป็นรอตรวจสอบ");
+    }catch(err){
+        console.error("อัปเดตสถานะไม่สำเร็จ:", err);
+        alert("อัปเดตสถานะไม่สำเร็จ: " + (err.message || ""));
+    }
+};
+
+/* =========================================================
+   โมดัลประวัติการชำระ: แสดงทุกรายการชำระของลูกค้ารายนั้น (เรียงล่าสุดก่อน)
+========================================================= */
+window.openHistoryModal = function(customerId, customerName){
+
+    const history = paymentRecords
+        .filter(r => r.customerId === customerId)
+        .sort((a,b) => ((b.date||"")+(b.time||"")).localeCompare((a.date||"")+(a.time||"")));
+
+    document.getElementById("historyModalTitle").innerText = `🕒 ประวัติการชำระของ ${customerName}`;
+
+    document.getElementById("historyModalBody").innerHTML = history.map(r => `
+        <div class="border border-gray-200 rounded-xl p-3 flex justify-between items-center gap-3">
+            <div>
+                <div class="font-semibold text-gray-800">${r.dateDisplay || toThaiDateDisplay(r.date)} เวลา ${r.time || "-"}</div>
+                <div class="text-xs text-gray-500 mt-0.5">
+                    ${r.methodLabel || METHOD_LABELS[r.method] || "-"} · ${accountDisplay(r)} · บันทึกโดย ${safe(r.recordedBy)}
+                </div>
+                ${r.note ? `<div class="text-xs text-gray-400 mt-0.5">หมายเหตุ: ${r.note}</div>` : ""}
+            </div>
+            <div class="text-right">
+                <div class="font-bold text-blue-700">${fmt(r.amount)} ฿</div>
+                <span class="check-status-btn ${r.checked ? "check-status-done" : "check-status-pending"}" style="cursor:default;">
+                    ${r.checked ? "✅ เช็คแล้ว" : "⏳ รอตรวจสอบ"}
+                </span>
+            </div>
+        </div>
+    `).join("") || `<div class="text-center text-gray-400 py-8">ยังไม่มีประวัติการชำระ</div>`;
+
+    document.getElementById("historyModalOverlay").classList.remove("hidden");
+};
+
+window.closeHistoryModal = function(){
+    document.getElementById("historyModalOverlay").classList.add("hidden");
+};
+
+/* =========================================================
+   โมดัลประวัติการชำระ (ทั้งหมด): เปิดจากปุ่ม "🕒 ประวัติการชำระ" ที่อยู่ข้างแท็บ
+   แสดงทุกรายการชำระของลูกค้าทุกคน เรียงล่าสุดก่อน
+========================================================= */
+window.openAllHistoryModal = function(){
+
+    const history = [...paymentRecords]
+        .sort((a,b) => ((b.date||"")+(b.time||"")).localeCompare((a.date||"")+(a.time||"")));
+
+    document.getElementById("historyModalTitle").innerText = "🕒 ประวัติการชำระทั้งหมด";
+
+    document.getElementById("historyModalBody").innerHTML = history.map(r => `
+        <div class="border border-gray-200 rounded-xl p-3 flex justify-between items-center gap-3">
+            <div>
+                <div class="font-semibold text-gray-800">${safe(r.customer)} · ${r.dateDisplay || toThaiDateDisplay(r.date)} เวลา ${r.time || "-"}</div>
+                <div class="text-xs text-gray-500 mt-0.5">
+                    ${r.methodLabel || METHOD_LABELS[r.method] || "-"} · ${accountDisplay(r)} · บันทึกโดย ${safe(r.recordedBy)}
+                </div>
+                ${r.note ? `<div class="text-xs text-gray-400 mt-0.5">หมายเหตุ: ${r.note}</div>` : ""}
+            </div>
+            <div class="text-right">
+                <div class="font-bold text-blue-700">${fmt(r.amount)} ฿</div>
+                <span class="check-status-btn ${r.checked ? "check-status-done" : "check-status-pending"}" style="cursor:default;">
+                    ${r.checked ? "✅ เช็คแล้ว" : "⏳ รอตรวจสอบ"}
+                </span>
+            </div>
+        </div>
+    `).join("") || `<div class="text-center text-gray-400 py-8">ยังไม่มีประวัติการชำระ</div>`;
+
+    document.getElementById("historyModalOverlay").classList.remove("hidden");
+};
+
+document.getElementById("btnAllHistory").addEventListener("click", openAllHistoryModal);
+
+/* =========================================================
+   Export Excel
+========================================================= */
+window.exportExcel = function(){
+
+    const rows = getFilteredReportRows();
+
+    if(rows.length === 0){
+        alert("ไม่มีข้อมูลสำหรับ Export");
+        return;
+    }
+
+    const excelData = rows.map(row => ({
+        "สถานะ": row.checked ? "เช็คแล้ว" : "รอตรวจสอบ",
+        "วันที่": row.dateDisplay || toThaiDateDisplay(row.date),
+        "เวลา": row.time,
+        "ชื่อ": row.customer,
+        "บริษัท": row.company,
+        "ทะเบียน": row.plate,
+        "วันเริ่ม": row.start,
+        "วิธีการชำระ": row.methodLabel || METHOD_LABELS[row.method] || "-",
+        "บัญชี/รายละเอียด": accountDisplay(row),
+        "ยอดเงินที่ชำระ": row.amount,
+        "ผู้บันทึก": row.recordedBy,
+        "หมายเหตุ": row.note || ""
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "รายงานการเงิน");
+
+    const fileName = "รายงานการเงิน_" + new Date().toLocaleDateString("th-TH").replace(/\//g,"-") + ".xlsx";
+    XLSX.writeFile(wb, fileName);
+};
+
+/* =========================================================
+   สลับแท็บ
+========================================================= */
+window.switchTab = function(tab){
+    const isPay = tab === "pay";
+    document.getElementById("tabBtnPay").classList.toggle("active", isPay);
+    document.getElementById("tabBtnReport").classList.toggle("active", !isPay);
+    document.getElementById("panelPay").classList.toggle("active", isPay);
+    document.getElementById("panelReport").classList.toggle("active", !isPay);
+};
+
+document.getElementById("tabBtnPay").addEventListener("click", ()=>switchTab("pay"));
+document.getElementById("tabBtnReport").addEventListener("click", ()=>switchTab("report"));
+
+</script>
+
+</body>
+</html>

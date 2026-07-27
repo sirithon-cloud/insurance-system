@@ -1,0 +1,2118 @@
+<!DOCTYPE html>
+<html lang="th">
+    <head>
+ 
+    <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+ 
+            <title>รายงานข้อมูลประกัน</title>
+ 
+            <link rel="stylesheet" href="style.css">
+ 
+            <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+            <!-- เพิ่มใหม่: บังคับให้ต้อง login ก่อนเข้าใช้งานหน้านี้ (เดิมเข้าตรงผ่าน URL ได้โดยไม่ต้อง login
+                 ทำให้ดูรายงานข้อมูลลูกค้าทั้งหมดได้โดยไม่ต้องยืนยันตัวตน) -->
+            <script src="auth.js"></script>
+            <script>
+                requireLogin();
+            </script>
+ 
+ 
+        <style>
+            /* =========================
+            REPORT PAGE
+            ========================= */
+            .report-card{
+                    width:100%;
+                    min-height:100vh;
+                    margin:0;
+ 
+                    display:flex;
+                    flex-direction:column;
+ 
+                    background:#fff;
+ 
+                    padding:20px;
+                    padding-top:90px;
+ 
+                    overflow-x:auto;
+                    -webkit-overflow-scrolling:touch;
+                }
+ 
+            .report-card h1{
+    width:100%;
+    text-align:center;
+    color:#002d72;
+    font-size:clamp(18px, 4vw, 28px);
+}
+            
+            /* ========================
+            TABLE
+            ========================= */
+ 
+            .table-scroll{
+                width:100%;
+                overflow:auto;
+                -webkit-overflow-scrolling:touch;
+                touch-action:pan-x pan-y pinch-zoom;
+                border-radius:10px;
+            }
+
+            table{
+                width:100%;
+                min-width:1100px;
+                border-collapse:collapse;
+                font-size:12px;
+            }
+ 
+ 
+            th{
+                background:#2c3e50;
+                color:#fff;
+                padding:8px;
+                white-space:nowrap;
+            }
+ 
+ 
+            td{
+                padding:6px;
+                border-bottom:1px solid #eee;
+                white-space:nowrap;
+                text-align:center;
+                /* เพิ่มใหม่: บังคับความสูงแถวให้เท่ากันทุกแถว + จัดกึ่งกลางแนวตั้งทุกคอลัมน์
+                   เดิมแต่ละคอลัมน์มีความสูงเนื้อหาไม่เท่ากัน (ปุ่มไอคอน vs ตัวอักษรธรรมดา)
+                   ทำให้เส้นคั่นแถว (border-bottom) อยู่คนละระดับกันในแต่ละคอลัมน์ของแถวเดียวกัน
+                   ดูเหมือนเส้นเอียง/ไม่ตรงกัน แก้โดยล็อกความสูงบรรทัดให้เท่ากันทุกเซลล์
+                   และจัดกึ่งกลางแนวตั้งเสมอ ทำให้เส้นแบ่งแถวเป็นเส้นตรงเดียวกันตลอดทั้งแถว */
+                height:56px;
+                box-sizing:border-box;
+                vertical-align:middle;
+                /* เพิ่มใหม่: กันเนื้อหาภายใน (ปุ่ม/ช่องกรอกที่มี border-radius, box-shadow ตอน hover)
+                   ล้นทะลุขอบเซลล์จนไปทับเส้นคั่นแถวของแถวถัดไป ซึ่งเป็นอีกสาเหตุที่ทำให้
+                   เส้นดูเหลื่อม/ไม่ตรงกันบนจอเล็กที่พื้นที่แคบกว่า */
+                overflow:hidden;
+                line-height:1;
+            }
+ 
+ 
+            tr:hover{
+                background:#f2f2f2;
+            }
+ 
+ 
+            @media(max-width:768px){
+                table{
+                    font-size:10px;
+                }
+
+                .report-card{
+                    padding:14px;
+                    padding-top:86px;
+                }
+
+                .summary-panel{
+                    padding:12px 14px;
+                }
+
+                .summary-filters{
+                    flex-wrap:nowrap;
+                    overflow-x:auto;
+                    -webkit-overflow-scrolling:touch;
+                    gap:8px;
+                    padding-bottom:4px;
+                }
+
+                .summary-filters > span{
+                    display:inline-flex;
+                    flex-direction:column;
+                    align-items:flex-start;
+                    flex:0 0 auto;
+                }
+
+                .summary-filters label{
+                    font-size:11px;
+                    margin-right:0;
+                    margin-bottom:2px;
+                    white-space:nowrap;
+                }
+
+                .summary-filters select{
+                    padding:5px 8px;
+                    font-size:12px;
+                    white-space:nowrap;
+                }
+
+                /* แก้ไข: คอลัมน์ "เลขกรมธรรม์" (policy-cell/policy-input/policy-btn) ใช้ขนาด
+                   ตายตัวจาก base เสมอเช่นกัน ไม่ย่อขนาดตามจอแคบอีกต่อไป เพื่อไม่ให้เนื้อหา
+                   ในเซลล์บีบจนล้นออกนอกกรอบคอลัมน์ ซึ่งเป็นสาเหตุที่ทำให้เส้นคั่นแถวดูเหลื่อมกัน
+                   บนจอเล็ก (ดู base .policy-cell / .policy-input / .policy-btn ด้านล่างของไฟล์) */
+            }
+
+            @media(max-width:480px){
+                .report-card h1{
+                    font-size:16px;
+                }
+
+                .summary-filters{
+                    gap:6px;
+                }
+
+                .summary-filters label{
+                    font-size:10px;
+                }
+
+                .summary-filters select{
+                    padding:4px 6px;
+                    font-size:11px;
+                }
+
+                /* แก้ไข: คอลัมน์ "เลขกรมธรรม์" (ความกว้างคอลัมน์ + policy-cell/policy-input/
+                   policy-btn) ใช้ขนาดตายตัวจาก base เสมอเช่นกัน ไม่ย่อขนาดตามจอแคบอีกต่อไป
+                   เพื่อไม่ให้เนื้อหาในเซลล์บีบจนล้นออกนอกกรอบคอลัมน์ ซึ่งเป็นสาเหตุที่ทำให้
+                   เส้นคั่นแถวดูเหลื่อมกันบนจอเล็ก (ดู base ด้านล่างของไฟล์) */
+            }
+ 
+            /* =========================
+            ACTION BUTTON
+            ========================= */
+ 
+            .action-buttons{
+                display:flex;
+                justify-content:center;
+                align-items:center;
+                gap:4px;
+                width:100%;
+            }
+ 
+            .action-buttons button{
+                width:30px !important;
+                height:30px !important;
+                min-width:30px !important;
+                padding:0 !important;
+                border:none;
+                border-radius:6px;
+                font-size:13px;
+                cursor:pointer;
+                flex:0 0 auto;
+            }
+ 
+            .edit-btn{
+                background:#ffc000;
+                color:#002d72;
+            }
+ 
+            .doc-btn{
+                background:#0d6efd;
+                color:white;
+            }
+
+            /* เพิ่มใหม่: ปุ่ม "โหลดใบเสร็จ" ออกใบรับเงินตามจำนวนงวดที่ชำระแล้ว */
+            .receipt-btn{
+                background:#2FBF9B;
+                color:white;
+            }
+ 
+            .delete-btn{
+                background:#dc3545;
+                color:white;
+            }
+ 
+            .action-buttons button:hover{
+                transform:scale(1.1);
+ 
+            }
+
+            /* =========================
+            เพิ่มใหม่: ล็อกความกว้างคอลัมน์ "ลำดับ" และ "จัดการ" ให้ตายตัวทุกขนาดจอ
+            (ไม่ย่อ/ขยายตามการปรับขนาดหน้าจออีกต่อไป) เพื่อให้เส้นตารางของทุกแถว
+            ตรงกันเสมอ จอแคบจะเลื่อนดูตารางแนวนอนแทนการบีบคอลัมน์
+            ========================= */
+            /* แก้ไข: สลับความกว้างตามลำดับคอลัมน์ใหม่ (คอลัมน์ 1 = จัดการ, คอลัมน์ 2 = ลำดับ) */
+            #table th:nth-child(1),
+            #table td:nth-child(1){
+                width:150px;
+                min-width:150px;
+                max-width:150px;
+            }
+
+            #table th:nth-child(2),
+            #table td:nth-child(2){
+                width:44px;
+                min-width:44px;
+                max-width:44px;
+            }
+
+            /* เพิ่มใหม่: ลบเส้นแบ่งแถว (border-bottom) เฉพาะเซลล์ "จัดการ" */
+            #table td.action-buttons{
+                border-bottom:none;
+            }
+
+            /* =========================
+            เพิ่มใหม่: เลขกรมธรรม์
+            แก้ไข: เดิมความกว้างคอลัมน์นี้ถูกคำนวณอัตโนมัติจากเนื้อหาของแต่ละแถว
+            (input + ปุ่ม 2 ปุ่ม) ทำให้ความกว้างของคอลัมน์ขยับไม่เท่ากันในแต่ละแถว
+            เส้นแบ่งคอลัมน์จึงดูไม่ตรงกัน แก้โดยล็อกความกว้างคอลัมน์นี้ให้คงที่
+            ทั้ง th และ td
+            แก้ไข: ย้ายคอลัมน์นี้ไปอยู่ลำดับที่ 6 แล้ว (จัดการ/ลำดับ/ชื่อผู้เอาประกัน/ทะเบียน/เบอร์โทร/เลขกรมธรรม์)
+            จึงเปลี่ยน nth-child จาก 3 เป็น 6 ให้ตรงตำแหน่งใหม่
+            แล้วให้ช่องกรอกยืดเต็มความกว้างที่ล็อกไว้พอดี ไม่ล้นไม่เกิน
+            ========================= */
+            #table th:nth-child(6),
+            #table td:nth-child(6){
+                width:190px;
+                min-width:190px;
+                max-width:190px;
+                white-space:normal;
+            }
+
+            .policy-cell{
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                gap:4px;
+                width:100%;
+            }
+
+            .policy-input{
+                flex:0 0 auto;
+                width:100px;
+                box-sizing:border-box;
+                padding:5px 10px;
+                border-radius:999px;
+                border:1.5px solid #cfd6e2;
+                font-family:"Kanit",sans-serif;
+                font-size:12px;
+                text-align:center;
+                overflow:hidden;
+                text-overflow:ellipsis;
+            }
+
+            .policy-input:disabled{
+                background:#f2f2f2;
+                color:#555;
+            }
+
+            .policy-input:focus{
+                outline:none;
+                border-color:#2F6FED;
+            }
+
+            .policy-btn{
+                flex:0 0 auto;
+                width:26px;
+                height:26px;
+                border:none;
+                border-radius:6px;
+                font-size:12px;
+                cursor:pointer;
+            }
+
+            .policy-edit-btn{
+                background:#ffc000;
+                color:#002d72;
+            }
+
+            .policy-save-btn{
+                background:#198754;
+                color:#fff;
+            }
+
+            .policy-btn:hover{
+                transform:scale(1.1);
+            }
+ 
+            /* =========================
+            SUMMARY PANEL
+            ========================= */
+            .summary-panel{
+                background:#f8f9fb;
+                border:1px solid #e3e6ec;
+                border-radius:12px;
+                padding:16px 18px;
+                margin-bottom:20px;
+            }
+ 
+ 
+            .summary-filters{
+                display:flex;
+                gap:15px;
+                flex-wrap:wrap;
+                align-items:center;
+                margin-bottom:12px;
+            }
+ 
+            .summary-filters label{
+                font-size:13px;
+                color:#002d72;
+                font-weight:bold;
+                margin-right:6px;
+            }
+ 
+            .summary-filters select{
+                padding:6px 10px;
+                border-radius:8px;
+                border:1px solid #cfd6e2;
+                font-family:"Kanit",sans-serif;
+                font-size:13px;
+            }
+ 
+            .summary-total{
+                font-size:clamp(12px, 3.2vw, 17px);
+                font-weight:bold;
+                color:#002d72;
+            }
+
+            /* =========================
+            เพิ่มใหม่: จัดหน้าใหม่ของ summary-panel
+            แบ่งเป็น 2 ฝั่ง: ซ้าย = ตัวกรองเดิมทั้งหมด + ยอดรวม, ขวา = ช่องค้นหา
+            เดิมทุกอย่างชิดซ้ายแถวเดียวยาว ทำให้บนมือถือดูเกะกะ/ล้น
+            แก้เป็น flex 2 คอลัมน์ (จอกว้าง) และสลับเป็นเรียงต่อกันแนวตั้งเต็มความกว้าง (จอมือถือ)
+            ========================= */
+            /* =========================
+            เพิ่มใหม่: จัดหน้าใหม่ของ summary-panel ด้วย CSS Grid
+            แบ่งเป็น 2 คอลัมน์: ซ้าย = ตัวกรองเดิมทั้งหมด + ยอดรวม, ขวา = ช่องค้นหา (คอมพิวเตอร์)
+            แก้ไข: เดิมใช้ flex กับ flex-basis ตายตัว (240px) ทำให้บนจอที่กว้างกว่า 768px แต่แคบ
+            (เช่น แท็บเล็ต/มือถือโหมดเดสก์ท็อป) คอลัมน์ขวาหลุดล้นออกนอกจอ มองไม่เห็นช่องค้นหาเลย
+            เปลี่ยนมาใช้ grid-template-columns กำหนดความกว้างคอลัมน์ตายตัว ไม่มีทางล้นออกนอกกรอบได้
+            พอจอเล็ก (มือถือ) เปลี่ยนเป็น 1 คอลัมน์ ทุกอย่างจะเรียงต่อกันแนวตั้งตามลำดับ HTML
+            (ซ้ายก่อน ขวาทีหลัง) โดยอัตโนมัติ ไม่ต้องกำหนด flex-basis/order เพิ่มเลย
+            ========================= */
+            .summary-panel{
+                display:grid;
+                grid-template-columns:1fr 260px;
+                align-items:start;
+                gap:24px;
+            }
+
+            .summary-panel-left{
+                min-width:0;
+            }
+
+            .summary-panel-right{
+                min-width:0;
+            }
+
+            .search-label{
+                font-size:13px;
+                color:#002d72;
+                font-weight:bold;
+                margin-bottom:6px;
+            }
+
+            .search-box{
+                position:relative;
+            }
+
+            .search-box .search-icon{
+                position:absolute;
+                left:12px;
+                top:50%;
+                transform:translateY(-50%);
+                font-size:13px;
+                pointer-events:none;
+            }
+
+            .search-box input{
+                width:100%;
+                padding:9px 12px 9px 32px;
+                border-radius:999px;
+                border:1px solid #cfd6e2;
+                font-family:"Kanit",sans-serif;
+                font-size:13px;
+                box-sizing:border-box;
+            }
+
+            .search-box input:focus{
+                outline:none;
+                border-color:#2F6FED;
+            }
+
+            @media(max-width:768px){
+
+                .summary-panel{
+                    grid-template-columns:1fr;
+                    gap:10px;
+                    padding:10px 12px;
+                }
+
+                /* จัดตัวกรองเป็นตาราง 2 คอลัมน์ที่ขนาดเท่ากันเสมอ
+                   (เดิมแต่ละอันกว้างไม่เท่ากันตามความยาวข้อความ กดพลาดง่าย)
+                   ย่อ padding/ระยะห่างให้กระชับ แต่ยังคงความสูงพอกดถนัดนิ้ว */
+                .summary-filters{
+                    display:grid;
+                    grid-template-columns:repeat(2, 1fr);
+                    gap:8px 10px;
+                    margin-bottom:8px;
+                }
+
+                .summary-filters > span{
+                    display:flex;
+                    flex-direction:column;
+                    min-width:0;
+                }
+
+                .summary-filters label{
+                    font-size:11px;
+                    margin:0 0 3px;
+                    white-space:nowrap;
+                    overflow:hidden;
+                    text-overflow:ellipsis;
+                }
+
+                .summary-filters select{
+                    width:100%;
+                    box-sizing:border-box;
+                    padding:9px 8px;
+                    font-size:12.5px;
+                    min-height:40px;
+                }
+
+                .summary-total{
+                    font-size:12.5px;
+                    line-height:1.45;
+                }
+
+                .search-label{
+                    font-size:12px;
+                    margin-bottom:4px;
+                }
+
+                .search-box input{
+                    padding:8px 10px 8px 30px;
+                    font-size:12.5px;
+                    min-height:40px;
+                    box-sizing:border-box;
+                }
+            }
+
+            @media(max-width:420px){
+
+                .summary-filters{
+                    gap:6px 8px;
+                }
+
+                .summary-filters label{
+                    font-size:10.5px;
+                }
+
+                .summary-filters select{
+                    font-size:12px;
+                    padding:8px 6px;
+                    min-height:38px;
+                }
+
+                .summary-total{
+                    font-size:12px;
+                }
+            }
+
+           /* เพิ่มใหม่: ปุ่ม "← กลับ" ไปหน้า account_menu.html
+   ใช้ class เฉพาะของหน้านี้ ไม่แตะ style.css และไม่กระทบ UI ส่วนอื่น
+   แก้ไข: ลดขนาดปุ่มให้กะทัดรัดแต่ยังกดถนัดมือ (padding แนวตั้งพอสำหรับนิ้วกด)
+   และย้ายปุ่มขึ้นมาลอยชิดซ้าย ขนานกับหัวข้อ "รายงานข้อมูลประกันทั้งหมด" แทนที่จะอยู่แถวแยกด้านบน */
+.report-card{
+    position:relative;
+}
+
+/* เพิ่มใหม่: ข้อความแจ้งเตือนแบบ toast (ใช้แทน alert() ไม่บล็อกหน้าจอ) */
+.app-toast{
+    position:fixed;
+    left:50%;
+    top:50%;
+    transform:translate(-50%, -50%) scale(.95);
+    background:#152A54;
+    color:#fff;
+    padding:16px 28px;
+    border-radius:16px;
+    font-family:"Kanit",sans-serif;
+    font-size:15px;
+    font-weight:600;
+    box-shadow:0 16px 40px rgba(21,42,84,.32);
+    opacity:0;
+    z-index:99999;
+    pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease;
+    white-space:nowrap;
+}
+
+.app-toast.show{
+    opacity:1;
+    transform:translate(-50%, -50%) scale(1);
+}
+
+@media(max-width:480px){
+    .app-toast{
+        white-space:normal;
+        max-width:80vw;
+        text-align:center;
+        font-size:14px;
+    }
+}
+            
+ 
+
+ /* แก้ไข: เดิมปุ่ม "← กลับหน้าหลัก" ลอยแบบ absolute อยู่คนละตำแหน่งกับหัวข้อ
+   เปลี่ยนเป็นจัดปุ่ม + หัวข้อไว้ในแถวเดียวกัน (flex) โดยปุ่มอยู่หน้าข้อความหัวข้อเสมอ
+   ย่อขนาดปุ่มให้เล็กกะทัดรัด ไม่เด่นเกินหัวข้อหลัก */
+.report-card{
+    position:relative;
+}
+
+.report-title-row{
+    display:flex;
+    align-items:center;
+    justify-content:flex-start;
+    gap:10px;
+    flex-wrap:wrap;
+}
+
+.report-title-row h1{
+    width:auto;
+}
+
+.report-back-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    flex:0 0 auto;
+
+    background:#EAF1FF;
+    color:#1E4FC4;
+
+    border:none;
+    padding:6px 14px;
+    border-radius:999px;
+
+    font-family:"Kanit",sans-serif;
+    font-weight:600;
+    font-size:12.5px;
+    white-space:nowrap;
+
+    cursor:pointer;
+    transition:.2s;
+}
+
+.report-back-btn:hover{
+    background:#DCE9FF;
+}
+
+
+ 
+        </style>
+ 
+    </head>
+ 
+ 
+    <body>
+        <!-- TOPBAR -->
+        <div class="topbar">
+            <button id="menuBtn">☰</button>
+            <img src="logo.png" class="toplogo" alt="logo">
+            <span class="apptitle">
+                ระบบประกันรถยนต์กับคุณพลอย
+            </span>
+        </div>
+ 
+                  <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+        <img src="logo.png" class="logo">
+ 
+        <ul class="menu">
+            <li><a href="index.html" class="menu-link">🏠 หน้าหลัก</a></li>
+ 
+        </ul>
+    </aside>
+ 
+<!-- OVERLAY -->
+<div id="overlay"></div>
+ 
+ 
+ 
+        <div class="report-card">
+
+                <div class="report-title-row">
+            <button class="report-back-btn" onclick="location.href='index.html'">
+                ← กลับหน้าหลัก
+            </button>
+
+            <h1>
+            📊 รายงานข้อมูลประกันทั้งหมด
+            </h1>
+        </div>
+ 
+ 
+ 
+        <div class="summary-panel">
+
+            <!-- ฝั่งซ้าย: ตัวกรองเดิมทั้งหมด + ยอดรวม (ของเดิมทุกอย่าง ไม่เปลี่ยนแปลง) -->
+            <div class="summary-panel-left">
+
+                <div class="summary-filters">
+                    <!-- แก้ไข: จัดลำดับตัวกรองใหม่เป็น วัน -> เดือน -> ปี -> บริษัท -> พนักงาน -> ประเภท -->
+                    <span>
+
+                        <label for="filterDay">
+                            📆 เลือกวันที่
+                        </label>
+                        <select id="filterDay"></select>
+
+                    </span>
+
+                    <span>
+
+                        <label for="filterMonth">
+                            📅 เลือกเดือน
+                        </label>
+                        <select id="filterMonth"></select>
+
+                    </span>
+
+                    <span>
+                        <label for="filterYear">
+                            🗓️ เลือกปี
+                        </label>
+                        <select id="filterYear"></select>
+                    </span>
+
+                    <span>
+                        <label for="filterCompany">
+                            🏢 เลือกบริษัท
+                        </label>
+                        <select id="filterCompany"></select>
+                    </span>
+
+                    <!-- ตัวกรอง "พนักงาน" (ชื่อผู้แจ้ง) ตัวเลือกเสริม ค่าเริ่มต้น = "ทั้งหมด" -->
+                    <span>
+
+                        <label for="filterEmployee">
+                            👤 เลือกพนักงาน
+                        </label>
+                        <select id="filterEmployee"></select>
+
+                    </span>
+
+                    <!-- ตัวกรอง "ประเภทประกัน" ตัวเลือกเสริม ค่าเริ่มต้น = "ทั้งหมด" -->
+                    <span>
+
+                        <label for="filterType">
+                            🧾 ประเภทประกัน
+                        </label>
+                        <select id="filterType">
+                            <option value="all">ทั้งหมด</option>
+                            <option value="car">🚗 ประกันรถยนต์</option>
+                            <option value="product">📦 ประกันสินค้า</option>
+                        </select>
+
+                    </span>
+
+                </div>
+
+                <div id="summaryTotal" class="summary-total"></div>
+
+            </div>
+
+            <!-- ฝั่งขวา (เพิ่มใหม่): ช่องค้นหา ค้นได้ทั้งชื่อผู้เอาประกันและทะเบียนรถ -->
+            <div class="summary-panel-right">
+
+                <div class="search-label">🔍 ค้นหา (ชื่อ / ทะเบียนรถ)</div>
+
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="filterSearch" placeholder="พิมพ์ชื่อผู้เอาประกัน หรือ ทะเบียนรถ">
+                </div>
+
+            </div>
+
+        </div>
+ 
+ 
+ 
+ 
+ 
+<div class="table-scroll">
+<table id="table">
+ 
+        <thead>
+        <tr>
+        <!-- แก้ไข: จัดเรียงคอลัมน์ใหม่ตามที่ต้องการ
+             ด้านหน้า (ต่อจาก "ลำดับ"): ชื่อผู้เอาประกัน, ทะเบียน, เบอร์โทร, เลขกรมธรรม์
+             ตรงกลาง: คงลำดับเดิมของคอลัมน์ที่เหลือไว้ไม่เปลี่ยน
+             ด้านหลังสุด: ประเภทประกัน, ที่อยู่, ชื่อผู้แจ้ง -->
+        <th>จัดการ</th>
+        <th>ลำดับ</th>
+        <th>ชื่อผู้เอาประกัน</th>
+        <th>ทะเบียน</th>
+        <th>เบอร์โทร</th>
+        <th>เลขกรมธรรม์</th>
+        <th>วันที่แจ้งงาน</th>
+        <th>บริษัท</th>
+        <th>ยี่ห้อ</th>
+        <th>วันเริ่ม</th>
+        <th>วันสิ้นสุด</th>
+        <th>ทุนประกัน</th>
+        <th>รวม</th>
+        <th>กลุ่มสินค้า</th>
+        <th>งวด1</th>
+        <th>งวด2</th>
+        <th>งวด3</th>
+        <th>งวด4</th>
+        <th>ยอดค้าง</th>
+        <th>ประเภทประกัน</th>
+        <th>ที่อยู่</th>
+        <th>ชื่อผู้แจ้ง</th>
+        </tr>
+ 
+        </thead>
+ 
+ 
+ 
+<tbody></tbody>
+</table>
+</div>
+</div>
+<script type="module">
+ 
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+import {
+    getFirestore,
+    collection,
+    onSnapshot,
+    deleteDoc,
+    setDoc,
+    doc,
+    query,
+    where
+} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+ 
+/* =========================
+   FIREBASE
+   (ตั้งค่าเดียวกับ script.js เพื่อให้ทุกหน้าอ่าน/เขียน collection "insuranceData" เดียวกัน)
+========================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyCNpaYlwrkJhBA-8tAax022PWWFYMRz7Kw",
+  authDomain: "insurance-system-f26b0.firebaseapp.com",
+  projectId: "insurance-system-f26b0",
+  storageBucket: "insurance-system-f26b0.firebasestorage.app",
+  messagingSenderId: "438698153100",
+  appId: "1:438698153100:web:a553b97b59701883f057a9",
+  measurementId: "G-XXWCQEMT0B"
+};
+ 
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* =========================
+   [เพิ่มใหม่] ตั้งค่าลด Firestore Reads
+   - LOGIN_NAME_STORAGE_KEY: คีย์ localStorage ที่ระบบ login เก็บ "ชื่อพนักงานที่ล็อกอินอยู่"
+     *** สำคัญ: ถ้าระบบ login จริงของคุณเก็บชื่อผู้ใช้ไว้คนละคีย์ ให้แก้ค่านี้ให้ตรงกับของจริง ***
+   - EMPLOYEE_CACHE_KEY: ใช้เก็บ cache รายชื่อพนักงานที่เคย query เจอไว้ใน localStorage
+     เพื่อสร้าง dropdown "เลือกพนักงาน" โดยไม่ต้องโหลดข้อมูลทั้งหมดของ Firestore มาหาเอง
+========================= */
+const LOGIN_NAME_STORAGE_KEY = "employeeName";
+const EMPLOYEE_CACHE_KEY = "report_known_employees_v1";
+
+function getLoggedInEmployeeName(){
+    try{
+        return localStorage.getItem(LOGIN_NAME_STORAGE_KEY) || "";
+    }catch(e){
+        return "";
+    }
+}
+
+function loadKnownEmployees(){
+    try{
+        const raw = localStorage.getItem(EMPLOYEE_CACHE_KEY);
+        return raw ? JSON.parse(raw) : [];
+    }catch(e){
+        return [];
+    }
+}
+
+function saveKnownEmployees(list){
+    try{
+        localStorage.setItem(EMPLOYEE_CACHE_KEY, JSON.stringify(list));
+    }catch(e){
+        /* localStorage ใช้งานไม่ได้ ข้ามไป ไม่กระทบการทำงานหลัก */
+    }
+}
+
+/* สะสมรายชื่อพนักงานที่เจอจากผลลัพธ์ query แต่ละครั้งไว้ใน localStorage
+   เพื่อให้ dropdown "เลือกพนักงาน" ค่อย ๆ ครบขึ้นเรื่อย ๆ โดยไม่ต้องอ่านทั้ง collection */
+function addKnownEmployees(names){
+    const set = new Set(loadKnownEmployees());
+    let changed = false;
+    (names || []).forEach(n=>{
+        if(n && !set.has(n)){
+            set.add(n);
+            changed = true;
+        }
+    });
+    const list = [...set];
+    if(changed) saveKnownEmployees(list);
+    return list;
+}
+
+/* ปีปัจจุบัน (พ.ศ.) และเดือนปัจจุบัน ใช้สำหรับตั้งค่า filter เริ่มต้นตอนเปิดหน้า */
+function getCurrentBuddhistYear(){
+    return String(new Date().getFullYear() + 543);
+}
+
+function getCurrentMonthKey(){
+    return String(new Date().getMonth() + 1).padStart(2, "0");
+}
+
+const loggedInEmployee = getLoggedInEmployeeName();
+if(loggedInEmployee){
+    addKnownEmployees([loggedInEmployee]);
+}
+
+/* =========================
+   STORAGE
+   (allData มาจาก Firestore แบบ realtime ผ่าน onSnapshot ด้านล่าง
+   [แก้ไข] เปลี่ยนจากการอ่านข้อมูลทั้ง collection มาเป็นการอ่านเฉพาะที่ตรงกับตัวกรอง
+   ที่เลือกอยู่ผ่าน Firestore Query (where) เพื่อลดจำนวน Firestore Reads)
+========================= */
+ 
+        let allData = [];
+        let filtersInitialized = false;
+        let unsubscribeSnapshot = null;
+ 
+ 
+ 
+        /* =========================
+        THAI MONTH
+        ========================= */
+ 
+ 
+        const THAI_MONTHS = [
+ 
+            "มกราคม",
+            "กุมภาพันธ์",
+            "มีนาคม",
+            "เมษายน",
+            "พฤษภาคม",
+            "มิถุนายน",
+            "กรกฎาคม",
+            "สิงหาคม",
+            "กันยายน",
+            "ตุลาคม",
+            "พฤศจิกายน",
+            "ธันวาคม"
+ 
+        ];
+
+        /* เพิ่มใหม่: helper แปลงวันที่แจ้งงาน (createDate เช่น "16/07/2569") ที่ผู้ใช้กรอก/ระบบบันทึกไว้
+           ให้เป็นตัวเลข millisecond โดยแปลงปี พ.ศ. -> ค.ศ. (-543) ใช้เป็นตัวเรียงสำรอง
+           สำหรับข้อมูลที่ไม่มี createdAt (Firestore Timestamp) จะได้ไม่ต้องยุบรวมเป็น 0 ทั้งหมด */
+        function parseCreateDateMillis(createDate){
+
+            if(!createDate) return 0;
+
+            const parts = createDate.split("/");
+
+            if(parts.length !== 3) return 0;
+
+            const day = Number(parts[0]);
+            const month = Number(parts[1]);
+            const year = Number(parts[2]);
+
+            if(isNaN(day) || isNaN(month) || isNaN(year)) return 0;
+
+            const gregorianYear = year - 543;
+
+            const d = new Date(gregorianYear, month - 1, day);
+
+            return isNaN(d.getTime()) ? 0 : d.getTime();
+
+        }
+
+        /* เพิ่มใหม่: helper แปลง createdAt (Firestore Timestamp) เป็นตัวเลข millisecond
+           เพื่อเรียงข้อมูลตามลำดับการบันทึกจริง (เก่า -> ใหม่ อยู่ล่างสุด) และคงลำดับ
+           เดิมทุกครั้งที่รีเฟรชหน้า
+           แก้ไข: เดิมข้อมูลที่ไม่มี field นี้จะได้ 0 ทั้งหมด (กองรวมกันไม่มีลำดับที่แน่นอน)
+           เปลี่ยนเป็น fallback ไปใช้วันที่กรอก (createDate) แทน เพื่อให้เรียงตามวันเวลาที่กรอกจริงเสมอ */
+        function getSortMillis(item){
+            if(item && item.createdAt && typeof item.createdAt.toMillis === "function"){
+                return item.createdAt.toMillis();
+            }
+            return parseCreateDateMillis(item && item.createDate);
+        }
+ 
+ 
+ 
+        /* =========================
+        แปลงวันที่แจ้งงาน
+        ========================= */
+ 
+ 
+        function parseCreateDate(createDate){
+            if(!createDate)
+                return {
+                    day:null,
+                    month:null,
+                    year:null
+                };
+ 
+ 
+            const parts = createDate.split("/");
+ 
+            if(parts.length !== 3)
+                return {
+                    day:null,
+                    month:null,
+                    year:null
+                };
+ 
+            const day = parseInt(parts[0],10);
+            const month = parseInt(parts[1],10);
+            const year = parts[2];
+ 
+            if(
+                isNaN(month) ||
+                month < 1 ||
+                month > 12
+            ){
+ 
+                return {
+                    day:null,
+                    month:null,
+                    year:null
+                };
+            }
+
+            if(
+                isNaN(day) ||
+                day < 1 ||
+                day > 31
+            ){
+
+                return {
+                    day:null,
+                    month:String(month).padStart(2,"0"),
+                    year:year
+                };
+            }
+ 
+            return {
+                day:String(day).padStart(2,"0"),
+                month:String(month).padStart(2,"0"),
+                year:year
+            };
+ 
+ 
+        }
+ 
+        /* เพิ่มใหม่: วันที่ start/end ที่บันทึกไว้จริงเป็นปี ค.ศ. (Gregorian) เสมอ (มาจาก flatpickr / input type="date")
+           แต่หน้านี้แสดงผลเป็นภาษาไทยทั้งหน้า เดิมเอาค่าดิบมาแสดงตรงๆ ทำให้เห็นปี ค.ศ. (เช่น 2026) ปนอยู่
+           กับส่วนอื่นของระบบที่แปลงเป็น พ.ศ. แล้ว (เช่น createDate, contract_print.html) ผู้ใช้จึงสับสนว่าปีผิด
+           แก้โดยแปลงเป็น พ.ศ. ก่อนแสดงผลเสมอ ไม่แตะข้อมูลที่บันทึกจริงใน Firestore */
+        function toBEDateDisplay(dateStr){
+
+            if(!dateStr) return "-";
+
+            const s = String(dateStr).trim();
+
+            let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{3,4})$/);
+            if(m){
+                const day = m[1].padStart(2,"0");
+                const month = m[2].padStart(2,"0");
+                let year = parseInt(m[3],10);
+                if(year < 2400) year += 543;
+                return `${day}/${month}/${year}`;
+            }
+
+            m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+            if(m){
+                const day = m[3].padStart(2,"0");
+                const month = m[2].padStart(2,"0");
+                let year = parseInt(m[1],10);
+                if(year < 2400) year += 543;
+                return `${day}/${month}/${year}`;
+            }
+
+            return s;
+        }
+
+        /* =========================
+        แสดงข้อมูลตาราง
+        ========================= */
+ 
+        function renderTable(){
+ 
+            // แก้บั๊ก: เดิม populateFilters() ถูกเรียก "หลัง" กรองข้อมูล ทำให้รอบแรกที่เปิดหน้า
+            // <select> ตัวกรองยังไม่มี <option> ค่า .value จึงเป็นค่าว่าง (ไม่ใช่ "all")
+            // ส่งผลให้ getFilteredData() กรองข้อมูลหายไปหมดตั้งแต่รอบแรก (ตารางว่างจนกว่าจะเลือกตัวกรอง)
+            // แก้โดยเรียก populateFilters() ก่อน เพื่อให้ทุกตัวกรองพร้อมค่า "all" ก่อนกรอง/แสดงข้อมูลเสมอ
+            populateFilters();
+ 
+            // allData มาจาก Firestore แบบ realtime (onSnapshot) ไม่อ่านจาก localStorage แล้ว
+            let tbody = document.querySelector("tbody");
+ 
+            tbody.innerHTML = "";
+ 
+ 
+            getFilteredData().forEach((item,i)=>{
+ 
+ 
+                tbody.innerHTML += `
+
+        <tr>
+
+        <!-- แก้ไข: ย้ายปุ่มจัดการกลับไปไว้คอลัมน์แรกของแถว -->
+        <td class="action-buttons">
+
+
+        <button 
+        class="edit-btn"
+        onclick="editItem('${item.id}')">
+        ✏️
+        </button>
+
+
+        <button 
+        class="doc-btn"
+        onclick="openDoc('${item.id}')">
+        📄
+        </button>
+
+
+        <!-- เพิ่มใหม่: ปุ่มโหลดใบเสร็จ ออกใบรับเงินตามจำนวนงวดที่มีการบันทึกยอดชำระแล้ว
+             (ชำระงวด 1 -> ออก 1 ใบ, ชำระถึงงวด 2 -> ออก 2 ใบ, ... ครบ 4 งวด -> ออก 4 ใบ) -->
+        <button 
+        class="receipt-btn"
+        onclick="openReceipt('${item.id}')"
+        title="โหลดใบเสร็จ">
+        🧾
+        </button>
+
+
+        <button 
+        class="delete-btn"
+        onclick="deleteItem('${item.id}')">
+        🗑️
+        </button>
+
+        </td>
+
+        <!-- แก้ไข: จัดเรียงคอลัมน์ใหม่ให้ตรงกับหัวตาราง
+             ด้านหน้า (ต่อจาก "ลำดับ"): ชื่อผู้เอาประกัน, ทะเบียน, เบอร์โทร, เลขกรมธรรม์
+             ตรงกลาง: คอลัมน์ที่เหลือคงลำดับเดิมไม่เปลี่ยน
+             ด้านหลังสุด: ประเภทประกัน, ที่อยู่, ชื่อผู้แจ้ง -->
+        <td>${i+1}</td>
+
+        <td>${item.customer || "-"}</td>
+        <td>${item.plate || "-"}</td>
+        <td>${item.phone || "-"}</td>
+
+        <td>
+            <div class="policy-cell">
+                <input type="text"
+                    class="policy-input"
+                    id="policy_${item.id}"
+                    value="${item.policyNumber || ""}"
+                    placeholder="เลขกรมธรรม์"
+                    disabled>
+                <button class="policy-btn policy-edit-btn" onclick="togglePolicyEdit('${item.id}')" title="แก้ไข">✏️</button>
+                <button class="policy-btn policy-save-btn" onclick="savePolicyNumber('${item.id}')" title="บันทึก">💾</button>
+            </div>
+        </td>
+
+        <td>${item.createDate || "-"}</td>
+        <td>${item.company || "-"}</td>
+        <td>${item.brand || "-"}</td>
+        <td>${toBEDateDisplay(item.start)}</td>
+        <td>${toBEDateDisplay(item.end)}</td>
+ 
+        <td>
+ 
+        ${Number(item.sumInsured || 0).toLocaleString()}
+ 
+        </td>
+ 
+        <td>
+ 
+        ${Number(item.total || 0).toLocaleString()}
+ 
+        </td>
+        <td>${item.group || "-"}</td>
+        <td>${item.installment1 || "-"}</td>
+        <td>${item.installment2 || "-"}</td>
+        <td>${item.installment3 || "-"}</td>
+        <td>${item.installment4 || "-"}</td>
+ 
+        <td>
+        ${
+        (
+        Number(item.total || 0) -
+        (
+        Number(item.installment1 || 0) +
+        Number(item.installment2 || 0) +
+        Number(item.installment3 || 0) +
+        Number(item.installment4 || 0)
+        )
+        ).toLocaleString()
+        }
+        </td>
+
+        <td>
+ 
+        ${
+            item.type === "car"
+ 
+            ? "🚗 ประกันรถยนต์"
+ 
+            : item.type === "product"
+ 
+            ? "📦 ประกันสินค้า"
+ 
+            : "-"
+ 
+        }
+ 
+        </td>
+
+        <td>${item.address || "-"}</td>
+        <td>${item.employeeName || item.requestName || "-"}</td>
+
+        </tr>
+
+        `;
+ 
+            });
+ 
+        }
+ 
+        /* =========================
+        รายชื่อบริษัท
+        ========================= */
+ 
+        const KNOWN_COMPANIES = [
+ 
+            "วิริยะ",
+            "เมืองไทย",
+            "AIG"
+ 
+        ];
+ 
+ 
+        /* =========================
+        สร้างตัวเลือก Filter
+        ========================= */
+ 
+ 
+        function populateFilters(){
+ 
+            const companySelect =
+                document.getElementById("filterCompany");
+ 
+            const yearSelect =
+                document.getElementById("filterYear");
+ 
+            const monthSelect =
+                document.getElementById("filterMonth");
+
+            const employeeSelect =
+                document.getElementById("filterEmployee");
+ 
+            const prevCompany =
+                companySelect.value || "all";
+
+            const prevEmployee =
+                employeeSelect.value || "all";
+ 
+            const companiesFromData = [
+ 
+                ...new Set(
+                    allData
+                    .map(item=>item.company)
+                    .filter(c=>c)
+                )
+ 
+            ];
+ 
+ 
+            const extraCompanies =
+                companiesFromData.filter(
+                    c => !KNOWN_COMPANIES.includes(c)
+                );
+ 
+            const companies = [
+ 
+                ...KNOWN_COMPANIES,
+ 
+                ...extraCompanies
+ 
+            ];
+ 
+            companySelect.innerHTML =
+ 
+            `
+ 
+            <option value="all">
+                ทั้งหมด
+            </option>
+ 
+            `
+ 
+            +
+            companies.map(c=>`
+ 
+                <option value="${c}">
+                    ${c}
+                </option>
+ 
+            `).join("");
+ 
+ 
+            companySelect.value =
+ 
+                companies.includes(prevCompany)
+ 
+                ? prevCompany
+ 
+                : "all";
+
+            /* เพิ่มใหม่: สร้างตัวเลือกรายชื่อพนักงาน (requestName) เป็นตัวเลือกเสริม ค่าเริ่มต้น "ทั้งหมด"
+               [แก้ไข] เดิมดึงจาก allData ทั้งหมด (ต้องโหลดข้อมูลทั้ง collection ก่อนถึงจะรู้รายชื่อ)
+               เปลี่ยนเป็นรวมจาก 3 แหล่ง: cache ที่เคย query เจอสะสมไว้ (localStorage)
+               + ข้อมูลชุดที่ query ได้ในรอบปัจจุบัน + ชื่อผู้ล็อกอินปัจจุบัน
+               เพื่อไม่ต้องอ่านข้อมูลทั้งหมดของ Firestore เพียงเพื่อสร้าง dropdown นี้ */
+            const namesFromCurrentData = allData
+                .map(item=>item.requestName)
+                .filter(e=>e);
+
+            const employeesFromData = addKnownEmployees([
+                ...namesFromCurrentData,
+                ...(loggedInEmployee ? [loggedInEmployee] : [])
+            ]);
+
+            employeeSelect.innerHTML =
+
+            `
+
+            <option value="all">
+                ทั้งหมด
+            </option>
+
+            `
+
+            +
+            employeesFromData.map(e=>`
+
+                <option value="${e}">
+                    ${e}
+                </option>
+
+            `).join("");
+
+            employeeSelect.value =
+
+                employeesFromData.includes(prevEmployee)
+
+                ? prevEmployee
+
+                : "all";
+ 
+            populateYearOptions();
+ 
+            populateMonthOptions();
+
+            populateDayOptions();
+
+            /* [แก้ไข] ตั้งค่าตัวกรองเริ่มต้น "ครั้งแรกที่เปิดหน้า" เท่านั้น
+               ตามที่ต้องการ: แสดงเฉพาะ "ชื่อผู้แจ้ง" กับ "เดือน" ขึ้นมาก่อน
+               ส่วนบริษัทและปี ยังคงเป็น "ทั้งหมด" ตามค่าเริ่มต้นปกติ (ไม่ auto-select ปี)
+               - เดือน = เดือนปัจจุบัน
+               - ผู้แจ้งงาน = ผู้ใช้ที่ล็อกอินอยู่ (ถ้าระบบ login มีค่านี้)
+               ใช้ flag filtersInitialized กันไม่ให้ค่าที่ผู้ใช้เลือกเองภายหลังถูก reset ทับ */
+            if(!filtersInitialized){
+
+                filtersInitialized = true;
+
+                const currentMonth = getCurrentMonthKey();
+                if([...monthSelect.options].some(o=>o.value === currentMonth)){
+                    monthSelect.value = currentMonth;
+                }
+
+                if(
+                    loggedInEmployee &&
+                    [...employeeSelect.options].some(o=>o.value === loggedInEmployee)
+                ){
+                    employeeSelect.value = loggedInEmployee;
+                }
+
+            }
+
+/* [แก้ไข] เดิมเมื่อเปลี่ยนตัวกรองจะแค่กรอง allData (ที่โหลดมาทั้งหมดแล้ว) ด้วย JS แล้ว render ใหม่
+   เปลี่ยนเป็นเรียก subscribeToData() เพื่อสร้าง Firestore Query (where) ใหม่ตามตัวกรองล่าสุด
+   แล้ว query ข้อมูลจาก Firestore เฉพาะส่วนที่ตรงเงื่อนไขเท่านั้น (ลด Reads ตามเงื่อนไขข้อ 3 และ 5) */
+companySelect.onchange = function(){
+    subscribeToData();
+};
+ 
+ 
+yearSelect.onchange = function(){
+    subscribeToData();
+};
+ 
+ 
+monthSelect.onchange = function(){
+    subscribeToData();
+};
+
+/* เพิ่มใหม่: ตัวกรอง "วันที่" กรองจาก allData ที่โหลดมาแล้วเท่านั้น (เหมือนช่องค้นหา)
+   จึงไม่ต้อง query Firestore ใหม่ แค่ render ตาราง/สรุปยอดใหม่พอ */
+const daySelectEl = document.getElementById("filterDay");
+if(daySelectEl){
+    daySelectEl.onchange = function(){
+        renderTable();
+        updateSummary();
+    };
+}
+
+employeeSelect.onchange = function(){
+    subscribeToData();
+};
+
+document.getElementById("filterType").onchange = function(){
+    subscribeToData();
+};
+
+/* เพิ่มใหม่: ช่องค้นหา ไม่ต้อง query Firestore ใหม่ (ค้นหาจาก allData ที่โหลดมาแล้วพอ)
+   จึงแค่ render ตาราง/สรุปยอดใหม่ทุกครั้งที่พิมพ์ ไม่เรียก subscribeToData() */
+const searchInputEl = document.getElementById("filterSearch");
+if(searchInputEl){
+    searchInputEl.oninput = function(){
+        renderTable();
+        updateSummary();
+    };
+}
+ 
+ 
+        }
+ 
+ 
+ 
+/* =========================
+   ปี
+========================= */
+ 
+ 
+function populateYearOptions(){
+ 
+ 
+ 
+    const yearSelect =
+        document.getElementById("filterYear");
+ 
+ 
+ 
+    const prevYear =
+        yearSelect.value || "all";
+ 
+ 
+ 
+ 
+    const YEAR_START = 2569;
+ 
+    const YEAR_END = 2575;
+ 
+ 
+ 
+ 
+    let years = [];
+ 
+ 
+ 
+    for(
+        let y = YEAR_START;
+        y <= YEAR_END;
+        y++
+    ){
+ 
+        years.push(String(y));
+ 
+    }
+ 
+ 
+ 
+ 
+ 
+    yearSelect.innerHTML =
+ 
+ 
+    `
+ 
+    <option value="all">
+        ทั้งหมด
+    </option>
+ 
+ 
+    `
+ 
+    +
+ 
+    years.map(y=>`
+ 
+        <option value="${y}">
+            ${y}
+        </option>
+ 
+    `).join("");
+ 
+ 
+ 
+ 
+ 
+    yearSelect.value =
+        years.includes(prevYear)
+        ? prevYear
+        : "all";
+ 
+}
+ 
+ 
+ 
+        /* =========================
+        เดือน
+        ========================= */
+        function populateMonthOptions(){
+ 
+            const monthSelect =
+                document.getElementById("filterMonth");
+ 
+            const prevMonth =
+                monthSelect.value || "all";
+ 
+ 
+            let options = [`<option value="all"> ทั้งหมด </option>` ];
+ 
+ 
+            for(
+                let m = 1;
+                m <= 12;
+                m++
+            ){
+ 
+                let key =
+                    String(m).padStart(2,"0");
+ 
+                options.push(`
+ 
+                <option value="${key}">
+                    ${THAI_MONTHS[m-1]}
+                </option>
+ 
+                `);
+ 
+            }
+ 
+ 
+            monthSelect.innerHTML =
+                options.join("");
+ 
+ 
+            monthSelect.value =
+ 
+                prevMonth;
+ 
+ 
+        }
+
+
+        /* =========================
+        วันที่ (เพิ่มใหม่: เหมือนตัวเลือกเดือน/ปี ใช้กรองวันที่แจ้งงานแบบเจาะจงวันได้)
+        ========================= */
+        function populateDayOptions(){
+
+            const daySelect =
+                document.getElementById("filterDay");
+
+            const prevDay =
+                daySelect.value || "all";
+
+
+            let options = [`<option value="all"> ทั้งหมด </option>` ];
+
+
+            for(
+                let d = 1;
+                d <= 31;
+                d++
+            ){
+
+                let key =
+                    String(d).padStart(2,"0");
+
+                options.push(`
+
+                <option value="${key}">
+                    ${d}
+                </option>
+
+                `);
+
+            }
+
+
+            daySelect.innerHTML =
+                options.join("");
+
+
+            daySelect.value =
+
+                prevDay;
+
+
+        }
+ 
+ 
+            /* =========================
+   กรองข้อมูลสำหรับตาราง
+   (เพิ่มใหม่: เรียงตามลำดับการบันทึกจริงก่อน (เก่า->ใหม่) แล้วค่อยกรอง
+   เพื่อให้ข้อมูลใหม่อยู่ล่างสุดเสมอ ไม่ว่าจะกรองเงื่อนไขใด)
+========================= */
+ 
+function getFilteredData(){
+ 
+ 
+    const selectedCompany =
+    document.getElementById("filterCompany").value;
+ 
+ 
+    const selectedYear =
+    document.getElementById("filterYear").value;
+ 
+ 
+    const selectedMonth =
+    document.getElementById("filterMonth").value;
+
+    const selectedDay =
+    document.getElementById("filterDay")?.value || "all";
+
+    const selectedEmployee =
+    document.getElementById("filterEmployee").value;
+
+    const selectedType =
+    document.getElementById("filterType").value;
+
+    /* เพิ่มใหม่: คำค้นหาจากช่องค้นหาด้านขวา ค้นได้ทั้งชื่อผู้เอาประกันและทะเบียนรถ
+       (กรองที่ฝั่ง client จาก allData ที่โหลดมาแล้วเท่านั้น ไม่ต้อง query Firestore ใหม่) */
+    const searchTerm =
+    (document.getElementById("filterSearch")?.value || "").trim().toLowerCase();
+ 
+ 
+    const sorted = [...allData].sort(
+        (a,b)=> getSortMillis(a) - getSortMillis(b)
+    );
+ 
+    return sorted.filter(item=>{
+ 
+ 
+        const companyOK =
+        selectedCompany === "all"
+        ||
+        item.company === selectedCompany;
+ 
+ 
+ 
+        const parsed =
+        parseCreateDate(item.createDate);
+ 
+ 
+ 
+        const yearOK =
+        selectedYear === "all"
+        ||
+        parsed.year === selectedYear;
+ 
+ 
+ 
+        const monthOK =
+        selectedMonth === "all"
+        ||
+        parsed.month === selectedMonth;
+
+        const dayOK =
+        selectedDay === "all"
+        ||
+        parsed.day === selectedDay;
+
+        const employeeOK =
+        selectedEmployee === "all"
+        ||
+        item.requestName === selectedEmployee;
+
+        const typeOK =
+        selectedType === "all"
+        ||
+        item.type === selectedType;
+
+        /* เพิ่มใหม่: ค้นหาแบบไม่สนตัวพิมพ์เล็ก-ใหญ่ ตรงส่วนใดส่วนหนึ่งของชื่อผู้เอาประกันหรือทะเบียนรถก็เจอ */
+        const searchOK =
+        !searchTerm
+        ||
+        (item.customer || "").toLowerCase().includes(searchTerm)
+        ||
+        (item.plate || "").toLowerCase().includes(searchTerm);
+ 
+ 
+ 
+        return companyOK && yearOK && monthOK && dayOK && employeeOK && typeOK && searchOK;
+ 
+ 
+    });
+ 
+ 
+}
+ 
+        /* =========================
+        สรุปยอดรวม
+        ========================= */
+ 
+ 
+        function updateSummary(){
+ 
+            const filtered = getFilteredData();
+ 
+ 
+            const selectedCompany =
+ 
+                document.getElementById(
+                    "filterCompany"
+                ).value;
+ 
+ 
+ 
+            const selectedYear =
+ 
+                document.getElementById(
+                    "filterYear"
+                ).value;
+ 
+ 
+ 
+ 
+            const selectedMonth =
+ 
+                document.getElementById(
+                    "filterMonth"
+                ).value;
+
+            const selectedDay =
+
+                document.getElementById(
+                    "filterDay"
+                )?.value || "all";
+
+            const selectedEmployee =
+
+                document.getElementById(
+                    "filterEmployee"
+                ).value;
+
+            const selectedType =
+
+                document.getElementById(
+                    "filterType"
+                ).value;
+ 
+ 
+ 
+ 
+ 
+ 
+            const total = filtered.reduce(
+ 
+                (sum,item)=>
+ 
+                sum + Number(item.total || 0),
+ 
+                0
+ 
+            );
+ 
+ 
+ 
+ 
+ 
+ 
+            const companyLabel =
+ 
+            selectedCompany === "all"
+ 
+            ? "ทุกบริษัท"
+ 
+            : selectedCompany;
+ 
+ 
+ 
+ 
+            const yearLabel =
+ 
+            selectedYear === "all"
+ 
+            ? "ทุกปี"
+ 
+            : "ปี " + selectedYear;
+ 
+            const monthLabel =
+ 
+            selectedMonth === "all"
+ 
+            ?
+ 
+            "ทุกเดือน"
+ 
+            :
+ 
+            THAI_MONTHS[
+                parseInt(selectedMonth,10)-1
+            ];
+
+            const dayLabel =
+
+            selectedDay === "all"
+
+            ?
+
+            "ทุกวัน"
+
+            :
+
+            "วันที่ " + parseInt(selectedDay,10);
+
+            const employeeLabel =
+
+            selectedEmployee === "all"
+
+            ?
+
+            "ทุกพนักงาน"
+
+            :
+
+            selectedEmployee;
+
+            const typeLabel =
+
+            selectedType === "all"
+
+            ? "ทุกประเภท"
+
+            : selectedType === "car"
+
+            ? "ประกันรถยนต์"
+
+            : "ประกันสินค้า";
+ 
+ 
+            document.getElementById(
+                "summaryTotal"
+            ).innerText =
+ 
+            `💰 ยอดรวม (${dayLabel} · ${monthLabel} · ${yearLabel} · ${companyLabel} · ${employeeLabel} · ${typeLabel}): ${total.toLocaleString()} บาท (${filtered.length} รายการ)`;
+ 
+        }
+ 
+ 
+        
+/* =========================
+   [แก้ไข] เดิมมีฟังก์ชัน buildDateRange() ที่แปลงตัวกรอง "ปี/เดือน" เป็นช่วงวันที่
+   แล้วนำไปกรองที่ระดับ Firestore query ด้วย where("createdAt", ...) โดยตรง
+   ปัญหาคือ: Firestore range query บนฟิลด์ใด จะตัดเอกสารที่ "ไม่มีฟิลด์นั้นเลย" ทิ้งไปตั้งแต่ต้นทาง
+   ไม่ส่งกลับมาให้ client เลย ดังนั้นเอกสารเก่าที่ยังไม่มีฟิลด์ createdAt (บันทึกไว้ก่อนอัปเดตนี้)
+   จะหายไปจากรายงานทันทีที่ผู้ใช้เลือกปีใดๆ ขัดกับที่คอมเมนต์เดิมอ้างว่า getFilteredData()
+   จะกรองซ้ำที่ฝั่ง client ให้ (จริงๆ แล้วไม่มีโอกาสได้กรองซ้ำ เพราะข้อมูลไม่เคยถูกส่งมาถึง client)
+
+   แก้โดยตัดการกรองช่วงวันที่ (ปี/เดือน) ออกจากระดับ Firestore query ทั้งหมด
+   ปล่อยให้ getFilteredData() ที่มีอยู่เดิม (ซึ่งใช้ parseCreateDate() อ่านจากฟิลด์ createDate
+   ที่ทุกเอกสารมีอยู่แน่นอน ไม่ต้องพึ่ง createdAt) เป็นตัวกรองปี/เดือนเพียงจุดเดียวที่ฝั่ง client
+   ยังคงกรองบริษัท/พนักงาน/ประเภท ที่ระดับ Firestore query เหมือนเดิม เพื่อลด reads
+========================= */
+function buildFirestoreQuery(){
+
+    const selectedCompany = document.getElementById("filterCompany").value || "all";
+    const selectedEmployee = document.getElementById("filterEmployee").value || "all";
+    const selectedType = document.getElementById("filterType").value || "all";
+
+    const base = collection(db, "insuranceData");
+    const constraints = [];
+
+    if(selectedCompany !== "all"){
+        constraints.push(where("company", "==", selectedCompany));
+    }
+
+    /* ผู้แจ้งงาน: ใช้ฟิลด์ requestName ให้ตรงกับตัวกรอง "เลือกพนักงาน" เดิม
+       *** ถ้าระบบ login จริงของคุณต้องการอิงจากฟิลด์ employeeName (ผู้แจ้งงานจาก Login) แทน
+       ให้เปลี่ยน "requestName" ด้านล่างนี้เป็น "employeeName" ให้ตรงกับข้อมูลจริง *** */
+    if(selectedEmployee !== "all"){
+        constraints.push(where("requestName", "==", selectedEmployee));
+    }
+
+    if(selectedType !== "all"){
+        constraints.push(where("type", "==", selectedType));
+    }
+
+    return constraints.length ? query(base, ...constraints) : base;
+
+}
+
+/* =========================
+   [เพิ่มใหม่] Subscribe ข้อมูลจาก Firestore ตาม Query ปัจจุบัน (realtime)
+   ทุกครั้งที่ผู้ใช้เปลี่ยนตัวกรอง (พนักงาน/บริษัท/ปี/เดือน/ประเภท) ฟังก์ชันนี้จะถูกเรียกใหม่
+   (เงื่อนไขข้อ 3) โดยจะยกเลิก listener เดิมก่อน แล้วค่อย query Firestore รอบใหม่ตามเงื่อนไขล่าสุด
+========================= */
+function subscribeToData(){
+
+    if(unsubscribeSnapshot){
+        unsubscribeSnapshot();
+        unsubscribeSnapshot = null;
+    }
+
+    const q = buildFirestoreQuery();
+
+    unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
+
+        allData = snapshot.docs.map(d => ({
+            id: d.id,
+            ...d.data()
+        }));
+
+        /* สะสมชื่อพนักงานที่เจอไว้ใช้สร้าง dropdown ในครั้งถัดไป โดยไม่ต้องโหลดข้อมูลทั้งหมด */
+        addKnownEmployees(allData.map(item => item.requestName).filter(Boolean));
+
+        renderTable();
+        updateSummary();
+
+    });
+
+}
+
+/* =========================
+   เริ่มทำงาน
+   [แก้ไข] เดิม subscribe อ่านข้อมูลทั้ง collection "insuranceData" ครั้งเดียว แล้วกรองทุกอย่างด้วย JS
+   เปลี่ยนเป็น 2 ขั้นตอน:
+   1) เรียก populateFilters() ก่อน เพื่อตั้งค่าตัวกรองเริ่มต้น
+      (ผู้แจ้งงาน = ผู้ล็อกอิน, เดือน = ปัจจุบัน ส่วนบริษัท/ปี ยังคงเป็น "ทั้งหมด")
+   2) เรียก subscribeToData() เพื่อ query Firestore เฉพาะข้อมูลที่ตรงกับตัวกรองเริ่มต้นนั้นทันที
+      ตามเงื่อนไขข้อ 2
+========================= */
+populateFilters();
+subscribeToData();
+ 
+ 
+ 
+ 
+/* =========================
+   เพิ่มใหม่: เลขกรมธรรม์
+   เก็บไว้ใน field "policyNumber" ของเอกสารเดิมใน Firestore (ไม่กระทบหน้าอื่นเลย
+   เพราะไม่มีหน้าไหนอ่าน field นี้ไปใช้ต่อ ใช้แค่บอกในตารางรายงานว่าออกเลขกรมแล้วหรือยัง)
+========================= */
+function togglePolicyEdit(id){
+    const input = document.getElementById("policy_" + id);
+    if(!input) return;
+    input.disabled = false;
+    input.focus();
+}
+
+/* เพิ่มใหม่: ข้อความแจ้งเตือนแบบ toast (ไม่บล็อกหน้าจอเหมือน alert())
+   เด้งขึ้นมามุมล่างขวา แล้วหายไปเองอัตโนมัติ ไม่ต้องกดปิด */
+function showToast(message){
+    let toast = document.createElement("div");
+    toast.className = "app-toast";
+    toast.innerText = message;
+    document.body.appendChild(toast);
+
+    // trigger reflow เพื่อให้ transition ทำงานตอนเริ่มแสดง
+    requestAnimationFrame(() => toast.classList.add("show"));
+
+    setTimeout(() => {
+        toast.classList.remove("show");
+        setTimeout(() => toast.remove(), 300);
+    }, 2200);
+}
+window.showToast = showToast;
+
+async function savePolicyNumber(id){
+    const input = document.getElementById("policy_" + id);
+    if(!input) return;
+
+    const value = input.value.trim();
+
+    await setDoc(
+        doc(db, "insuranceData", id),
+        { policyNumber: value },
+        { merge: true }
+    );
+
+    input.disabled = true;
+
+    showToast("✅ บันทึกเลขกรมธรรม์เรียบร้อย");
+}
+
+
+/* =========================
+   ลบข้อมูล
+========================= */
+ 
+ 
+async function deleteItem(id){
+ 
+    if(!confirm("ลบข้อมูล?"))
+        return;
+ 
+    // ลบที่ Firestore โดยตรง — onSnapshot ด้านบนจะอัปเดตตารางให้อัตโนมัติทุกเครื่องที่เปิดหน้านี้อยู่
+    await deleteDoc(doc(db, "insuranceData", id));
+ 
+}
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+/* =========================
+   แก้ไขข้อมูล
+========================= */
+ 
+ 
+function editItem(id){
+ 
+    const item = allData.find(x => x.id === id);
+ 
+    if(!item){
+        alert("ไม่พบข้อมูล");
+        return;
+    }
+ 
+    // ส่งข้อมูลชั่วคราวไปให้หน้าฟอร์มเติมค่าในช่องกรอก (id ที่แนบไปคือ Firestore document id)
+    localStorage.setItem(
+        "editData",
+        JSON.stringify(item)
+    );
+ 
+    if(item.type === "product"){
+ 
+        location.href =
+            "form_product.html";
+ 
+    }
+ 
+    else{
+ 
+        location.href =
+            "form_car.html";
+ 
+    }
+ 
+}
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+/* =========================
+   เปิดเอกสาร
+========================= */
+ 
+ 
+function openDoc(id){
+ 
+    const item = allData.find(x => x.id === id);
+ 
+    if(!item){
+        alert("ไม่พบข้อมูล");
+        return;
+    }
+ 
+    // ข้อมูลชั่วคราวสำหรับเปิดเอกสาร PDF เท่านั้น ไม่ใช่แหล่งข้อมูลหลัก
+    localStorage.setItem(
+        "pdfData",
+        JSON.stringify(item)
+    );
+ 
+    location.href =
+        "contract_print.html";
+ 
+}
+
+
+/* =========================
+   เพิ่มใหม่: โหลดใบเสร็จ
+   ออกใบรับเงิน (receipt_print.html) ตามจำนวนงวดที่มีการบันทึกยอดชำระแล้วเท่านั้น
+   เช่น ชำระงวด 1 แล้ว -> ออก 1 ใบ, ชำระถึงงวด 2 -> ออก 2 ใบ, ครบ 4 งวด -> ออก 4 ใบ
+========================= */
+function openReceipt(id){
+
+    const item = allData.find(x => x.id === id);
+
+    if(!item){
+        alert("ไม่พบข้อมูล");
+        return;
+    }
+
+    // ข้อมูลชั่วคราวสำหรับเปิดใบเสร็จเท่านั้น ไม่ใช่แหล่งข้อมูลหลัก
+    localStorage.setItem(
+        "pdfData",
+        JSON.stringify(item)
+    );
+
+    location.href =
+        "receipt_print.html";
+
+}
+ 
+/* =========================
+   SIDEBAR MENU
+========================= */
+ 
+const menuBtn = document.getElementById("menuBtn");
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("overlay");
+ 
+ 
+/* =========================
+   เปิดให้ onclick="" ในตาราง (inline HTML) เรียกใช้ได้
+   จำเป็นเพราะ <script type="module"> ไม่ผูกฟังก์ชันเข้า window ให้อัตโนมัติ
+========================= */
+window.editItem = editItem;
+window.openDoc = openDoc;
+window.openReceipt = openReceipt;
+window.deleteItem = deleteItem;
+window.togglePolicyEdit = togglePolicyEdit;
+window.savePolicyNumber = savePolicyNumber;
+ 
+if(menuBtn && sidebar && overlay){
+ 
+    menuBtn.addEventListener("click",()=>{
+ 
+        sidebar.classList.toggle("show");
+        overlay.classList.toggle("show");
+ 
+    });
+ 
+ 
+    overlay.addEventListener("click",()=>{
+ 
+        sidebar.classList.remove("show");
+        overlay.classList.remove("show");
+ 
+    });
+ 
+}
+ 
+ 
+ 
+</script>
+ 
+ 
+ 
+</body>
+ 
+</html>

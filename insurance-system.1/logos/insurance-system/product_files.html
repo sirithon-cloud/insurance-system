@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>เลือกบริษัทประกันสินค้า</title>
+
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body class="form-page">
+
+    <main class="form-card small-form">
+
+        <h1 class="form-title">🏢 เลือกบริษัทประกันสินค้า</h1>
+
+        <div class="company-grid">
+
+            <button class="document-btn"
+                onclick="selectCompany('วิริยะ')">
+                วิริยะ
+            </button>
+
+            <button class="document-btn"
+                onclick="selectCompany('เมืองไทย')">
+                เมืองไทย
+            </button>
+
+            <button class="document-btn"
+                onclick="selectCompany('AIG')">
+                AIG
+            </button>
+
+            <button class="document-btn"
+                onclick="selectCompany('MSIG')">
+                MSIG
+            </button>
+
+        </div>
+
+        <br>
+
+        <button
+            class="bottom-btn back-btn"
+            onclick="location.href='documents.html'">
+
+            ⬅️ กลับ
+
+        </button>
+
+    </main>
+
+<script>
+
+function selectCompany(company){
+
+    localStorage.setItem("selectedCompany",company);
+
+    location.href="form_product.html";
+
+}
+
+</script>
+
+</body>
+</html>
