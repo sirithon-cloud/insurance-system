@@ -649,23 +649,15 @@
             <div class="summary-panel-left">
 
                 <div class="summary-filters">
+                    <!-- แก้ไข: จัดลำดับตัวกรองใหม่เป็น วัน -> เดือน -> ปี -> บริษัท -> พนักงาน -> ประเภท -->
                     <span>
-                        <label for="filterCompany">
-                            🏢 เลือกบริษัท
+
+                        <label for="filterDay">
+                            📆 เลือกวันที่
                         </label>
-                        <select id="filterCompany"></select>
+                        <select id="filterDay"></select>
+
                     </span>
-
-
-                    <span>
-                        <label for="filterYear">
-                            🗓️ เลือกปี
-                        </label>
-                        <select id="filterYear"></select>
-                    </span>
-
-
-
 
                     <span>
 
@@ -676,7 +668,21 @@
 
                     </span>
 
-                    <!-- เพิ่มใหม่: ตัวกรอง "พนักงาน" (ชื่อผู้แจ้ง) ตัวเลือกเสริม ค่าเริ่มต้น = "ทั้งหมด" -->
+                    <span>
+                        <label for="filterYear">
+                            🗓️ เลือกปี
+                        </label>
+                        <select id="filterYear"></select>
+                    </span>
+
+                    <span>
+                        <label for="filterCompany">
+                            🏢 เลือกบริษัท
+                        </label>
+                        <select id="filterCompany"></select>
+                    </span>
+
+                    <!-- ตัวกรอง "พนักงาน" (ชื่อผู้แจ้ง) ตัวเลือกเสริม ค่าเริ่มต้น = "ทั้งหมด" -->
                     <span>
 
                         <label for="filterEmployee">
@@ -686,7 +692,7 @@
 
                     </span>
 
-                    <!-- เพิ่มใหม่: ตัวกรอง "ประเภทประกัน" ตัวเลือกเสริม ค่าเริ่มต้น = "ทั้งหมด" -->
+                    <!-- ตัวกรอง "ประเภทประกัน" ตัวเลือกเสริม ค่าเริ่มต้น = "ทั้งหมด" -->
                     <span>
 
                         <label for="filterType">
@@ -943,6 +949,7 @@ if(loggedInEmployee){
         function parseCreateDate(createDate){
             if(!createDate)
                 return {
+                    day:null,
                     month:null,
                     year:null
                 };
@@ -952,10 +959,12 @@ if(loggedInEmployee){
  
             if(parts.length !== 3)
                 return {
+                    day:null,
                     month:null,
                     year:null
                 };
  
+            const day = parseInt(parts[0],10);
             const month = parseInt(parts[1],10);
             const year = parts[2];
  
@@ -966,12 +975,27 @@ if(loggedInEmployee){
             ){
  
                 return {
+                    day:null,
                     month:null,
                     year:null
                 };
             }
+
+            if(
+                isNaN(day) ||
+                day < 1 ||
+                day > 31
+            ){
+
+                return {
+                    day:null,
+                    month:String(month).padStart(2,"0"),
+                    year:year
+                };
+            }
  
             return {
+                day:String(day).padStart(2,"0"),
                 month:String(month).padStart(2,"0"),
                 year:year
             };
@@ -1294,6 +1318,8 @@ if(loggedInEmployee){
  
             populateMonthOptions();
 
+            populateDayOptions();
+
             /* [แก้ไข] ตั้งค่าตัวกรองเริ่มต้น "ครั้งแรกที่เปิดหน้า" เท่านั้น
                ตามที่ต้องการ: แสดงเฉพาะ "ชื่อผู้แจ้ง" กับ "เดือน" ขึ้นมาก่อน
                ส่วนบริษัทและปี ยังคงเป็น "ทั้งหมด" ตามค่าเริ่มต้นปกติ (ไม่ auto-select ปี)
@@ -1334,6 +1360,16 @@ yearSelect.onchange = function(){
 monthSelect.onchange = function(){
     subscribeToData();
 };
+
+/* เพิ่มใหม่: ตัวกรอง "วันที่" กรองจาก allData ที่โหลดมาแล้วเท่านั้น (เหมือนช่องค้นหา)
+   จึงไม่ต้อง query Firestore ใหม่ แค่ render ตาราง/สรุปยอดใหม่พอ */
+const daySelectEl = document.getElementById("filterDay");
+if(daySelectEl){
+    daySelectEl.onchange = function(){
+        renderTable();
+        updateSummary();
+    };
+}
 
 employeeSelect.onchange = function(){
     subscribeToData();
@@ -1483,6 +1519,53 @@ function populateYearOptions(){
  
  
         }
+
+
+        /* =========================
+        วันที่ (เพิ่มใหม่: เหมือนตัวเลือกเดือน/ปี ใช้กรองวันที่แจ้งงานแบบเจาะจงวันได้)
+        ========================= */
+        function populateDayOptions(){
+
+            const daySelect =
+                document.getElementById("filterDay");
+
+            const prevDay =
+                daySelect.value || "all";
+
+
+            let options = [`<option value="all"> ทั้งหมด </option>` ];
+
+
+            for(
+                let d = 1;
+                d <= 31;
+                d++
+            ){
+
+                let key =
+                    String(d).padStart(2,"0");
+
+                options.push(`
+
+                <option value="${key}">
+                    ${d}
+                </option>
+
+                `);
+
+            }
+
+
+            daySelect.innerHTML =
+                options.join("");
+
+
+            daySelect.value =
+
+                prevDay;
+
+
+        }
  
  
             /* =========================
@@ -1504,6 +1587,9 @@ function getFilteredData(){
  
     const selectedMonth =
     document.getElementById("filterMonth").value;
+
+    const selectedDay =
+    document.getElementById("filterDay")?.value || "all";
 
     const selectedEmployee =
     document.getElementById("filterEmployee").value;
@@ -1548,6 +1634,11 @@ function getFilteredData(){
         ||
         parsed.month === selectedMonth;
 
+        const dayOK =
+        selectedDay === "all"
+        ||
+        parsed.day === selectedDay;
+
         const employeeOK =
         selectedEmployee === "all"
         ||
@@ -1568,7 +1659,7 @@ function getFilteredData(){
  
  
  
-        return companyOK && yearOK && monthOK && employeeOK && typeOK && searchOK;
+        return companyOK && yearOK && monthOK && dayOK && employeeOK && typeOK && searchOK;
  
  
     });
@@ -1608,6 +1699,12 @@ function getFilteredData(){
                 document.getElementById(
                     "filterMonth"
                 ).value;
+
+            const selectedDay =
+
+                document.getElementById(
+                    "filterDay"
+                )?.value || "all";
 
             const selectedEmployee =
 
@@ -1674,6 +1771,18 @@ function getFilteredData(){
                 parseInt(selectedMonth,10)-1
             ];
 
+            const dayLabel =
+
+            selectedDay === "all"
+
+            ?
+
+            "ทุกวัน"
+
+            :
+
+            "วันที่ " + parseInt(selectedDay,10);
+
             const employeeLabel =
 
             selectedEmployee === "all"
@@ -1703,7 +1812,7 @@ function getFilteredData(){
                 "summaryTotal"
             ).innerText =
  
-            `💰 ยอดรวม (${companyLabel} · ${yearLabel} · ${monthLabel} · ${employeeLabel} · ${typeLabel}): ${total.toLocaleString()} บาท (${filtered.length} รายการ)`;
+            `💰 ยอดรวม (${dayLabel} · ${monthLabel} · ${yearLabel} · ${companyLabel} · ${employeeLabel} · ${typeLabel}): ${total.toLocaleString()} บาท (${filtered.length} รายการ)`;
  
         }
  

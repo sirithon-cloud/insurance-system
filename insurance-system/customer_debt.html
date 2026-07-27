@@ -296,6 +296,125 @@ th.debt-action-th{
     color:#fff;
 }
 
+/* เพิ่มใหม่: ปุ่ม "จ่ายงวด" กดจ่ายค่างวดถัดไปได้ทันทีจากตารางลูกหนี้ โดยไม่ต้องไปแก้ที่ฟอร์ม */
+.debt-pay-btn{
+    background:#2FBF9B;
+    color:#fff;
+}
+
+/* เพิ่มใหม่: โมดัลจ่ายงวด (เบา ไม่ต้องเปิดโหมดแก้ไขทั้งแถว) */
+.debt-pay-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(21,42,84,.45);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:16px;
+    z-index:99998;
+    opacity:0;
+    visibility:hidden;
+    transition:.2s;
+}
+
+.debt-pay-overlay.show{
+    opacity:1;
+    visibility:visible;
+}
+
+.debt-pay-box{
+    background:var(--surface);
+    border-radius:20px;
+    max-width:380px;
+    width:100%;
+    padding:24px;
+    box-shadow:0 20px 50px rgba(21,42,84,.3);
+    font-family:"Kanit",sans-serif;
+    transform:translateY(-10px) scale(.97);
+    transition:.2s;
+}
+
+.debt-pay-overlay.show .debt-pay-box{
+    transform:translateY(0) scale(1);
+}
+
+.debt-pay-box h3{
+    color:var(--navy);
+    font-size:17px;
+    margin-bottom:10px;
+}
+
+.debt-pay-remaining{
+    color:var(--text-soft);
+    font-size:14px;
+    margin-bottom:16px;
+}
+
+.debt-pay-remaining b{
+    color:#FF3737;
+}
+
+.debt-pay-box label{
+    display:block;
+    font-size:13px;
+    font-weight:600;
+    color:var(--navy);
+    margin-bottom:6px;
+}
+
+.debt-pay-amount-input{
+    width:100%;
+    padding:12px 14px;
+    border-radius:12px;
+    border:1.5px solid var(--border);
+    font-family:"Kanit",sans-serif;
+    font-size:16px;
+    color:var(--navy);
+    box-sizing:border-box;
+}
+
+.debt-pay-amount-input:focus{
+    outline:none;
+    border-color:var(--blue);
+    box-shadow:0 0 0 3px var(--blue-light);
+}
+
+.debt-pay-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    margin-top:20px;
+}
+
+.debt-pay-actions button{
+    padding:10px 20px;
+    border:none;
+    border-radius:999px;
+    font-family:"Kanit",sans-serif;
+    font-weight:600;
+    font-size:14px;
+    cursor:pointer;
+    transition:.2s;
+}
+
+.debt-pay-cancel-btn{
+    background:var(--blue-light);
+    color:var(--blue-dark);
+}
+
+.debt-pay-cancel-btn:hover{
+    background:var(--blue-soft, #DCE9FF);
+}
+
+.debt-pay-confirm-btn{
+    background:#198754;
+    color:#fff;
+}
+
+.debt-pay-confirm-btn:hover{
+    background:#157347;
+}
+
 /* toast แจ้งเตือนแบบไม่บล็อกหน้าจอ */
 .debt-toast{
     position:fixed;
@@ -476,6 +595,21 @@ th.debt-action-th{
 </div>
 
 
+<!-- เพิ่มใหม่: โมดัลจ่ายงวด กดจ่ายค่างวดถัดไปได้ทันทีจากตารางนี้ ไม่ต้องไปเปิดฟอร์มแก้ไข -->
+<div class="debt-pay-overlay" id="debtPayOverlay" onclick="if(event.target===this) window.debtClosePayModal()">
+    <div class="debt-pay-box">
+        <h3 id="debtPayTitle">💵 จ่ายงวด</h3>
+        <div class="debt-pay-remaining">ยอดค้างชำระปัจจุบัน: <b id="debtPayRemaining">0</b> บาท</div>
+
+        <label for="debtPayAmount">จำนวนเงินที่จ่ายงวดนี้</label>
+        <input type="number" id="debtPayAmount" class="debt-pay-amount-input" min="0" step="1">
+
+        <div class="debt-pay-actions">
+            <button type="button" class="debt-pay-cancel-btn" onclick="window.debtClosePayModal()">ยกเลิก</button>
+            <button type="button" class="debt-pay-confirm-btn" onclick="window.debtConfirmPayInstallment()">✅ บันทึกการจ่าย</button>
+        </div>
+    </div>
+</div>
 
 
 <script type="module">
@@ -804,6 +938,7 @@ ${installmentCells}
 
 <td class="debt-action-td">
     <div class="debt-actions">
+        <button class="debt-pay-btn" onclick="window.debtPayInstallment('${item.id}')" title="จ่ายงวด">💵</button>
         <button class="debt-edit-btn" onclick="window.debtToggleEdit('${item.id}')" title="แก้ไข">✏️</button>
         <button class="debt-save-btn" onclick="window.debtSaveRow('${item.id}')" title="บันทึก">💾</button>
         <button class="debt-delete-btn" onclick="window.debtDeleteRow('${item.id}')" title="ลบ">🗑️</button>
@@ -922,6 +1057,12 @@ window.debtDeleteRow = async function(id){
 };
 
 
+/* เพิ่มใหม่: เก็บข้อมูลล่าสุด + จำนวนงวดสูงสุดปัจจุบันไว้ใช้กับโมดัล "จ่ายงวด"
+   (หาแถวจาก id และหางวดถัดไปที่ยังว่างได้ทันที โดยไม่ต้องอ่านจาก DOM) */
+let currentDebtData = [];
+let currentMaxInstallments = 4;
+let currentPayItem = null;
+
 /* ฟังข้อมูลจาก Firestore แบบ realtime — อัปเดตอัตโนมัติทุกครั้งที่มีการบันทึก/แก้ไข/ลบ
    จากหน้า form_car.html / form_product.html / report.html / finance.html หรือจากตารางนี้เอง */
 onSnapshot(collection(db, "insuranceData"), (snapshot) => {
@@ -931,12 +1072,118 @@ onSnapshot(collection(db, "insuranceData"), (snapshot) => {
         ...d.data()
     }));
 
+    currentDebtData = data;
+
     const maxInstallments = getMaxInstallmentCount(data);
+    currentMaxInstallments = maxInstallments;
 
     renderDebtHeader(maxInstallments);
     renderDebt(data, maxInstallments);
 
 });
+
+/* =========================================================
+   เพิ่มใหม่: จ่ายเฉพาะ "ค่างวด" ได้ทันทีจากตารางลูกหนี้ ไม่ต้องไปเปิดฟอร์มแก้ไขทั้งใบ
+   - กดปุ่ม 💵 -> ระบบหางวดถัดไปที่ยังไม่ได้กรอกให้อัตโนมัติ (ถ้างวดที่มีคอลัมน์อยู่ตอนนี้
+     ถูกกรอกครบหมดแล้วแต่ยังมียอดค้าง จะเปิดงวดถัดไปเพิ่มให้เองเหมือนตอนกรอกในฟอร์ม)
+   - บันทึกด้วย setDoc({merge:true}) ลง field installmentN ของรายการนั้นตรงๆ ใน collection
+     "insuranceData" เดียวกับที่ report.html / finance.html / revenue.html อ่านอยู่แล้ว
+     ทำให้ยอดค้างในตารางนี้และตัวเลขในหน้ารายงานอัปเดตตรงกันทันทีแบบ realtime
+     โดยไม่ต้องแก้ไขข้อมูลอื่นของลูกค้ารายนั้นเลย
+========================================================= */
+window.debtPayInstallment = function(id){
+
+    const item = currentDebtData.find(x => x.id === id);
+    if(!item){
+        alert("ไม่พบข้อมูลลูกค้ารายนี้ อาจมีการอัปเดตข้อมูลไปแล้ว กรุณาลองใหม่อีกครั้ง");
+        return;
+    }
+
+    const total = Number(item.total || 0);
+
+    let paid = 0;
+    for(let i = 1; i <= currentMaxInstallments; i++){
+        paid += Number(item["installment" + i] || 0);
+    }
+
+    const debtAmount = total - paid;
+
+    if(debtAmount <= 0){
+        showDebtToast("✅ ลูกค้ารายนี้ไม่มียอดค้างชำระแล้ว");
+        return;
+    }
+
+    // หางวดถัดไปที่ยังไม่ได้กรอก (ว่างหรือเป็น 0) ภายในจำนวนงวดที่มีคอลัมน์อยู่ตอนนี้
+    let nextSlot = null;
+    for(let i = 1; i <= currentMaxInstallments; i++){
+        const v = item["installment" + i];
+        const isEmpty = v === undefined || v === null || String(v).trim() === "" || Number(v) === 0;
+        if(isEmpty){
+            nextSlot = i;
+            break;
+        }
+    }
+
+    // งวดที่มีคอลัมน์อยู่ตอนนี้ถูกกรอกครบหมดแล้ว แต่ยังมียอดค้าง -> เปิดงวดถัดไปเพิ่มให้เอง
+    if(nextSlot === null){
+        nextSlot = currentMaxInstallments + 1;
+    }
+
+    currentPayItem = {
+        id: item.id,
+        field: "installment" + nextSlot,
+        slot: nextSlot
+    };
+
+    document.getElementById("debtPayTitle").innerText =
+        `💵 จ่ายงวดที่ ${nextSlot} - ${item.customer || "ไม่ระบุชื่อ"}`;
+
+    document.getElementById("debtPayRemaining").innerText = debtAmount.toLocaleString();
+
+    const amountInput = document.getElementById("debtPayAmount");
+    amountInput.value = debtAmount;
+
+    document.getElementById("debtPayOverlay").classList.add("show");
+
+    setTimeout(() => { amountInput.focus(); amountInput.select(); }, 50);
+};
+
+window.debtClosePayModal = function(){
+    document.getElementById("debtPayOverlay").classList.remove("show");
+    currentPayItem = null;
+};
+
+window.debtConfirmPayInstallment = async function(){
+
+    if(!currentPayItem) return;
+
+    const amountInput = document.getElementById("debtPayAmount");
+    const amount = Number(amountInput.value);
+
+    if(!amount || amount <= 0){
+        alert("กรุณากรอกจำนวนเงินที่จ่ายให้ถูกต้อง");
+        return;
+    }
+
+    try{
+
+        await setDoc(
+            doc(db, "insuranceData", currentPayItem.id),
+            { [currentPayItem.field]: amount },
+            { merge: true }
+        );
+
+        showDebtToast("✅ บันทึกการจ่ายงวดเรียบร้อย");
+        window.debtClosePayModal();
+
+    }catch(err){
+
+        console.error("บันทึกการจ่ายงวดไม่สำเร็จ:", err);
+        alert("บันทึกไม่สำเร็จ: " + (err.message || "กรุณาลองใหม่อีกครั้ง"));
+
+    }
+
+};
 
 
 </script>
