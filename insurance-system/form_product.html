@@ -96,6 +96,149 @@
         .installment-options input[type="radio"]:disabled + label:hover {
             border-color: #ccc;
         }
+
+        /* เพิ่มใหม่: ส่วน "3️⃣ บันทึกการชำระเงิน (งวดที่ 1)" ยกแบบมาจากหน้า "บันทึกการเงิน" (finance.html) */
+        .pay-method-options{
+            display:grid;
+            grid-template-columns:repeat(2,1fr);
+            gap:10px;
+            margin-bottom:20px;
+        }
+
+        .pay-method-btn{
+            padding: 10px 20px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-family: 'Kanit', sans-serif;
+            font-weight: 600;
+            user-select: none;
+            transition: all 0.15s ease-in-out;
+            background: #fff;
+            color: #666666;
+        }
+
+        .pay-method-btn:hover{
+            border-color: #2d6cdf;
+        }
+
+        .pay-method-btn.active{
+            border-color: #2d6cdf;
+            background: #2d6cdf;
+            color: #fff;
+        }
+
+        .pay-form-section{
+            background:var(--blue-light);
+            border:1px solid var(--blue-soft);
+            border-radius:16px;
+            padding:18px;
+            margin-bottom:10px;
+        }
+
+        .pay-account-grid{
+            display:grid;
+            grid-template-columns:repeat(3,1fr);
+            gap:10px;
+            margin-bottom:14px;
+        }
+
+        .pay-account-card{
+            cursor:pointer;
+            display:block;
+            position:relative;
+        }
+
+        .pay-account-card input{
+            position:absolute;
+            opacity:0;
+            width:0;
+            height:0;
+        }
+
+        .pay-account-card .card-inner{
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            justify-content:center;
+            gap:6px;
+            padding:14px 6px;
+            border-radius:14px;
+            color:#fff;
+            font-weight:700;
+            font-size:11px;
+            text-align:center;
+            min-height:70px;
+        }
+
+        .pay-account-card input:checked + .card-inner{
+            outline:3px solid #fff;
+            outline-offset:-3px;
+            transform:scale(1.03);
+        }
+
+        .pay-time-row{
+            display:flex;
+            align-items:flex-end;
+            gap:8px;
+            margin-top:8px;
+            margin-bottom:16px;
+        }
+
+        .pay-flip-card{
+            position:relative;
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            gap:3px;
+        }
+
+        .pay-flip-btn{
+            width:52px;
+            height:44px;
+            border:1.5px solid var(--border);
+            border-radius:10px;
+            background:var(--bg);
+            font-family:'Kanit',sans-serif;
+            font-size:16px;
+            font-weight:600;
+            text-align:center;
+            cursor:pointer;
+        }
+
+        .pay-flip-list{
+            position:absolute;
+            top:calc(100% + 4px);
+            left:50%;
+            transform:translateX(-50%);
+            width:56px;
+            max-height:150px;
+            overflow-y:auto;
+            background:#fff;
+            border:1px solid var(--border);
+            border-radius:10px;
+            box-shadow:0 12px 26px rgba(0,0,0,.12);
+            padding:4px;
+            display:none;
+            z-index:60;
+        }
+
+        .pay-flip-list.show{ display:block; }
+
+        .pay-flip-option{
+            padding:7px 0;
+            text-align:center;
+            font-size:13px;
+            border-radius:6px;
+            cursor:pointer;
+        }
+
+        .pay-flip-option:hover,
+        .pay-flip-option.active{
+            background:var(--blue);
+            color:#fff;
+        }
     </style>
  
 </head>
@@ -238,29 +381,20 @@
                 <label for="installmentCount4">4 งวด</label>
             </div>
  
-            <div class="section-title">💳 งวดชำระแล้ว</div>
+            <div class="section-title">3️⃣ บันทึกการชำระเงิน (งวดที่ 1)</div>
+            <p class="subtitle" style="margin-top:-14px;margin-bottom:20px;">
+                ระบบจะบันทึกการชำระเงินนี้เป็น "งวดที่ 1" ให้อัตโนมัติ ส่วนงวดที่ 2 เป็นต้นไป
+                ให้ไปบันทึกที่เมนู "บันทึกการเงิน" ภายหลัง
+            </p>
 
-            <!-- แก้ไข: ตัดช่องกรอก "วันที่ชำระ" ของแต่ละงวดออก ไม่ต้องให้พนักงานกรอกเองแล้ว
-                 ระบบจะบันทึกวันที่ชำระให้อัตโนมัติเป็นวันที่กด "บันทึกข้อมูล" ตอนที่ยอดงวดนั้นเปลี่ยน/ถูกกรอกใหม่
-                 (ดูฟังก์ชัน getInstallmentDate() ด้านล่าง) ใบรับเงิน (receipt_print.html) ยังคงอ่านค่า
-                 installmentXDate นี้ไปแสดงผลเหมือนเดิมทุกประการ ไม่ต้องแก้ไฟล์นั้นเลย -->
-            <div class="row">
-                <div>
-                    <input type="number" id="installment1" placeholder="งวดที่ 1 (บาท)">
-                </div>
-                <div>
-                    <input type="number" id="installment2" placeholder="งวดที่ 2 (บาท)">
-                </div>
+            <div class="pay-method-options" id="payMethodGroup">
+                <button type="button" class="pay-method-btn" data-method="transfer" onclick="selectPayMethod('transfer')">โอน</button>
+                <button type="button" class="pay-method-btn" data-method="cash" onclick="selectPayMethod('cash')">จ่ายสด</button>
+                <button type="button" class="pay-method-btn" data-method="check" onclick="selectPayMethod('check')">เช็ค</button>
+                <button type="button" class="pay-method-btn" data-method="direct" onclick="selectPayMethod('direct')">จ่ายตรง</button>
             </div>
 
-            <div class="row">
-                <div>
-                    <input type="number" id="installment3" placeholder="งวดที่ 3 (บาท)">
-                </div>
-                <div>
-                    <input type="number" id="installment4" placeholder="งวดที่ 4 (บาท)">
-                </div>
-            </div>
+            <div id="payFormSection" class="pay-form-section" style="display:none;"></div>
  
             <div class="button-group">
  
@@ -325,10 +459,7 @@
            แก้โดยเติมการประกาศตัวแปรนี้กลับมาที่หน้านี้ (เป็นของหน้านี้เท่านั้น ไม่ชนกับ script.js) */
         let editingId = null;
 
-        /* เพิ่มใหม่: เก็บข้อมูลเดิมของรายการที่กำลังแก้ไข (ถ้ามี) ไว้เทียบยอดงวดตอนกดบันทึก
-           ใช้เพื่อรู้ว่างวดไหน "ยอดเปลี่ยน/เพิ่งกรอกใหม่" (ต้องตีวันที่ชำระเป็นวันนี้)
-           กับงวดไหน "ยอดเดิมเป๊ะ ไม่ได้แก้" (ต้องคงวันที่ชำระเดิมไว้ ไม่ทับ)
-           ดูฟังก์ชัน getInstallmentDate() ด้านล่าง */
+        /* เก็บข้อมูลเดิมของรายการที่กำลังแก้ไข (ถ้ามี) ไว้ใช้อ้างอิงทั่วไป (เช่น id ของเอกสาร) */
         let loadedRecordData = null;
  
         function getInstallmentCount() {
@@ -396,32 +527,238 @@
 
         document.getElementById("company")?.addEventListener("change", applyGroupLockForCompany);
  
-        /* เพิ่มใหม่: คำนวณวันที่ชำระของงวดที่ i โดยอัตโนมัติ แทนการให้พนักงานกรอกเอง
-           - ยังไม่กรอกยอด (0 หรือว่าง) -> ไม่มีวันที่ ("")
-           - กำลังแก้ไขรายการเดิม และยอดงวดนี้ "เท่าเดิมเป๊ะ" และมีวันที่เดิมบันทึกไว้อยู่แล้ว
-             -> คงวันที่เดิมไว้ ไม่ทับ (ยังไม่ได้แก้ไขงวดนี้จริงๆ)
-           - นอกนั้นทั้งหมด (บันทึกใหม่ หรือยอดงวดนี้เปลี่ยนไปจากเดิม) -> ถือว่าชำระ "วันนี้" */
-        function getInstallmentDate(i, newAmtRaw) {
-            const newAmt = Number(newAmtRaw) || 0;
-            if (newAmt <= 0) return "";
+        /* =========================================================
+           เพิ่มใหม่: 3️⃣ บันทึกการชำระเงิน (งวดที่ 1)
+           ยกมาจากส่วน "3️⃣ บันทึกการชำระเงิน" ของหน้า finance.html (renderPaymentForm)
+           ผลของการกรอกส่วนนี้จะถูกบันทึกเป็น "งวดที่ 1" (installment1) เท่านั้น
+           งวดที่ 2 เป็นต้นไป พนักงานต้องไปบันทึกต่อที่หน้า "บันทึกการเงิน" (finance.html) เอง
+        ========================================================= */
+        let currentPayMethod = null;
+        let payDatePicker = null;
 
-            const oldAmt = loadedRecordData ? Number(loadedRecordData["installment" + i] || 0) : 0;
-            const oldDate = loadedRecordData ? (loadedRecordData["installment" + i + "Date"] || "") : "";
+        function resetPayMethodButtons() {
+            document.querySelectorAll(".pay-method-btn").forEach(b => b.classList.remove("active"));
+        }
 
-            if (editingId && newAmt === oldAmt && oldDate) {
-                return oldDate;
+        function selectPayMethod(method) {
+            if (currentPayMethod === method) {
+                currentPayMethod = null;
+                resetPayMethodButtons();
+                document.getElementById("payFormSection").style.display = "none";
+                return;
+            }
+            currentPayMethod = method;
+            resetPayMethodButtons();
+            const btn = document.querySelector(`.pay-method-btn[data-method="${method}"]`);
+            if (btn) btn.classList.add("active");
+            renderPayForm(method);
+        }
+
+        function getPayCurrentHour() { return String(new Date().getHours()).padStart(2, "0"); }
+        function getPayCurrentMinute() { return String(new Date().getMinutes()).padStart(2, "0"); }
+
+        function buildPayTimeListItems(type, currentValue) {
+            const max = type === "hour" ? 24 : 60;
+            let html = "";
+            for (let i = 0; i < max; i++) {
+                const value = String(i).padStart(2, "0");
+                const activeClass = value === currentValue ? " active" : "";
+                html += `<div class="pay-flip-option${activeClass}" onclick="paySelectTime('${type}','${value}')">${value}</div>`;
+            }
+            return html;
+        }
+
+        function initPayTimeDropdowns() {
+            const hourBtn = document.getElementById("pay_hour_btn");
+            const minuteBtn = document.getElementById("pay_minute_btn");
+            const hourList = document.getElementById("pay_hour_list");
+            const minuteList = document.getElementById("pay_minute_list");
+            if (hourList) hourList.innerHTML = buildPayTimeListItems("hour", hourBtn?.dataset.value);
+            if (minuteList) minuteList.innerHTML = buildPayTimeListItems("minute", minuteBtn?.dataset.value);
+        }
+
+        function payToggleTimeList(type) {
+            const listId = type === "hour" ? "pay_hour_list" : "pay_minute_list";
+            const otherId = type === "hour" ? "pay_minute_list" : "pay_hour_list";
+            const list = document.getElementById(listId);
+            const other = document.getElementById(otherId);
+            if (other) other.classList.remove("show");
+            if (list) list.classList.toggle("show");
+        }
+
+        function paySelectTime(type, value) {
+            const btnId = type === "hour" ? "pay_hour_btn" : "pay_minute_btn";
+            const listId = type === "hour" ? "pay_hour_list" : "pay_minute_list";
+            const btn = document.getElementById(btnId);
+            if (btn) { btn.dataset.value = value; btn.textContent = value; }
+            const list = document.getElementById(listId);
+            if (list) list.classList.remove("show");
+        }
+
+        document.addEventListener("click", function (e) {
+            if (e.target.closest(".pay-flip-card")) return;
+            document.querySelectorAll(".pay-flip-list.show").forEach(l => l.classList.remove("show"));
+        });
+
+        function onPayTransferAccountChange() {
+            const selected = document.querySelector('input[name="pay_tf_account"]:checked');
+            const otherInput = document.getElementById("pay_tf_account_other");
+            if (!otherInput) return;
+            if (selected && selected.value === "อื่นๆ") {
+                otherInput.style.display = "block";
+            } else {
+                otherInput.style.display = "none";
+            }
+        }
+
+        function renderPayForm(method) {
+            const section = document.getElementById("payFormSection");
+            section.style.display = "block";
+
+            let extraFieldsHtml = "";
+
+            if (method === "transfer") {
+                extraFieldsHtml = `
+                    <label>เลือกบัญชี</label>
+                    <div class="pay-account-grid">
+                        <label class="pay-account-card">
+                            <input type="radio" name="pay_tf_account" value="PLOY BROKERS" onchange="onPayTransferAccountChange()">
+                            <div class="card-inner" style="background:linear-gradient(135deg,#fb923c,#ea580c);">
+                                <span style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;">
+                                    <img src="logos/Logo-BBL.png" alt="BBL" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.innerHTML='<span style=&quot;color:#1e4a9c;font-weight:800;font-size:10px;&quot;>BBL</span>'">
+                                </span>
+                                <span>PLOY BROKERS</span>
+                            </div>
+                        </label>
+                        <label class="pay-account-card">
+                            <input type="radio" name="pay_tf_account" value="นายณุพล วิทยาขาว" onchange="onPayTransferAccountChange()">
+                            <div class="card-inner" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);">
+                                <span style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;">
+                                    <img src="logos/Logo-BBL.png" alt="BBL" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.innerHTML='<span style=&quot;color:#1e4a9c;font-weight:800;font-size:10px;&quot;>BBL</span>'">
+                                </span>
+                                <span>นายณุพล วิทยาขาว</span>
+                            </div>
+                        </label>
+                        <label class="pay-account-card">
+                            <input type="radio" name="pay_tf_account" value="อื่นๆ" onchange="onPayTransferAccountChange()">
+                            <div class="card-inner" style="background:linear-gradient(135deg,#fcd34d,#f59e0b);color:#3a2200;">
+                                <span style="width:56px;height:56px;border-radius:999px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;">✏️</span>
+                                <span>อื่นๆ</span>
+                            </div>
+                        </label>
+                    </div>
+                    <input type="text" id="pay_tf_account_other" placeholder="ระบุชื่อบัญชี" style="display:none;margin-bottom:14px;">
+                `;
             }
 
-            return new Date().toLocaleDateString("th-TH");
+            if (method === "check") {
+                extraFieldsHtml = `
+                    <div class="row">
+                        <div><label>ธนาคาร</label><input type="text" id="pay_bank"></div>
+                        <div><label>เลขที่เช็ค</label><input type="text" id="pay_checkNo"></div>
+                    </div>
+                `;
+            }
+
+            if (method === "direct") {
+                extraFieldsHtml = `
+                    <label>ชื่อผู้รับเงิน</label>
+                    <input type="text" id="pay_payee">
+                `;
+            }
+
+            const amountLabel = method === "transfer" ? "ยอดเงินที่โอน" : "ยอดเงิน";
+            const dateLabel = method === "transfer" ? "วันที่โอน" : "วันที่";
+            const methodLabels = { cash: "จ่ายสด", check: "เช็ค", direct: "จ่ายตรง" };
+            const titleText = method === "transfer" ? "รายละเอียดการโอนเงิน" : "บันทึกการชำระเงิน (" + (methodLabels[method] || "") + ")";
+
+            section.innerHTML = `
+                <div style="font-weight:700;color:var(--blue-dark);margin-bottom:10px;">${titleText}</div>
+                ${extraFieldsHtml}
+                <div class="row">
+                    <div>
+                        <label>${amountLabel}</label>
+                        <input type="number" id="pay_amount" min="0" step="0.01" placeholder="0.00">
+                    </div>
+                    <div>
+                        <label>${dateLabel}</label>
+                        <input type="text" id="pay_date" placeholder="เลือกวันที่" readonly>
+                    </div>
+                </div>
+                <label>เวลา</label>
+                <div class="pay-time-row">
+                    <div class="pay-flip-card">
+                        <button type="button" class="pay-flip-btn" id="pay_hour_btn" data-value="${getPayCurrentHour()}" onclick="payToggleTimeList('hour')">${getPayCurrentHour()}</button>
+                        <span style="font-size:10px;color:var(--text-soft);">ชม.</span>
+                        <div class="pay-flip-list" id="pay_hour_list"></div>
+                    </div>
+                    <span style="font-size:18px;font-weight:700;margin-bottom:18px;">:</span>
+                    <div class="pay-flip-card">
+                        <button type="button" class="pay-flip-btn" id="pay_minute_btn" data-value="${getPayCurrentMinute()}" onclick="payToggleTimeList('minute')">${getPayCurrentMinute()}</button>
+                        <span style="font-size:10px;color:var(--text-soft);">นาที</span>
+                        <div class="pay-flip-list" id="pay_minute_list"></div>
+                    </div>
+                </div>
+                <label>หมายเหตุ (ไม่บังคับ)</label>
+                <input type="text" id="pay_note">
+            `;
+
+            if (typeof flatpickr === "function") {
+                payDatePicker = flatpickr("#pay_date", {
+                    dateFormat: "d/m/Y",
+                    allowInput: false,
+                    locale: (typeof flatpickr.l10ns !== "undefined" && flatpickr.l10ns.th) ? "th" : undefined
+                });
+                payDatePicker.setDate(new Date(), true, "d/m/Y");
+            }
+
+            initPayTimeDropdowns();
+        }
+
+        /* รวบรวมค่าจากส่วน "บันทึกการชำระเงิน" ด้านบน ให้กลายเป็นข้อมูลของ "งวดที่ 1" เท่านั้น
+           ถ้ายังไม่ได้เลือกวิธีชำระเลย ให้ถือว่างวดที่ 1 ยังไม่มีการชำระ (ค่าว่างทั้งหมด) */
+        function collectPaymentInstallment1() {
+            if (!currentPayMethod) {
+                return { amount: "", date: "", method: "", account: "", bank: "", checkNo: "", payee: "", time: "", note: "" };
+            }
+
+            const amount = document.getElementById("pay_amount")?.value || "";
+            const dateVal = document.getElementById("pay_date")?.value || "";
+            const hourVal = document.getElementById("pay_hour_btn")?.dataset.value || "";
+            const minuteVal = document.getElementById("pay_minute_btn")?.dataset.value || "";
+            const timeVal = (hourVal && minuteVal) ? `${hourVal}:${minuteVal}` : "";
+
+            let account = "", bank = "", checkNo = "", payee = "";
+
+            if (currentPayMethod === "transfer") {
+                const selected = document.querySelector('input[name="pay_tf_account"]:checked');
+                account = selected ? selected.value : "";
+                if (account === "อื่นๆ") {
+                    account = document.getElementById("pay_tf_account_other")?.value || "";
+                }
+            }
+            if (currentPayMethod === "check") {
+                bank = document.getElementById("pay_bank")?.value || "";
+                checkNo = document.getElementById("pay_checkNo")?.value || "";
+            }
+            if (currentPayMethod === "direct") {
+                payee = document.getElementById("pay_payee")?.value || "";
+            }
+
+            return {
+                amount: amount,
+                date: amount ? dateVal : "",
+                method: currentPayMethod,
+                account, bank, checkNo, payee,
+                time: timeVal,
+                note: document.getElementById("pay_note")?.value || ""
+            };
         }
 
         function collectFormData(type) {
 
-        const installment1Val = document.getElementById("installment1")?.value;
-        const installment2Val = document.getElementById("installment2")?.value;
-        const installment3Val = document.getElementById("installment3")?.value;
-        const installment4Val = document.getElementById("installment4")?.value;
- 
+        const payment1 = collectPaymentInstallment1();
+
         const record = {
     type: type,
  
@@ -439,15 +776,17 @@
             total: document.getElementById("total")?.value,
             group: document.getElementById("group")?.value,
             installmentCount: getInstallmentCount(),
-            installment1: installment1Val,
-            installment2: installment2Val,
-            installment3: installment3Val,
-            installment4: installment4Val,
-            // แก้ไข: วันที่ชำระคำนวณอัตโนมัติแล้ว ไม่อ่านจากช่องกรอกอีกต่อไป (ช่องนั้นถูกตัดออกจากฟอร์มแล้ว)
-            installment1Date: getInstallmentDate(1, installment1Val),
-            installment2Date: getInstallmentDate(2, installment2Val),
-            installment3Date: getInstallmentDate(3, installment3Val),
-            installment4Date: getInstallmentDate(4, installment4Val)
+            // แก้ไข: งวดที่ 1 มาจากส่วน "3️⃣ บันทึกการชำระเงิน" ด้านบนแทนช่องกรอกตัวเลขแบบเดิม
+            // งวดที่ 2 เป็นต้นไป ไม่มีในฟอร์มนี้แล้ว ให้ไปบันทึกที่หน้า "บันทึกการเงิน" (finance.html) แทน
+            installment1: payment1.amount,
+            installment1Date: payment1.date,
+            installment1Method: payment1.method,
+            installment1Account: payment1.account,
+            installment1Bank: payment1.bank,
+            installment1CheckNo: payment1.checkNo,
+            installment1Payee: payment1.payee,
+            installment1Time: payment1.time,
+            installment1Note: payment1.note
         };
  
         // แนบ id เฉพาะตอนแก้ไขข้อมูลเดิม (id คือ document id จริงจาก Firestore)
@@ -692,7 +1031,7 @@
             }
 
             editingId = oldData.id;
-            loadedRecordData = oldData; // เพิ่มใหม่: เก็บไว้เทียบยอดงวดตอนกดบันทึก (ดู getInstallmentDate)
+            loadedRecordData = oldData; // เก็บข้อมูลเดิมของรายการที่กำลังแก้ไขไว้ใช้อ้างอิง
 
             document.getElementById("company").value = oldData.company || "";
             document.getElementById("requestName").value = oldData.requestName || "";
@@ -723,13 +1062,46 @@
                 if (radio) radio.checked = true;
             }
 
-            document.getElementById("installment1").value = oldData.installment1 || "";
-            document.getElementById("installment2").value = oldData.installment2 || "";
-            document.getElementById("installment3").value = oldData.installment3 || "";
-            document.getElementById("installment4").value = oldData.installment4 || "";
+            // แก้ไข: งวดที่ 1 ตอนนี้มาจากส่วน "3️⃣ บันทึกการชำระเงิน" แทนช่องกรอกตัวเลขแบบเดิม
+            // ถ้ารายการเดิมเคยบันทึกงวดที่ 1 ไว้แล้ว (มีวิธีชำระเงินที่รู้จัก) ให้เติมข้อมูลกลับเข้าฟอร์มให้อัตโนมัติ
+            if (oldData.installment1Method) {
+                selectPayMethod(oldData.installment1Method);
+                setTimeout(() => {
+                    const amountEl = document.getElementById("pay_amount");
+                    if (amountEl) amountEl.value = oldData.installment1 || "";
 
-            // แก้ไข: ไม่มีช่องกรอกวันที่ชำระในฟอร์มแล้ว วันที่จะถูกคำนวณอัตโนมัติตอนกดบันทึก
-            // (loadedRecordData ที่ตั้งไว้ด้านบนจะถูกใช้เทียบยอดงวดเดิม/ใหม่ใน getInstallmentDate())
+                    if (payDatePicker && oldData.installment1Date) {
+                        payDatePicker.setDate(oldData.installment1Date, true, "d/m/Y");
+                    }
+
+                    if (oldData.installment1Account) {
+                        const radio = document.querySelector(`input[name="pay_tf_account"][value="${oldData.installment1Account}"]`);
+                        if (radio) {
+                            radio.checked = true;
+                        } else {
+                            const otherRadio = document.querySelector('input[name="pay_tf_account"][value="อื่นๆ"]');
+                            if (otherRadio) {
+                                otherRadio.checked = true;
+                                onPayTransferAccountChange();
+                                const otherInput = document.getElementById("pay_tf_account_other");
+                                if (otherInput) otherInput.value = oldData.installment1Account;
+                            }
+                        }
+                    }
+
+                    const bankEl = document.getElementById("pay_bank");
+                    if (bankEl) bankEl.value = oldData.installment1Bank || "";
+
+                    const checkNoEl = document.getElementById("pay_checkNo");
+                    if (checkNoEl) checkNoEl.value = oldData.installment1CheckNo || "";
+
+                    const payeeEl = document.getElementById("pay_payee");
+                    if (payeeEl) payeeEl.value = oldData.installment1Payee || "";
+
+                    const noteEl = document.getElementById("pay_note");
+                    if (noteEl) noteEl.value = oldData.installment1Note || "";
+                }, 50);
+            }
 
             // ใช้กฎล็อกกลุ่มสินค้าตามบริษัทของข้อมูลเดิมที่โหลดมา
             // preserveValue: true เพื่อไม่ให้ทับค่ากลุ่มสินค้าจริงของลูกค้าที่โหลดมา (setGroupValue ด้านบน)

@@ -358,12 +358,16 @@
             rows.forEach(item=>{
                 const name = item.employeeName || item.requestName || "ไม่ระบุชื่อ";
                 if(!map.has(name)){
-                    map.set(name, { name, orders:0, revenue:0, items:[] });
+                    map.set(name, { name, orders:0, revenue:0, items:[], byCompany:{} });
                 }
                 const entry = map.get(name);
                 entry.orders += 1;
                 entry.revenue += Number(item.total || 0);
                 entry.items.push(item);
+
+                // เพิ่มใหม่: นับจำนวนออเดอร์แยกตามบริษัทที่ขายได้ (เช่น วิริยะ 3, เมืองไทย 1)
+                const companyKey = item.company || "ไม่ระบุ";
+                entry.byCompany[companyKey] = (entry.byCompany[companyKey] || 0) + 1;
             });
 
             const list = [...map.values()];
@@ -431,7 +435,18 @@
                 const isTop = rank === 1 && stats.length > 0 && stats[0].name === emp.name;
                 const color = RANK_COLORS[idx] || { bg:"bg-blue-500", ring:"ring-blue-200", text:"text-white" };
 
-                const avgPerOrder = emp.orders > 0 ? emp.revenue / emp.orders : 0;
+                // แก้ไข: เดิมคำนวณ "เฉลี่ย/ออเดอร์" ตรงนี้ เปลี่ยนเป็นสร้างรายการบริษัทที่ขายได้แยกทีละรายการ
+                // (เรียงบริษัทที่ขายได้เยอะสุดก่อน) เพื่อนำไปจัดวางเป็นตาราง 2 คอลัมน์ (บน 2 ล่าง 2 ถ้ามี 4 บริษัท)
+                const companyEntries = Object.entries(emp.byCompany)
+                    .sort((a,b) => b[1] - a[1]);
+
+                const companyBreakdownHtml = companyEntries.length
+                    ? `<div class="flex flex-wrap items-center justify-center gap-x-1 gap-y-0.5">
+                        ${companyEntries.map(([company, count]) => `
+                            <span class="text-[9.5px] text-blue-600 leading-tight bg-blue-50 rounded px-1 whitespace-nowrap">${company} ${count}</span>
+                        `).join("")}
+                       </div>`
+                    : `<span class="text-[9.5px] text-blue-600">-</span>`;
 
                 const photoUrl = getEmployeePhoto(emp.name);
                 const avatarHtml = photoUrl
@@ -467,9 +482,9 @@
                             <span class="text-[10px] text-gray-400 block">จำนวนออเดอร์</span>
                             <span class="font-bold text-sm text-slate-800">${emp.orders}</span>
                         </div>
-                        <div class="border-x border-gray-200">
-                            <span class="text-[10px] text-gray-400 block">เฉลี่ย/ออเดอร์</span>
-                            <span class="font-bold text-sm text-blue-600">${fmtPlain(Math.round(avgPerOrder))}</span>
+                        <div class="border-x border-gray-200 px-1 flex flex-col items-center justify-center">
+                            <span class="text-[10px] text-gray-400 block mb-0.5">บริษัท</span>
+                            ${companyBreakdownHtml}
                         </div>
                         <div>
                             <span class="text-[10px] text-gray-400 block">ยอดขายรวม</span>
