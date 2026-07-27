@@ -1,559 +1,638 @@
 <!DOCTYPE html>
 <html lang="th">
- 
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
- 
-<title>กราฟรายได้</title>
- 
-<link rel="stylesheet" href="style.css">
- 
-<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Performance - Revenue</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-<!-- เพิ่มใหม่: บังคับให้ต้อง login ก่อนเข้าใช้งานหน้านี้ (เดิมเข้าตรงผ่าน URL ได้โดยไม่ต้อง login) -->
-<script src="auth.js"></script>
-<script>
-    requireLogin();
-</script>
- 
-<style>
- 
-*{ box-sizing:border-box; }
- 
-body{
-    font-family:"Kanit",sans-serif;
-    background:#F3F6FC;
-}
- 
-.main{
-    padding-top:80px;
-    padding-bottom:40px;
-}
- 
-.main h2{
-    margin-top:-20px;
-    text-align:center;
-    color:#152A54;
-}
- 
-/* ปุ่มกลับมุมซ้ายบน */
-.revenue-back-btn{
-    position:fixed;
-    top:16px;
-    left:16px;
-    z-index:1000;
- 
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
- 
-    background:#EAF1FF;
-    color:#1E4FC4;
- 
-    border:none;
-    padding:10px 18px;
-    border-radius:999px;
- 
-    font-family:"Kanit",sans-serif;
-    font-weight:600;
-    font-size:14px;
- 
-    cursor:pointer;
-    box-shadow:0 6px 18px rgba(21,42,84,.12);
-    transition:.2s;
-}
- 
-.revenue-back-btn:hover{
-    background:#DCE9FF;
-}
- 
-/* Filter panel */
-.revenue-filter-panel{
-    max-width:1100px;
-    margin:0 auto 20px;
-    background:#f8f9fb;
-    border:1px solid #e3e6ec;
-    border-radius:12px;
-    padding:16px 18px;
-}
- 
-.revenue-filter-group{
-    margin-bottom:12px;
-}
- 
-.revenue-filter-group:last-of-type{
-    margin-bottom:0;
-}
- 
-.filter-label{
-    font-size:13px;
-    color:#002d72;
-    font-weight:bold;
-    margin-bottom:6px;
-}
- 
-.btn-group{
-    display:flex;
-    flex-wrap:wrap;
-    gap:8px;
-}
- 
-.chip-btn{
-    border:1.5px solid #cfd6e2;
-    background:#fff;
-    color:#152A54;
-    padding:7px 14px;
-    border-radius:999px;
-    font-family:"Kanit",sans-serif;
-    font-size:13px;
-    cursor:pointer;
-    transition:.2s;
-    white-space:nowrap;
-}
- 
-.chip-btn:hover{
-    background:#EAF1FF;
-}
- 
-.chip-btn.active{
-    background:#2F6FED;
-    border-color:#2F6FED;
-    color:#fff;
-}
- 
-.view-btn{
-    border:1.5px solid #cfd6e2;
-    background:#fff;
-    color:#152A54;
-    padding:8px 18px;
-    border-radius:999px;
-    font-family:"Kanit",sans-serif;
-    font-weight:600;
-    font-size:13px;
-    cursor:pointer;
-    transition:.2s;
-}
- 
-.view-btn.active{
-    background:#152A54;
-    border-color:#152A54;
-    color:#fff;
-}
- 
-.revenue-filter-group select{
-    padding:6px 10px;
-    border-radius:8px;
-    border:1px solid #cfd6e2;
-    font-family:"Kanit",sans-serif;
-    font-size:13px;
-}
- 
-.revenue-summary-total{
-    font-size:16px;
-    font-weight:bold;
-    color:#002d72;
-    margin-top:10px;
-}
- 
-/* Chart box */
-.revenue-chart-box{
-    max-width:1100px;
-    margin:0 auto 10px;
-    background:#fff;
-    border:1px solid #e3e6ec;
-    border-radius:12px;
-    padding:18px;
-}
- 
-.revenue-chart-box h3{
-    text-align:center;
-    color:#152A54;
-    margin-bottom:14px;
-    font-size:16px;
-}
- 
-.revenue-chart-box canvas{
-    max-height:420px;
-}
- 
-</style>
- 
+    <!-- บังคับให้ต้อง login ก่อนเข้าใช้งานหน้านี้ เหมือนหน้าอื่นๆ ในระบบ -->
+    <script src="auth.js"></script>
+    <script>
+        requireLogin();
+    </script>
+
+    <!-- เพิ่มใหม่: Chart.js สำหรับกราฟป๊อปอัพยอดขายรวม -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+
+    <style>
+        body{ font-family:"Kanit","Segoe UI",sans-serif; }
+
+        .rank-badge{
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            width:26px;
+            height:26px;
+            border-radius:999px;
+            font-size:12px;
+            font-weight:700;
+            flex:0 0 auto;
+        }
+
+        .filter-select{
+            width:100%;
+            border:1px solid #e5e7eb;
+            border-radius:10px;
+            padding:8px 8px;
+            font-size:12px;
+            background:#f9fafb;
+            font-weight:600;
+            color:#334155;
+        }
+
+        .filter-label{
+            font-size:10.5px;
+            color:#94a3b8;
+            font-weight:600;
+            margin-bottom:3px;
+            display:block;
+        }
+
+        .skeleton{
+            animation:pulse 1.4s ease-in-out infinite;
+        }
+        @keyframes pulse{
+            0%,100%{ opacity:1; }
+            50%{ opacity:.5; }
+        }
+    </style>
 </head>
- 
-<body>
- 
-<button class="revenue-back-btn" onclick="location.href='account_menu.html'">
-    ← กลับ
-</button>
- 
-<div class="main">
- 
-<h2>📈 กราฟรายได้</h2>
- 
-<div class="revenue-filter-panel">
- 
-    <div class="revenue-filter-group">
-        <div class="filter-label">👤 พนักงาน</div>
-        <select id="employeeSelect"></select>
-    </div>
- 
-    <div class="revenue-filter-group" id="yearFilterGroup">
-        <div class="filter-label">🗓️ ปี (สำหรับมุมมองรายเดือน)</div>
-        <select id="yearSelect"></select>
-    </div>
- 
-    <div class="revenue-filter-group">
-        <div class="filter-label">📊 มุมมอง</div>
-        <div class="btn-group" id="viewModeButtons">
-            <button type="button" class="view-btn active" data-mode="month">รายเดือน</button>
-            <button type="button" class="view-btn" data-mode="year">รายปี</button>
+<body class="bg-gray-100 pb-12">
+
+    <!-- Mobile Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-10 px-4 py-3">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <button onclick="location.href='index.html'"
+                    class="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition">
+                    ←
+                </button>
+                <div>
+                    <h1 class="text-lg font-bold text-slate-800">👥 ผลงานพนักงาน</h1>
+                    <p class="text-xs text-gray-500">เรียงตามยอดขายสูงสุด (Top Sale)</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-md mx-auto p-4 space-y-4">
+
+        <!-- ตัวกรอง: วัน / เดือน / ปี / บริษัท -->
+        <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-gray-100">
+            <div class="grid grid-cols-4 gap-2">
+                <div>
+                    <label class="filter-label">📆 วัน</label>
+                    <select id="filterDay" class="filter-select"></select>
+                </div>
+                <div>
+                    <label class="filter-label">📅 เดือน</label>
+                    <select id="filterMonth" class="filter-select"></select>
+                </div>
+                <div>
+                    <label class="filter-label">🗓️ ปี</label>
+                    <select id="filterYear" class="filter-select"></select>
+                </div>
+                <div>
+                    <label class="filter-label">🏢 บริษัท</label>
+                    <select id="filterCompany" class="filter-select"></select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Overview Stats -->
+        <div class="grid grid-cols-2 gap-3">
+            <div class="bg-blue-600 text-white p-4 rounded-2xl shadow-sm">
+                <p class="text-xs text-blue-100">ออเดอร์รวมทั้งหมด</p>
+                <h3 class="text-xl font-bold mt-1" id="statTotalOrders">0 ออเดอร์</h3>
+                <span class="text-[10px] bg-blue-500 px-1.5 py-0.5 rounded text-blue-50" id="statEmployeeCount">จากพนักงาน 0 คน</span>
+            </div>
+            <div id="revenueStatCard" onclick="openRevenueChart()"
+                class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 cursor-pointer hover:shadow-md hover:border-blue-200 transition active:scale-[.98]">
+                <p class="text-xs text-gray-400">ยอดขายรวม (บริษัท)</p>
+                <h3 class="text-xl font-bold text-slate-800 mt-1" id="statTotalRevenue">฿0</h3>
+                <span class="text-[10px] bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded font-semibold" id="statFilterLabel">ทั้งหมด</span>
+                <div class="text-[10px] text-blue-500 font-semibold mt-1">📊 แตะเพื่อดูกราฟ</div>
+            </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="relative">
+            <input type="text" id="employeeSearch" placeholder="🔍 ค้นหาชื่อพนักงาน..."
+                class="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 shadow-sm">
+        </div>
+
+        <!-- Employee Cards List -->
+        <div class="space-y-3" id="employeeList">
+            <!-- แสดงระหว่างโหลดข้อมูล -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 skeleton">
+                <div class="h-4 bg-gray-200 rounded w-1/3 mb-3"></div>
+                <div class="h-3 bg-gray-100 rounded w-2/3"></div>
+            </div>
+        </div>
+
+        <!-- ไม่มีข้อมูล -->
+        <div id="emptyState" class="hidden text-center text-gray-400 text-sm py-10">
+            ไม่พบข้อมูลตามเงื่อนไขที่เลือก
+        </div>
+
+    </main>
+
+    <!-- โมดัลประวัติออเดอร์ของพนักงานรายคน -->
+    <div id="detailOverlay" class="fixed inset-0 bg-black/40 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full max-h-[80vh] overflow-y-auto p-5">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold text-slate-800 text-base" id="detailTitle">รายละเอียด</h3>
+                <button onclick="closeDetail()" class="text-gray-400 hover:text-gray-700 text-xl leading-none">✕</button>
+            </div>
+            <div id="detailBody" class="space-y-2 text-sm"></div>
         </div>
     </div>
- 
-    <div id="revenueSummary" class="revenue-summary-total"></div>
- 
-</div>
- 
-<div class="revenue-chart-box">
-    <h3 id="chartTitle">📈 รายได้รายเดือน แยกตามบริษัทประกันภัย</h3>
-    <canvas id="revenueChart"></canvas>
-</div>
- 
-</div>
- 
-<!-- ไลบรารีกราฟ (โหลดจาก cdnjs เหมือน finance.html) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
- 
-<script type="module">
- 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-import {
-    getFirestore,
-    collection,
-    onSnapshot
-} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
- 
-/* ตั้งค่าเดียวกับ script.js / report.html / finance.html เพื่ออ่าน collection "insuranceData" เดียวกัน */
-const firebaseConfig = {
-  apiKey: "AIzaSyCNpaYlwrkJhBA-8tAax022PWWFYMRz7Kw",
-  authDomain: "insurance-system-f26b0.firebaseapp.com",
-  projectId: "insurance-system-f26b0",
-  storageBucket: "insurance-system-f26b0.firebasestorage.app",
-  messagingSenderId: "438698153100",
-  appId: "1:438698153100:web:a553b97b59701883f057a9",
-  measurementId: "G-XXWCQEMT0B"
-};
- 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
- 
-let allData = [];
-let chartInstance = null;
- 
-// state ของตัวกรอง
-let selectedEmployee = "all";
-let selectedYear = "2569";
-let selectedViewMode = "month"; // "month" | "year"
- 
-const THAI_MONTHS = [
-    "มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน",
-    "กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"
-];
- 
-const KNOWN_COMPANIES = ["วิริยะ","เมืองไทย","AIG"];
- 
-const COMPANY_COLORS = {
-    "วิริยะ":"#2F6FED",
-    "เมืองไทย":"#FF8A65",
-    "AIG":"#2FBF9B",
-    "AXA":"#B24BF3" 
-};
- 
-const EXTRA_COLOR_PALETTE = ["#8C7CF0","#F7628C","#FFB648","#3E7BFA","#00BFA6","#FF6B6B","#B24BF3"];
- 
-const YEAR_START = 2569;
-const YEAR_END = 2575;
- 
-function parseCreateDate(createDate){
-    if(!createDate) return { month:null, year:null };
- 
-    const parts = createDate.split("/");
-    if(parts.length !== 3) return { month:null, year:null };
- 
-    const month = parseInt(parts[1],10);
-    const year = parts[2];
- 
-    if(isNaN(month) || month < 1 || month > 12){
-        return { month:null, year:null };
-    }
- 
-    return { month:String(month).padStart(2,"0"), year:year };
-}
- 
-/* =========================
-   รายชื่อบริษัท (Real-time จากข้อมูลจริง + บริษัทที่รู้จักอยู่แล้ว)
-========================= */
-function getCompanies(){
- 
-    const companiesFromData = [...new Set(allData.map(i=>i.company).filter(Boolean))];
-    const extraCompanies = companiesFromData.filter(c=>!KNOWN_COMPANIES.includes(c));
- 
-    return [...KNOWN_COMPANIES, ...extraCompanies];
-}
- 
-function colorForCompany(company, index){
- 
-    if(COMPANY_COLORS[company]) return COMPANY_COLORS[company];
- 
-    return EXTRA_COLOR_PALETTE[index % EXTRA_COLOR_PALETTE.length];
-}
- 
-/* =========================
-   ตัวกรอง: พนักงาน (Dropdown แบบเดียวกับตัวกรองปี, Real-time จากข้อมูลจริง)
-========================= */
-function renderEmployeeButtons(){
- 
-    const employeeSelect = document.getElementById("employeeSelect");
- 
-    const prevValue = employeeSelect.value || selectedEmployee;
- 
-    const employees = [...new Set(allData.map(i=>i.requestName).filter(Boolean))];
- 
-    let options = `<option value="all">ทุกคน</option>`;
-    employees.forEach(e=>{
-        options += `<option value="${e}">${e}</option>`;
-    });
- 
-    employeeSelect.innerHTML = options;
- 
-    const validValues = ["all", ...employees];
-    employeeSelect.value = validValues.includes(prevValue) ? prevValue : "all";
-    selectedEmployee = employeeSelect.value;
- 
-    employeeSelect.onchange = function(){
-        selectedEmployee = employeeSelect.value;
-        renderChart();
-        renderSummary();
-    };
-}
- 
-/* =========================
-   ตัวกรอง: ปี (ใช้กับมุมมองรายเดือนเท่านั้น)
-========================= */
-function populateYearSelect(){
- 
-    const yearSelect = document.getElementById("yearSelect");
- 
-    const prevYear = yearSelect.value || selectedYear;
- 
-    let years = [];
-    for(let y = YEAR_START; y <= YEAR_END; y++) years.push(String(y));
- 
-    yearSelect.innerHTML = years.map(y=>`<option value="${y}">${y}</option>`).join("");
- 
-    yearSelect.value = years.includes(prevYear) ? prevYear : String(YEAR_START);
-    selectedYear = yearSelect.value;
- 
-    yearSelect.onchange = function(){
-        selectedYear = yearSelect.value;
-        renderChart();
-        renderSummary();
-    };
-}
- 
-/* =========================
-   มุมมองกราฟ (รายเดือน / รายปี)
-========================= */
-function bindViewModeButtons(){
- 
-    document.querySelectorAll(".view-btn").forEach(btn=>{
-        btn.addEventListener("click", ()=>{
- 
-            selectedViewMode = btn.dataset.mode;
- 
-            document.querySelectorAll(".view-btn").forEach(b=>b.classList.remove("active"));
-            btn.classList.add("active");
- 
-            document.getElementById("yearFilterGroup").style.display =
-                selectedViewMode === "month" ? "block" : "none";
- 
-            renderChart();
-            renderSummary();
-        });
-    });
-}
- 
-/* =========================
-   คำนวณข้อมูลกราฟ แยกตามบริษัท
-========================= */
-function computeMonthlyByCompany(){
- 
-    const companies = getCompanies();
- 
-    const datasets = companies.map((c,idx)=>{
- 
-        const data = new Array(12).fill(0);
- 
-        allData.forEach(item=>{
- 
-            const employeeOK = selectedEmployee === "all" || item.requestName === selectedEmployee;
-            const companyOK = item.company === c;
- 
-            const parsed = parseCreateDate(item.createDate);
-            const yearOK = parsed.year === selectedYear;
- 
-            if(employeeOK && companyOK && yearOK && parsed.month){
-                data[parseInt(parsed.month,10) - 1] += Number(item.total || 0);
+
+    <!-- โมดัลกราฟยอดขายรวม (เพิ่มใหม่: กดที่การ์ด "ยอดขายรวม (บริษัท)" ด้านบนแล้วเด้งขึ้นมา) -->
+    <div id="revenueChartOverlay" class="fixed inset-0 bg-black/40 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-5">
+            <div class="flex justify-between items-center mb-1">
+                <h3 class="font-bold text-slate-800 text-base">📊 กราฟยอดขายรวม</h3>
+                <button onclick="closeRevenueChart()" class="text-gray-400 hover:text-gray-700 text-xl leading-none">✕</button>
+            </div>
+            <p class="text-xs text-gray-400 mb-4" id="revenueChartSubtitle">ทั้งหมด</p>
+            <div class="relative" style="height:280px;">
+                <canvas id="revenueChartCanvas"></canvas>
+            </div>
+            <div id="revenueChartEmpty" class="hidden text-center text-gray-400 text-sm py-10">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+        import {
+            getFirestore,
+            collection,
+            onSnapshot
+        } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+        /* ตั้งค่าเดียวกับทุกหน้าในระบบ เพื่ออ่าน collection เดียวกัน */
+        const firebaseConfig = {
+            apiKey: "AIzaSyCNpaYlwrkJhBA-8tAax022PWWFYMRz7Kw",
+            authDomain: "insurance-system-f26b0.firebaseapp.com",
+            projectId: "insurance-system-f26b0",
+            storageBucket: "insurance-system-f26b0.firebasestorage.app",
+            messagingSenderId: "438698153100",
+            appId: "1:438698153100:web:a553b97b59701883f057a9",
+            measurementId: "G-XXWCQEMT0B"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const THAI_MONTHS = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน",
+            "กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+
+        const KNOWN_COMPANIES = ["วิริยะ","เมืองไทย","AIG","AXA","KWI","กรุงเทพ"];
+
+        const RANK_COLORS = [
+            { bg:"bg-amber-400", ring:"ring-amber-400", text:"text-white" },   // 1st
+            { bg:"bg-slate-300", ring:"ring-slate-300", text:"text-white" },   // 2nd
+            { bg:"bg-orange-300", ring:"ring-orange-300", text:"text-white" } // 3rd
+        ];
+
+        /* =========================
+           รูปพนักงาน (เพิ่มใหม่)
+           ใส่ชื่อพนักงานให้ตรงกับชื่อที่บันทึกในระบบ (employeeName / requestName ตอนล็อกอิน)
+           แล้วใส่ path รูปที่ต้องการ เก็บไฟล์รูปไว้ในโฟลเดอร์ "photos/" ข้างๆ ไฟล์เว็บนี้
+           เช่น photos/somchai.jpg (แนะนำรูปสี่เหลี่ยมจัตุรัส จะได้ไม่ถูกบีบเสีย)
+           ถ้าไม่ใส่ชื่อไว้ในตารางนี้ หรือไฟล์รูปหาไม่เจอ ระบบจะโชว์ตัวอักษรย่อ (initials) แทนให้อัตโนมัติ
+        ========================= */
+        const EMPLOYEE_PHOTOS = {
+            "วิภาพร คำเฮ้า": "photos/po1.png",
+            "วรรณิภา วิเศษบุตร": "photos/po2.png",
+            "เพ็ญพักตร์ ปลื้มใจ": "photos/po3.jpg",
+            "สุชาวดี ภิษุณี": "photos/po4.png",
+            "รัชนก ผางโคกสูง": "photos/po5.png",
+            "ไอลัดดา ดวงกุลสา": "photos/po6.png",
+            "น้ำ": "photos/po8.png",
+            "สุนิษา ยางไธสงค์": "photos/po7.png",
+            "ศิริธร สอนสอาด": "photos/po9.png",
+            
+
+        };
+
+        function getEmployeePhoto(name){
+            return EMPLOYEE_PHOTOS[name] || "";
+        }
+
+        let allData = [];
+        let filtersInitialized = false;
+        let revenueChartInstance = null; // เพิ่มใหม่: เก็บ instance ของ Chart.js เพื่อทำลายทิ้งก่อนวาดใหม่ทุกครั้ง
+
+        /* =========================
+           แปลงวันที่แจ้งงาน (createDate) เช่น "16/07/2569"
+        ========================= */
+        function parseCreateDate(createDate){
+            if(!createDate) return { day:null, month:null, year:null };
+            const parts = String(createDate).split("/");
+            if(parts.length !== 3) return { day:null, month:null, year:null };
+
+            const day = parseInt(parts[0],10);
+            const month = parseInt(parts[1],10);
+            const year = parts[2];
+
+            if(isNaN(month) || month < 1 || month > 12) return { day:null, month:null, year:null };
+            if(isNaN(day) || day < 1 || day > 31) return { day:null, month:String(month).padStart(2,"0"), year:year };
+
+            return { day:String(day).padStart(2,"0"), month:String(month).padStart(2,"0"), year:year };
+        }
+
+        function fmt(n){ return "฿" + Number(n||0).toLocaleString(); }
+        function fmtPlain(n){ return Number(n||0).toLocaleString(); }
+
+        /* =========================
+           ตัวกรอง
+        ========================= */
+        function populateDayOptions(){
+            const sel = document.getElementById("filterDay");
+            const prev = sel.value || "all";
+            let opts = [`<option value="all">ทั้งหมด</option>`];
+            for(let d=1; d<=31; d++){
+                const key = String(d).padStart(2,"0");
+                opts.push(`<option value="${key}">${d}</option>`);
             }
-        });
- 
-        return {
-            label: c,
-            data: data,
-            backgroundColor: colorForCompany(c, idx),
-            borderRadius: 6
+            sel.innerHTML = opts.join("");
+            sel.value = prev;
+        }
+
+        function populateMonthOptions(){
+            const sel = document.getElementById("filterMonth");
+            const prev = sel.value || "all";
+            let opts = [`<option value="all">ทั้งหมด</option>`];
+            THAI_MONTHS.forEach((m,i)=>{
+                const key = String(i+1).padStart(2,"0");
+                opts.push(`<option value="${key}">${m}</option>`);
+            });
+            sel.innerHTML = opts.join("");
+            sel.value = prev;
+        }
+
+        function populateYearOptions(){
+            const sel = document.getElementById("filterYear");
+            const prev = sel.value || "all";
+
+            const yearsFromData = new Set();
+            allData.forEach(item=>{
+                const p = parseCreateDate(item.createDate);
+                if(p.year) yearsFromData.add(p.year);
+            });
+
+            const nowBE = new Date().getFullYear() + 543;
+            yearsFromData.add(String(nowBE));
+
+            const years = [...yearsFromData].sort();
+
+            sel.innerHTML = `<option value="all">ทั้งหมด</option>` +
+                years.map(y=>`<option value="${y}">${y}</option>`).join("");
+
+            sel.value = years.includes(prev) ? prev : "all";
+        }
+
+        function populateCompanyOptions(){
+            const sel = document.getElementById("filterCompany");
+            const prev = sel.value || "all";
+
+            const companiesFromData = [...new Set(allData.map(i=>i.company).filter(Boolean))];
+            const extra = companiesFromData.filter(c=>!KNOWN_COMPANIES.includes(c));
+            const companies = [...KNOWN_COMPANIES, ...extra];
+
+            sel.innerHTML = `<option value="all">ทั้งหมด</option>` +
+                companies.map(c=>`<option value="${c}">${c}</option>`).join("");
+
+            sel.value = companies.includes(prev) ? prev : "all";
+        }
+
+        function populateFilters(){
+            populateDayOptions();
+            populateMonthOptions();
+            populateYearOptions();
+            populateCompanyOptions();
+
+            // ค่าเริ่มต้นครั้งแรกที่เปิดหน้า: เดือนปัจจุบัน + ปีปัจจุบัน (พ.ศ.)
+            if(!filtersInitialized){
+                filtersInitialized = true;
+                const now = new Date();
+                const currentMonth = String(now.getMonth()+1).padStart(2,"0");
+                const currentYearBE = String(now.getFullYear() + 543);
+
+                const monthSel = document.getElementById("filterMonth");
+                const yearSel = document.getElementById("filterYear");
+
+                if([...monthSel.options].some(o=>o.value===currentMonth)) monthSel.value = currentMonth;
+                if([...yearSel.options].some(o=>o.value===currentYearBE)) yearSel.value = currentYearBE;
+            }
+        }
+
+        function getFilteredData(){
+            const day = document.getElementById("filterDay").value;
+            const month = document.getElementById("filterMonth").value;
+            const year = document.getElementById("filterYear").value;
+            const company = document.getElementById("filterCompany").value;
+
+            return allData.filter(item=>{
+                const p = parseCreateDate(item.createDate);
+                const dayOK = day === "all" || p.day === day;
+                const monthOK = month === "all" || p.month === month;
+                const yearOK = year === "all" || p.year === year;
+                const companyOK = company === "all" || item.company === company;
+                return dayOK && monthOK && yearOK && companyOK;
+            });
+        }
+
+        /* =========================
+           รวมข้อมูลเป็นรายพนักงาน + เรียงยอดขายมากไปน้อย (Top Sale)
+        ========================= */
+        function buildEmployeeStats(rows){
+            const map = new Map();
+
+            rows.forEach(item=>{
+                const name = item.employeeName || item.requestName || "ไม่ระบุชื่อ";
+                if(!map.has(name)){
+                    map.set(name, { name, orders:0, revenue:0, items:[] });
+                }
+                const entry = map.get(name);
+                entry.orders += 1;
+                entry.revenue += Number(item.total || 0);
+                entry.items.push(item);
+            });
+
+            const list = [...map.values()];
+            list.sort((a,b)=> b.revenue - a.revenue);
+            return list;
+        }
+
+        function initials(name){
+            const parts = String(name).trim().split(/\s+/);
+            const first = parts[0] ? parts[0][0] : "";
+            return (first || "?").toUpperCase();
+        }
+
+        /* เพิ่มใหม่: รวมข้อความสรุปตัวกรองปัจจุบัน (วัน/เดือน/ปี/บริษัท) ไว้ในฟังก์ชันเดียว
+           ใช้ร่วมกันทั้งป้าย "statFilterLabel" เดิม และหัวข้อย่อยของโมดัลกราฟที่เพิ่มใหม่ */
+        function getFilterLabelText(){
+            const day = document.getElementById("filterDay").value;
+            const month = document.getElementById("filterMonth").value;
+            const year = document.getElementById("filterYear").value;
+            const company = document.getElementById("filterCompany").value;
+
+            const dayLabel = day === "all" ? "" : `วันที่ ${parseInt(day,10)} `;
+            const monthLabel = month === "all" ? "" : THAI_MONTHS[parseInt(month,10)-1] + " ";
+            const yearLabel = year === "all" ? "" : `ปี ${year} `;
+            const companyLabel = company === "all" ? "ทุกบริษัท" : company;
+
+            const filterText = (dayLabel + monthLabel + yearLabel).trim() || "ทั้งหมด";
+            return `${filterText} · ${companyLabel}`;
+        }
+
+        function renderList(){
+
+            const rows = getFilteredData();
+            const searchTerm = (document.getElementById("employeeSearch").value || "").trim().toLowerCase();
+
+            let stats = buildEmployeeStats(rows);
+
+            const totalOrders = rows.length;
+            const totalRevenue = rows.reduce((s,i)=> s + Number(i.total||0), 0);
+
+            document.getElementById("statTotalOrders").innerText = `${fmtPlain(totalOrders)} ออเดอร์`;
+            document.getElementById("statEmployeeCount").innerText = `จากพนักงาน ${stats.length} คน`;
+            document.getElementById("statTotalRevenue").innerText = fmt(totalRevenue);
+
+            document.getElementById("statFilterLabel").innerText = getFilterLabelText();
+
+            // ค้นหาตามชื่อพนักงาน
+            const filteredStats = searchTerm
+                ? stats.filter(s => s.name.toLowerCase().includes(searchTerm))
+                : stats;
+
+            const listEl = document.getElementById("employeeList");
+            const emptyEl = document.getElementById("emptyState");
+
+            if(filteredStats.length === 0){
+                listEl.innerHTML = "";
+                emptyEl.classList.remove("hidden");
+                return;
+            }
+            emptyEl.classList.add("hidden");
+
+            listEl.innerHTML = filteredStats.map((emp, idx)=>{
+
+                const rank = idx + 1;
+                const isTop = rank === 1 && stats.length > 0 && stats[0].name === emp.name;
+                const color = RANK_COLORS[idx] || { bg:"bg-blue-500", ring:"ring-blue-200", text:"text-white" };
+
+                const avgPerOrder = emp.orders > 0 ? emp.revenue / emp.orders : 0;
+
+                const photoUrl = getEmployeePhoto(emp.name);
+                const avatarHtml = photoUrl
+                    ? `<img src="${photoUrl}"
+                            class="w-11 h-11 rounded-full object-cover flex-shrink-0 ${isTop ? 'ring-2 ring-amber-400' : 'ring-1 ring-gray-200'}"
+                            onerror="this.outerHTML='<div class=&quot;w-11 h-11 rounded-full flex items-center justify-center font-bold text-white text-sm flex-shrink-0 ${isTop ? 'bg-gradient-to-br from-amber-400 to-amber-500' : 'bg-gradient-to-br from-blue-500 to-blue-600'}&quot;>${initials(emp.name)}</div>'">`
+                    : `<div class="w-11 h-11 rounded-full flex items-center justify-center font-bold text-white text-sm flex-shrink-0
+                                ${isTop ? 'bg-gradient-to-br from-amber-400 to-amber-500' : 'bg-gradient-to-br from-blue-500 to-blue-600'}">
+                            ${initials(emp.name)}
+                        </div>`;
+
+                return `
+                <div class="bg-white p-4 rounded-2xl shadow-sm border ${isTop ? 'border-amber-200' : 'border-gray-100'} relative overflow-hidden">
+
+                    ${isTop ? `<div class="absolute top-0 right-0 bg-amber-400 text-white text-[10px] font-bold px-3 py-0.5 rounded-bl-xl">Top Sale 🏆</div>` : ""}
+
+                    <div class="flex items-center space-x-3 mb-3">
+
+                        <div class="rank-badge ${color.bg} ${color.text}">
+                            ${rank}
+                        </div>
+
+                        ${avatarHtml}
+
+                        <div class="min-w-0">
+                            <h4 class="font-bold text-slate-800 text-sm truncate">${emp.name}</h4>
+                            <p class="text-xs text-gray-400">${emp.orders} ออเดอร์ในช่วงที่เลือก</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 bg-gray-50 p-2.5 rounded-xl text-center mb-3">
+                        <div>
+                            <span class="text-[10px] text-gray-400 block">จำนวนออเดอร์</span>
+                            <span class="font-bold text-sm text-slate-800">${emp.orders}</span>
+                        </div>
+                        <div class="border-x border-gray-200">
+                            <span class="text-[10px] text-gray-400 block">เฉลี่ย/ออเดอร์</span>
+                            <span class="font-bold text-sm text-blue-600">${fmtPlain(Math.round(avgPerOrder))}</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-gray-400 block">ยอดขายรวม</span>
+                            <span class="font-bold text-sm text-emerald-600">${fmt(emp.revenue)}</span>
+                        </div>
+                    </div>
+
+                    <button onclick="window.showEmployeeDetail('${encodeURIComponent(emp.name)}')"
+                        class="w-full text-center text-xs text-blue-600 font-semibold py-1 hover:bg-blue-50 rounded-lg transition">
+                        ดูรายการออเดอร์ของพนักงานคนนี้ &rarr;
+                    </button>
+                </div>
+                `;
+            }).join("");
+
+            // เก็บไว้ให้ modal ใช้
+            window._employeeStatsCache = filteredStats;
+        }
+
+        /* =========================
+           โมดัลรายละเอียดออเดอร์ของพนักงาน
+        ========================= */
+        window.showEmployeeDetail = function(encodedName){
+            const name = decodeURIComponent(encodedName);
+            const stats = window._employeeStatsCache || [];
+            const emp = stats.find(s => s.name === name);
+            if(!emp) return;
+
+            document.getElementById("detailTitle").innerText = `📋 ${emp.name} (${emp.orders} ออเดอร์)`;
+
+            const sortedItems = [...emp.items].sort((a,b)=>{
+                return (b.createDate || "").localeCompare(a.createDate || "");
+            });
+
+            document.getElementById("detailBody").innerHTML = sortedItems.map(item => `
+                <div class="border border-gray-100 rounded-xl p-3 flex justify-between items-center gap-3">
+                    <div class="min-w-0">
+                        <div class="font-semibold text-slate-800 truncate">${item.customer || "-"}</div>
+                        <div class="text-xs text-gray-400">${item.company || "-"} · ${item.createDate || "-"} · ${item.plate || "-"}</div>
+                    </div>
+                    <div class="font-bold text-emerald-600 whitespace-nowrap">${fmt(item.total)}</div>
+                </div>
+            `).join("") || `<div class="text-center text-gray-400 py-6">ไม่มีข้อมูล</div>`;
+
+            const overlay = document.getElementById("detailOverlay");
+            overlay.classList.remove("hidden");
+            overlay.classList.add("flex");
         };
-    });
- 
-    return { labels: THAI_MONTHS, datasets };
-}
- 
-function computeYearlyByCompany(){
- 
-    let years = [];
-    for(let y = YEAR_START; y <= YEAR_END; y++) years.push(String(y));
- 
-    const companies = getCompanies();
- 
-    const datasets = companies.map((c,idx)=>{
- 
-        const data = years.map(y=>{
- 
-            return allData
-                .filter(item=>{
-                    const employeeOK = selectedEmployee === "all" || item.requestName === selectedEmployee;
-                    const companyOK = item.company === c;
-                    const parsed = parseCreateDate(item.createDate);
-                    return employeeOK && companyOK && parsed.year === y;
-                })
-                .reduce((sum,i)=> sum + Number(i.total || 0), 0);
-        });
- 
-        return {
-            label: c,
-            data: data,
-            backgroundColor: colorForCompany(c, idx),
-            borderRadius: 6
+
+        window.closeDetail = function(){
+            const overlay = document.getElementById("detailOverlay");
+            overlay.classList.add("hidden");
+            overlay.classList.remove("flex");
         };
-    });
- 
-    return { labels: years, datasets };
-}
- 
-/* =========================
-   วาด/อัปเดตกราฟ
-========================= */
-function renderChart(){
- 
-    if(typeof Chart === "undefined"){
-        console.error("ไม่สามารถโหลด Chart.js ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต");
-        return;
-    }
- 
-    const { labels, datasets } = selectedViewMode === "month"
-        ? computeMonthlyByCompany()
-        : computeYearlyByCompany();
- 
-    document.getElementById("chartTitle").innerText = selectedViewMode === "month"
-        ? `📈 รายได้รายเดือน แยกตามบริษัทประกันภัย (ปี ${selectedYear})`
-        : "📈 รายได้รายปี แยกตามบริษัทประกันภัย";
- 
-    if(chartInstance){
-        chartInstance.data.labels = labels;
-        chartInstance.data.datasets = datasets;
-        chartInstance.update();
-        return;
-    }
- 
-    const ctx = document.getElementById("revenueChart");
- 
-    chartInstance = new Chart(ctx, {
-        type: "bar",
-        data: { labels, datasets },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: true, position: "top" }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function(value){
-                            return Number(value).toLocaleString();
+
+        document.getElementById("detailOverlay").addEventListener("click", (e)=>{
+            if(e.target.id === "detailOverlay") window.closeDetail();
+        });
+
+        /* =========================
+           เพิ่มใหม่: โมดัลกราฟยอดขายรวม
+           กดที่การ์ด "ยอดขายรวม (บริษัท)" -> เด้งกราฟแท่งยอดขายของแต่ละพนักงาน (สูงสุด 10 อันดับ)
+           ตามตัวกรอง วัน/เดือน/ปี/บริษัท ที่เลือกอยู่ด้านบน ณ ขณะนั้น
+        ========================= */
+        window.openRevenueChart = function(){
+
+            const rows = getFilteredData();
+            const stats = buildEmployeeStats(rows)
+                .sort((a,b) => b.revenue - a.revenue)
+                .slice(0, 10);
+
+            document.getElementById("revenueChartSubtitle").innerText = getFilterLabelText();
+
+            const overlay = document.getElementById("revenueChartOverlay");
+            overlay.classList.remove("hidden");
+            overlay.classList.add("flex");
+
+            const canvas = document.getElementById("revenueChartCanvas");
+            const emptyEl = document.getElementById("revenueChartEmpty");
+
+            if(revenueChartInstance){
+                revenueChartInstance.destroy();
+                revenueChartInstance = null;
+            }
+
+            if(stats.length === 0 || typeof Chart === "undefined"){
+                canvas.classList.add("hidden");
+                emptyEl.classList.remove("hidden");
+                return;
+            }
+
+            canvas.classList.remove("hidden");
+            emptyEl.classList.add("hidden");
+
+            const labels = stats.map(s => s.name);
+            const data = stats.map(s => s.revenue);
+
+            revenueChartInstance = new Chart(canvas.getContext("2d"), {
+                type: "bar",
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: "ยอดขาย (บาท)",
+                        data: data,
+                        backgroundColor: labels.map((_, i) => i === 0 ? "#f59e0b" : "#2563eb"),
+                        borderRadius: 8,
+                        maxBarThickness: 42
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => "฿" + Number(ctx.parsed.y || 0).toLocaleString()
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: (v) => "฿" + Number(v).toLocaleString()
+                            }
+                        },
+                        x: {
+                            ticks: { autoSkip: false, maxRotation: 40, minRotation: 0, font: { size: 10 } }
                         }
                     }
                 }
-            }
-        }
-    });
-}
- 
-/* =========================
-   สรุปยอดรวม
-========================= */
-function renderSummary(){
- 
-    let total = 0;
- 
-    allData.forEach(item=>{
- 
-        const employeeOK = selectedEmployee === "all" || item.requestName === selectedEmployee;
-        const parsed = parseCreateDate(item.createDate);
- 
-        const periodOK = selectedViewMode === "month"
-            ? parsed.year === selectedYear
-            : true;
- 
-        if(employeeOK && periodOK){
-            total += Number(item.total || 0);
-        }
-    });
- 
-    const employeeLabel = selectedEmployee === "all" ? "ทุกคน" : selectedEmployee;
-    const periodLabel = selectedViewMode === "month" ? `ปี ${selectedYear}` : "ทุกปี";
- 
-    document.getElementById("revenueSummary").innerText =
-        `💰 ยอดรวม (${employeeLabel} · ${periodLabel}): ${total.toLocaleString()} บาท`;
-}
- 
-/* =========================
-   อัปเดตทุกส่วนพร้อมกัน (ไม่รีเฟรชหน้า)
-========================= */
-function updateAll(){
-    renderEmployeeButtons();
-    renderChart();
-    renderSummary();
-}
- 
-/* ฟังข้อมูลจาก Firestore แบบ realtime — collection เดียวกับ report.html / finance.html / customer_debt.html
-   หมายเหตุ: เรียก populateYearSelect() ก่อนเสมอ เพื่อให้ selectedYear พร้อมค่าเริ่มต้น ("2569")
-   ก่อนคำนวณ/แสดงกราฟ ป้องกันปัญหากราฟว่างตั้งแต่รอบแรกที่เปิดหน้า */
-onSnapshot(collection(db, "insuranceData"), (snapshot) => {
- 
-    allData = snapshot.docs.map(d => ({
-        id: d.id,
-        ...d.data()
-    }));
- 
-    populateYearSelect();
-    updateAll();
-});
- 
-bindViewModeButtons();
- 
-</script>
- 
+            });
+        };
+
+        window.closeRevenueChart = function(){
+            const overlay = document.getElementById("revenueChartOverlay");
+            overlay.classList.add("hidden");
+            overlay.classList.remove("flex");
+        };
+
+        document.getElementById("revenueChartOverlay").addEventListener("click", (e)=>{
+            if(e.target.id === "revenueChartOverlay") window.closeRevenueChart();
+        });
+
+        /* =========================
+           โหลดข้อมูลแบบ realtime
+        ========================= */
+        onSnapshot(collection(db, "insuranceData"), (snapshot) => {
+            allData = snapshot.docs.map(d => ({ id:d.id, ...d.data() }));
+            populateFilters();
+            renderList();
+        });
+
+        /* =========================
+           Event listeners ตัวกรอง / ค้นหา
+        ========================= */
+        ["filterDay","filterMonth","filterYear","filterCompany"].forEach(id=>{
+            document.getElementById(id).addEventListener("change", renderList);
+        });
+        document.getElementById("employeeSearch").addEventListener("input", renderList);
+
+    </script>
+
 </body>
 </html>

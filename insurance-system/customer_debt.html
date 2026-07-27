@@ -110,7 +110,7 @@ h1{
 table{
 
     width:100%;
-    min-width:1300px;
+    min-width:1080px;
     border-collapse:collapse;
 
     font-size:13px;
@@ -125,7 +125,7 @@ th{
     color:white;
     font-weight:600;
 
-    padding:10px 8px;
+    padding:10px 6px;
 
     white-space:nowrap;
 
@@ -142,7 +142,7 @@ th{
 
 td{
 
-    padding:6px 8px;
+    padding:6px 6px;
 
     border:1px solid var(--border);
 
@@ -152,6 +152,30 @@ td{
 
     height:44px;
 
+}
+
+/* จอแคบ: ย่อฟอนต์/padding ลงอีกชั้น เพื่อให้เห็นข้อมูลได้มากขึ้นโดยไม่ต้องเลื่อนมากเกินไป */
+@media(max-width:768px){
+
+    table{
+        font-size:11.5px;
+        min-width:920px;
+    }
+
+    th{
+        padding:8px 5px;
+    }
+
+    td{
+        padding:5px 5px;
+        height:40px;
+    }
+
+    .debt-input{
+        min-width:56px;
+        font-size:11px;
+        padding:5px 6px;
+    }
 }
 
 tbody tr.overdue:hover,
@@ -244,18 +268,115 @@ td.extra-installment-cell{
 
 /* =========================
    เพิ่มใหม่: คอลัมน์ "จัดการ" (แก้ไข / บันทึก / ลบ) อยู่ท้ายสุดของตาราง
+   แก้ไข: กำหนดความกว้างตายตัวให้พอดีกับปุ่มทั้ง 4 ปุ่มเสมอ (เดิมไม่ได้กำหนดความกว้าง
+   ทำให้บางจอเห็นปุ่มไม่ครบ/ปุ่มถูกบีบจนซ้อนกัน) และเพิ่มเงาด้านซ้ายให้ดูเป็นคอลัมน์ที่ "ตรึงอยู่"
+   ชัดเจนขึ้น (เหมือน freeze pane ของ Excel)
 ========================= */
 th.debt-action-th,
 td.debt-action-td{
     position:sticky;
     right:0;
-    z-index:1;
+    z-index:2;
     background:var(--surface);
+
+    width:152px;
+    min-width:152px;
+    max-width:152px;
+
+    box-shadow:-3px 0 6px rgba(21,42,84,.10);
 }
 
 th.debt-action-th{
-    z-index:4;
+    z-index:5;
     background:var(--navy);
+}
+
+/* แก้ไข: ทำให้คอลัมน์ "จัดการ" ที่ตรึงไว้ ใช้สีพื้นหลังตรงกับสถานะของแถวนั้นเสมอ
+   (เดิมคอลัมน์นี้ตายตัวเป็นสีขาว/เทาอ่อนแม้แถวนั้นจะเป็นแถวสีแดง/เขียว/ส้ม ทำให้ดูเหมือน
+   ข้อมูลแถวนั้นๆ "ขาดหาย" ไปช่วงคอลัมน์สุดท้าย) ใช้ !important เพื่อชนะกฎพื้นฐานด้านบนแน่นอน */
+tr.overdue td.debt-action-td{ background:#ff3737 !important; }
+tr.not-overdue td.debt-action-td{ background:#66ee61d5 !important; }
+tr.paid-complete td.debt-action-td{ background:var(--blue-light) !important; }
+tr.debt-carryover td.debt-action-td{ background:#FF9800 !important; }
+
+/* =========================
+   เพิ่มใหม่: ตรึงคอลัมน์ "ลำดับ / เกินกำหนด(วัน) / เงินที่ค้าง / ชื่อ / ทะเบียน" ไว้ด้านซ้ายเสมอ
+   (freeze pane เหมือน Excel) เพื่อให้เลื่อนดูงวด/ยอดเงินทางขวาได้ โดยยังเห็นข้อมูลสำคัญของลูกค้า
+   รายนี้อยู่ตลอด ไม่ต้องเลื่อนกลับไปดู
+   ลำดับความกว้าง (สะสม left ต่อกันตามลำดับ):
+   ลำดับ 40px -> เกินกำหนด(วัน) 78px -> เงินที่ค้าง 92px -> ชื่อ 130px -> ทะเบียน 100px
+========================= */
+th.debt-frozen-col,
+td.debt-frozen-col{
+    position:sticky;
+    z-index:2;
+    background:var(--surface);
+}
+
+th.debt-frozen-col{
+    z-index:5;
+    background:var(--navy);
+}
+
+th.debt-col-index, td.debt-col-index{
+    left:0;
+    width:40px;
+    min-width:40px;
+    max-width:40px;
+}
+
+th.debt-col-overdue, td.debt-col-overdue{
+    left:40px;
+    width:78px;
+    min-width:78px;
+    max-width:78px;
+}
+
+th.debt-col-debt, td.debt-col-debt{
+    left:118px;
+    width:92px;
+    min-width:92px;
+    max-width:92px;
+}
+
+th.debt-col-name, td.debt-col-name{
+    left:210px;
+    width:130px;
+    min-width:130px;
+    max-width:130px;
+    white-space:normal;
+}
+
+th.debt-col-plate, td.debt-col-plate{
+    left:340px;
+    width:100px;
+    min-width:100px;
+    max-width:100px;
+
+    /* เส้นแบ่งชัดเจนระหว่างคอลัมน์ที่ตรึงไว้กับคอลัมน์ที่เลื่อนได้ */
+    box-shadow:3px 0 6px rgba(21,42,84,.10);
+}
+
+/* คงสีพื้นหลังของคอลัมน์ที่ตรึงไว้ให้ตรงกับสถานะของแถวเสมอ เหมือนคอลัมน์ "จัดการ" */
+tr.overdue td.debt-frozen-col{ background:#ff3737 !important; }
+tr.not-overdue td.debt-frozen-col{ background:#66ee61d5 !important; }
+tr.paid-complete td.debt-frozen-col{ background:var(--blue-light) !important; }
+tr.debt-carryover td.debt-frozen-col{ background:#FF9800 !important; }
+
+@media(max-width:768px){
+
+    th.debt-action-th,
+    td.debt-action-td{
+        width:126px;
+        min-width:126px;
+        max-width:126px;
+    }
+
+    th.debt-col-index, td.debt-col-index{ width:32px; min-width:32px; max-width:32px; }
+    th.debt-col-overdue, td.debt-col-overdue{ left:32px; width:60px; min-width:60px; max-width:60px; }
+    th.debt-col-debt, td.debt-col-debt{ left:92px; width:74px; min-width:74px; max-width:74px; }
+    th.debt-col-name, td.debt-col-name{ left:166px; width:100px; min-width:100px; max-width:100px; }
+    th.debt-col-plate, td.debt-col-plate{ left:266px; width:80px; min-width:80px; max-width:80px; }
 }
 
 .debt-actions{
@@ -279,6 +400,17 @@ th.debt-action-th{
 
 .debt-actions button:hover{
     transform:scale(1.1);
+}
+
+@media(max-width:768px){
+    .debt-actions{
+        gap:3px;
+    }
+    .debt-actions button{
+        width:24px;
+        height:24px;
+        font-size:11px;
+    }
 }
 
 .debt-edit-btn{
@@ -547,25 +679,26 @@ th.debt-action-th{
 
 <thead>
 
-<!-- แก้ไข: จัดเรียงคอลัมน์ใหม่ตามที่ต้องการ:
-     เกินกำหนด -> เงินที่ค้าง -> เบอร์ -> ชื่อ -> ทะเบียน -> วันที่เริ่ม -> รวม(เบี้ย) -> งวดที่ 1..N -> จัดการ
+<!-- แก้ไข: จัดเรียงคอลัมน์ใหม่และ "ตรึง" คอลัมน์สำคัญไว้ทั้ง 2 ฝั่ง (เหมือน freeze pane ของ Excel)
+     ฝั่งซ้าย (ตรึงตลอด ไม่เลื่อนหาย): ลำดับ -> เกินกำหนด(วัน) -> เงินที่ค้าง -> ชื่อ -> ทะเบียน
+     ฝั่งกลาง (เลื่อนดูได้): เบอร์โทร -> วันที่เริ่ม -> รวม(เบี้ย) -> งวดที่ 1..N
+     ฝั่งขวา (ตรึงตลอด): จัดการ
      คอลัมน์ "งวดที่..." ถูกสร้างแบบไดนามิกด้วย JS (ดูฟังก์ชัน renderDebtHeader ด้านล่าง)
      เพื่อรองรับกรณีลูกค้าชำระเกิน 4 งวดแล้วยังไม่หมด ระบบจะขยายจำนวนคอลัมน์งวดให้อัตโนมัติ
-     (คอลัมน์งวดที่เกิน 4 จะมีกรอบขวาสีแดงเด่นชัด)
-     เพิ่มใหม่: คอลัมน์ "จัดการ" ไว้ท้ายสุด สำหรับ แก้ไข/บันทึก/ลบ ข้อมูลแต่ละแถวได้โดยตรง -->
+     (คอลัมน์งวดที่เกิน 4 จะมีกรอบขวาสีแดงเด่นชัด) -->
 <tr id="debtHeadRow">
 
-<th>ลำดับ</th>
+<th class="debt-frozen-col debt-col-index">ลำดับ</th>
 
-<th>เกินกำหนด(วัน)</th>
+<th class="debt-frozen-col debt-col-overdue">เกินกำหนด(วัน)</th>
 
-<th>เงินที่ค้าง</th>
+<th class="debt-frozen-col debt-col-debt">เงินที่ค้าง</th>
+
+<th class="debt-frozen-col debt-col-name">ชื่อ</th>
+
+<th class="debt-frozen-col debt-col-plate">ทะเบียน</th>
 
 <th>เบอร์โทร</th>
-
-<th>ชื่อ</th>
-
-<th>ทะเบียน</th>
 
 <th>วันที่เริ่ม</th>
 
@@ -879,26 +1012,17 @@ html+=`
 <tr class="${rowClass}" data-row="${item.id}">
 
 
-<td>${index+1}</td>
+<td class="debt-frozen-col debt-col-index">${index+1}</td>
 
-<td>
+<td class="debt-frozen-col debt-col-overdue">
 ${item.overdue}
 </td>
 
-<td>
+<td class="debt-frozen-col debt-col-debt">
 ${item.debtAmount.toLocaleString()}
 </td>
 
-<td>
-    <input type="text"
-        class="debt-input"
-        data-row="${item.id}"
-        data-field="phone"
-        value="${item.phone || ""}"
-        disabled>
-</td>
-
-<td>
+<td class="debt-frozen-col debt-col-name">
     <input type="text"
         class="debt-input"
         data-row="${item.id}"
@@ -907,12 +1031,21 @@ ${item.debtAmount.toLocaleString()}
         disabled>
 </td>
 
-<td>
+<td class="debt-frozen-col debt-col-plate">
     <input type="text"
         class="debt-input"
         data-row="${item.id}"
         data-field="plate"
         value="${item.plate || ""}"
+        disabled>
+</td>
+
+<td>
+    <input type="text"
+        class="debt-input"
+        data-row="${item.id}"
+        data-field="phone"
+        value="${item.phone || ""}"
         disabled>
 </td>
 
@@ -1091,6 +1224,10 @@ onSnapshot(collection(db, "insuranceData"), (snapshot) => {
      ทำให้ยอดค้างในตารางนี้และตัวเลขในหน้ารายงานอัปเดตตรงกันทันทีแบบ realtime
      โดยไม่ต้องแก้ไขข้อมูลอื่นของลูกค้ารายนั้นเลย
 ========================================================= */
+/* แก้ไข (ตามคำขอ): กด "ชำระงวด" แล้วส่งข้อมูลลูกค้ารายนี้ไปบันทึกการชำระเงินที่หน้า finance.html
+   โดยอัตโนมัติแทนการเปิดโมดัลในหน้านี้ พนักงานไม่ต้องค้นหา/เลือกลูกค้าซ้ำที่หน้า finance.html เลย
+   ระบบจะคำนวณ "งวดที่ยังไม่ได้ชำระ" ให้อัตโนมัติและส่งไปพร้อมกันผ่าน localStorage
+   (โมดัลจ่ายงวดเดิมของหน้านี้ยังคงมีโค้ดอยู่เผื่อใช้ในอนาคต แต่ปุ่ม "ชำระงวด" จะไม่เปิดโมดัลนี้อีกต่อไป) */
 window.debtPayInstallment = function(id){
 
     const item = currentDebtData.find(x => x.id === id);
@@ -1129,23 +1266,27 @@ window.debtPayInstallment = function(id){
         nextSlot = currentMaxInstallments + 1;
     }
 
-    currentPayItem = {
+    // ยอดที่ควรเรียกเก็บของงวดนี้ (ถ้ามีแผนจำนวนงวด (installmentCount) ให้หารเฉลี่ยเท่าๆ กัน
+    // ถ้าไม่มีแผน ให้ใช้ยอดค้างทั้งหมดเป็นค่าเริ่มต้น)
+    const planCount = parseInt(item.installmentCount, 10) || 0;
+    const perInstallment = planCount > 0 ? (total / planCount) : debtAmount;
+    const dueAmount = Math.max(0, Math.min(debtAmount, perInstallment > 0 ? perInstallment : debtAmount));
+
+    localStorage.setItem("financePayTarget", JSON.stringify({
         id: item.id,
-        field: "installment" + nextSlot,
-        slot: nextSlot
-    };
+        customer: item.customer || "",
+        company: item.company || "",
+        plate: item.plate || "",
+        start: item.start || "",
+        phone: item.phone || "",
+        total: total,
+        debtAmount: debtAmount,
+        installmentNumber: nextSlot,
+        dueAmount: dueAmount,
+        recordedBy: (typeof getEmployeeName === "function") ? getEmployeeName() : ""
+    }));
 
-    document.getElementById("debtPayTitle").innerText =
-        `💵 จ่ายงวดที่ ${nextSlot} - ${item.customer || "ไม่ระบุชื่อ"}`;
-
-    document.getElementById("debtPayRemaining").innerText = debtAmount.toLocaleString();
-
-    const amountInput = document.getElementById("debtPayAmount");
-    amountInput.value = debtAmount;
-
-    document.getElementById("debtPayOverlay").classList.add("show");
-
-    setTimeout(() => { amountInput.focus(); amountInput.select(); }, 50);
+    window.location.href = "finance.html";
 };
 
 window.debtClosePayModal = function(){

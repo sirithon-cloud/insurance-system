@@ -11,6 +11,9 @@
  
             <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
+            <!-- เพิ่มใหม่: สำหรับปุ่ม "Export Excel" (โหลดรายงานตามตัวกรองปัจจุบันลงเครื่องเป็น .xlsx) -->
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
             <!-- เพิ่มใหม่: บังคับให้ต้อง login ก่อนเข้าใช้งานหน้านี้ (เดิมเข้าตรงผ่าน URL ได้โดยไม่ต้อง login
                  ทำให้ดูรายงานข้อมูลลูกค้าทั้งหมดได้โดยไม่ต้องยืนยันตัวตน) -->
             <script src="auth.js"></script>
@@ -428,6 +431,33 @@
                 border-color:#2F6FED;
             }
 
+            /* เพิ่มใหม่: ปุ่มโหลด Excel ของรายงาน (ตามตัวกรองที่เลือกอยู่ เช่น วันที่/เดือน/บริษัท ฯลฯ) */
+            .export-excel-btn{
+                display:inline-flex;
+                align-items:center;
+                gap:5px;
+
+                margin-top:8px;
+
+                padding:6px 12px;
+                border:none;
+                border-radius:999px;
+
+                background:#198754;
+                color:#fff;
+
+                font-family:"Kanit",sans-serif;
+                font-size:12px;
+                font-weight:600;
+
+                cursor:pointer;
+                transition:.2s;
+            }
+
+            .export-excel-btn:hover{
+                background:#157347;
+            }
+
             @media(max-width:768px){
 
                 .summary-panel{
@@ -721,6 +751,10 @@
                     <span class="search-icon">🔍</span>
                     <input type="text" id="filterSearch" placeholder="พิมพ์ชื่อผู้เอาประกัน หรือ ทะเบียนรถ">
                 </div>
+
+                <button type="button" class="export-excel-btn" id="btnExportExcel">
+                    📥 Excel
+                </button>
 
             </div>
 
@@ -2068,6 +2102,89 @@ function openReceipt(id){
 
 }
  
+/* =========================
+   เพิ่มใหม่: Export Excel
+   ส่งออกรายงานตามตัวกรองที่เลือกอยู่ในขณะนั้น (วันที่/เดือน/ปี/บริษัท/พนักงาน/ประเภท/คำค้นหา)
+   เรียงลำดับเหมือนตารางที่แสดงอยู่ (ใช้ getFilteredData() ตัวเดียวกับที่ render ตาราง)
+========================= */
+function exportReportExcel(){
+
+    if(typeof XLSX === "undefined"){
+        alert("ไม่สามารถโหลดไลบรารี Excel ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต");
+        return;
+    }
+
+    const rows = getFilteredData();
+
+    if(rows.length === 0){
+        alert("ไม่มีข้อมูลสำหรับ Export ตามตัวกรองที่เลือกอยู่");
+        return;
+    }
+
+    const excelData = rows.map((item, i) => {
+
+        const debtAmount =
+            Number(item.total || 0) -
+            (
+                Number(item.installment1 || 0) +
+                Number(item.installment2 || 0) +
+                Number(item.installment3 || 0) +
+                Number(item.installment4 || 0)
+            );
+
+        return {
+            "ลำดับ": i + 1,
+            "ชื่อผู้เอาประกัน": item.customer || "-",
+            "ทะเบียน": item.plate || "-",
+            "เบอร์โทร": item.phone || "-",
+            "เลขกรมธรรม์": item.policyNumber || "-",
+            "วันที่แจ้งงาน": item.createDate || "-",
+            "บริษัท": item.company || "-",
+            "ยี่ห้อ": item.brand || "-",
+            "วันเริ่ม": toBEDateDisplay(item.start),
+            "วันสิ้นสุด": toBEDateDisplay(item.end),
+            "ทุนประกัน": Number(item.sumInsured || 0),
+            "รวม": Number(item.total || 0),
+            "กลุ่มสินค้า": item.group || "-",
+            "งวด1": item.installment1 || "-",
+            "งวด2": item.installment2 || "-",
+            "งวด3": item.installment3 || "-",
+            "งวด4": item.installment4 || "-",
+            "ยอดค้าง": debtAmount,
+            "ประเภทประกัน": item.type === "car" ? "ประกันรถยนต์" : (item.type === "product" ? "ประกันสินค้า" : "-"),
+            "ที่อยู่": item.address || "-",
+            "ชื่อผู้แจ้ง": item.employeeName || item.requestName || "-"
+        };
+    });
+
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "รายงาน");
+
+    // ตั้งชื่อไฟล์ตามตัวกรองวัน/เดือน/ปีที่เลือกอยู่ (ถ้าเลือกไว้) ไม่งั้นใช้วันที่วันนี้แทน
+    const selDay = document.getElementById("filterDay")?.value || "all";
+    const selMonth = document.getElementById("filterMonth")?.value || "all";
+    const selYear = document.getElementById("filterYear")?.value || "all";
+
+    const dayPart = selDay !== "all" ? selDay : "";
+    const monthPart = selMonth !== "all" ? selMonth : "";
+    const yearPart = selYear !== "all" ? selYear : "";
+
+    const datePart = (dayPart || monthPart || yearPart)
+        ? [dayPart, monthPart, yearPart].filter(Boolean).join("-")
+        : new Date().toLocaleDateString("th-TH").replace(/\//g, "-");
+
+    const fileName = `รายงานข้อมูลประกัน_${datePart}.xlsx`;
+
+    XLSX.writeFile(wb, fileName);
+}
+window.exportReportExcel = exportReportExcel;
+
+const btnExportExcelEl = document.getElementById("btnExportExcel");
+if(btnExportExcelEl){
+    btnExportExcelEl.addEventListener("click", exportReportExcel);
+}
+
 /* =========================
    SIDEBAR MENU
 ========================= */

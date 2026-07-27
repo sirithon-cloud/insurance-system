@@ -62,25 +62,27 @@
             font-size:10px;
             font-weight:600;
             letter-spacing:.3px;
-            color:#9ca3af;
+            color:#6b7280;
         }
 
+        /* แก้ไข: เปลี่ยนช่องชั่วโมง/นาทีจากปุ่มพื้นเข้ม เป็นกล่องสีขาวแบบเดียวกับช่อง "วันที่"
+           (bg-white + border-gray-300 + rounded-xl) ยังคงกดเพื่อเปิดรายการเลือกได้อย่างเดียวเหมือนเดิม
+           พิมพ์เองไม่ได้ */
         .fin-flip-btn{
             width:52px;
             height:40px;
             margin:0;
             padding:0;
 
-            background:#17181c;
-            color:#e5e7eb;
+            background:#ffffff;
+            color:#111827;
 
-            border:none;
-            border-radius:10px;
-            box-shadow:0 4px 10px rgba(0,0,0,.25);
+            border:1px solid #d1d5db;
+            border-radius:12px;
 
             font-family:'Prompt',sans-serif;
-            font-size:18px;
-            font-weight:700;
+            font-size:16px;
+            font-weight:600;
             text-align:center;
 
             cursor:pointer;
@@ -88,12 +90,13 @@
         }
 
         .fin-flip-btn:hover{
-            background:#202127;
+            background:#f9fafb;
         }
 
         .fin-flip-btn:focus{
             outline:none;
-            box-shadow:0 0 0 3px rgba(37,99,235,.45);
+            border-color:#3b82f6;
+            box-shadow:0 0 0 3px rgba(59,130,246,.35);
         }
 
         .fin-time-flip-colon{
@@ -114,9 +117,10 @@
             max-height:150px;
             overflow-y:auto;
 
-            background:#17181c;
+            background:#ffffff;
+            border:1px solid #d1d5db;
             border-radius:10px;
-            box-shadow:0 12px 26px rgba(0,0,0,.35);
+            box-shadow:0 12px 26px rgba(0,0,0,.12);
             padding:4px;
 
             display:none;
@@ -132,7 +136,7 @@
             text-align:center;
             font-family:'Prompt',sans-serif;
             font-size:13px;
-            color:#e5e7eb;
+            color:#111827;
             border-radius:6px;
             cursor:pointer;
         }
@@ -425,10 +429,12 @@
                             <th class="p-3">บริษัท</th>
                             <th class="p-3">ทะเบียน</th>
                             <th class="p-3 whitespace-nowrap">วันเริ่ม</th>
+                            <th class="p-3 text-center whitespace-nowrap">งวดที่ชำระ</th>
                             <th class="p-3">วิธีการชำระ</th>
                             <th class="p-3 whitespace-nowrap">ยอดเงินที่ชำระ</th>
                             <th class="p-3">ผู้บันทึก</th>
                             <th class="p-3 text-center">ประวัติ</th>
+                            <th class="p-3 text-center">ลบ</th>
                         </tr>
                     </thead>
                     <tbody id="reportTableBody" class="divide-y divide-gray-200"></tbody>
@@ -458,6 +464,8 @@ import {
     onSnapshot,
     addDoc,
     updateDoc,
+    setDoc,
+    deleteDoc,
     doc,
     serverTimestamp
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
@@ -483,6 +491,16 @@ const THAI_MONTHS = ["มกราคม","กุมภาพันธ์","ม�
     "กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
 
 const METHOD_LABELS = { transfer:"โอน", cash:"จ่ายสด", check:"เช็ค", direct:"จ่ายตรง" };
+
+/* เพิ่มใหม่: จำกัดสิทธิ์ปุ่ม "✅ เช็คแล้ว / ⏳ รอตรวจสอบ" ในแท็บ "รายงานการเงิน"
+   ให้เฉพาะอีเมลผู้จัดการที่ระบุไว้เท่านั้นกดยืนยัน/ยกเลิกการเช็คได้ พนักงานคนอื่นจะเห็นสถานะ
+   เฉยๆ (กดไม่ได้) อีเมลอ่านจาก getEmployeeEmail() ของ auth.js (ผูกกับบัญชี Firebase Auth ที่ล็อกอินอยู่จริง) */
+const MANAGER_EMAILS = ["viriyah127551@gmail.com", "viriyah127552@gmail.com"];
+
+function isManagerUser(){
+    const email = (typeof getEmployeeEmail === "function") ? getEmployeeEmail() : "";
+    return MANAGER_EMAILS.includes(String(email || "").trim().toLowerCase());
+}
 
 function fmt(n){ return Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2}); }
 function safe(v){ return (v===undefined||v===null||v==="") ? "-" : v; }
@@ -545,6 +563,66 @@ let selectedIds = new Set();   // ลูกค้าที่ถูกเลื�
 let currentMethod = null;
 let paymentRecords = [];
 
+/* เพิ่มใหม่: ข้อมูลลูกค้าที่ส่งมาจากปุ่ม "ชำระงวด" ของหน้า customer_debt.html
+   ถ้ามีค่านี้ ระบบจะเลือกลูกค้ารายนี้ให้อัตโนมัติทันทีที่ข้อมูลลูกหนี้โหลดเสร็จ
+   พนักงานไม่ต้องค้นหา/เลือกลูกค้าซ้ำอีก (ดู rebuildDebtList / renderSelectionStage ด้านล่าง) */
+let financeTarget = null;
+let financeTargetApplied = false;
+try {
+    const rawFinanceTarget = localStorage.getItem("financePayTarget");
+    if (rawFinanceTarget) financeTarget = JSON.parse(rawFinanceTarget);
+} catch (e) {
+    financeTarget = null;
+}
+
+/* เพิ่มใหม่: หา "งวดที่ยังไม่ได้ชำระ" ถัดไปของลูกค้ารายหนึ่งโดยอัตโนมัติ
+   (ตรรกะเดียวกับที่ customer_debt.html ใช้) พนักงานไม่ต้องเลือกงวดเอง */
+function computeNextInstallment(item){
+
+    const total = Number(item.total || 0);
+
+    let max = 4;
+    Object.keys(item).forEach(key => {
+        const m = key.match(/^installment(\d+)$/);
+        if (m) {
+            const n = parseInt(m[1], 10);
+            if (n > max) max = n;
+        }
+    });
+
+    let paid = 0;
+    for (let i = 1; i <= max; i++) {
+        paid += Number(item["installment" + i] || 0);
+    }
+
+    const debtAmount = total - paid;
+
+    let nextSlot = null;
+    for (let i = 1; i <= max; i++) {
+        const v = item["installment" + i];
+        const isEmpty = v === undefined || v === null || String(v).trim() === "" || Number(v) === 0;
+        if (isEmpty) {
+            nextSlot = i;
+            break;
+        }
+    }
+    if (nextSlot === null) {
+        nextSlot = max + 1;
+    }
+
+    const planCount = parseInt(item.installmentCount, 10) || 0;
+    const perInstallment = planCount > 0 ? (total / planCount) : debtAmount;
+    const dueAmount = Math.max(0, Math.min(debtAmount, perInstallment > 0 ? perInstallment : debtAmount));
+
+    return {
+        installmentNumber: nextSlot,
+        dueAmount: dueAmount,
+        debtAmount: debtAmount,
+        field: "installment" + nextSlot,
+        dateField: "installment" + nextSlot + "Date"
+    };
+}
+
 /* =========================================================
    โหลดข้อมูลลูกค้าค้างชำระแบบ realtime
 ========================================================= */
@@ -562,6 +640,18 @@ function rebuildDebtList(){
     [...selectedIds].forEach(id => {
         if(!debtList.find(x => x.id === id)) selectedIds.delete(id);
     });
+
+    // เพิ่มใหม่: ถ้ามาจากปุ่ม "ชำระงวด" ของหน้าลูกหนี้ ให้เลือกลูกค้ารายนั้นให้อัตโนมัติทันที
+    // ที่ข้อมูลลูกหนี้โหลดเสร็จ พนักงานไม่ต้องค้นหา/เลือกลูกค้าซ้ำอีก
+    // ทำแค่ครั้งเดียวต่อการเปิดหน้า (financeTargetApplied) เพื่อให้พนักงานยังยกเลิกการเลือกเองได้
+    // ภายหลังโดยไม่ถูกบังคับเลือกกลับให้ทุกครั้งที่ข้อมูล realtime อัปเดต
+    if (financeTarget && !financeTargetApplied) {
+        const targetItem = debtList.find(x => x.id === financeTarget.id);
+        if (targetItem) {
+            selectedIds.add(financeTarget.id);
+            financeTargetApplied = true;
+        }
+    }
 
     renderDebtTable();
     renderSelectionStage();
@@ -640,7 +730,31 @@ function renderSelectionStage(){
     stage.classList.remove("hidden");
 
     const chipsWrap = document.getElementById("selectedChips");
-    chipsWrap.innerHTML = [...selectedIds].map(id => {
+
+    // เพิ่มใหม่: ถ้ามาจากปุ่ม "ชำระงวด" ของหน้าลูกหนี้ แสดงข้อมูลลูกค้าครบถ้วนอัตโนมัติ
+    // (ชื่อผู้เอาประกัน / บริษัท / ทะเบียน / วันเริ่ม / ยอดเงิน / เบอร์โทร / สถานะ)
+    // พร้อมงวดที่ระบบเลือกให้ชำระโดยอัตโนมัติ
+    let financeInfoHtml = "";
+    if (financeTarget) {
+        const targetItem = debtList.find(x => x.id === financeTarget.id);
+        if (targetItem && selectedIds.has(financeTarget.id)) {
+            const inst = computeNextInstallment(targetItem);
+            financeInfoHtml = `
+                <div class="w-full mb-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-900 grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1">
+                    <div><b>ชื่อผู้เอาประกัน:</b> ${safe(targetItem.customer)}</div>
+                    <div><b>บริษัท:</b> ${safe(targetItem.company)}</div>
+                    <div><b>ทะเบียน:</b> ${safe(targetItem.plate)}</div>
+                    <div><b>วันเริ่ม:</b> ${safe(targetItem.start)}</div>
+                    <div><b>เบอร์โทร:</b> ${safe(targetItem.phone)}</div>
+                    <div><b>สถานะ:</b> ${targetItem.overdue > 0 ? "เกินกำหนด " + targetItem.overdue + " วัน" : "ปกติ"}</div>
+                    <div><b>งวดที่ชำระ:</b> งวดที่ ${inst.installmentNumber}</div>
+                    <div><b>ยอดที่ต้องชำระงวดนี้:</b> ${fmt(inst.dueAmount)} ฿</div>
+                </div>
+            `;
+        }
+    }
+
+    chipsWrap.innerHTML = financeInfoHtml + [...selectedIds].map(id => {
         const item = debtList.find(x => x.id === id);
         const name = item ? item.customer : "-";
         return `
@@ -774,27 +888,59 @@ function renderPaymentForm(method){
 
     let extraFieldsHtml = "";
 
-    /* "โอน" แสดงเป็นการ์ดในหน้าเดียวกันแทนโมดัลแยก: เลือกบัญชีก่อน แล้วค่อยกรอกยอดเงิน/วันที่/เวลา */
+    /* "โอน" แสดงเป็นการ์ดในหน้าเดียวกันแทนโมดัลแยก: เลือกบัญชีก่อน แล้วค่อยกรอกยอดเงิน/วันที่/เวลา
+       แก้ไข: เปลี่ยนตัวเลือก "เลือกบัญชี" จากรายการ radio ธรรมดา มาเป็นปุ่มการ์ด 3 ช่อง
+       (PLOY BROKERS / นายณุพล วิทยาขาว / อื่นๆ) ใส่ตราธนาคารกรุงเทพ (BBL) ให้ 2 บัญชีแรก
+       และให้แต่ละปุ่มมีสีพื้นหลังต่างกัน (ส้ม / น้ำเงิน / เหลือง) ตามที่ต้องการ
+       ยังใช้ input radio ตัวเดิม (name="fin_tf_account") ซ่อนไว้เบื้องหลังการ์ดแต่ละใบ
+       เพื่อไม่ต้องแก้ตรรกะที่อื่น (onFinTransferAccountChange / savePayment ยังอ่านค่าจาก
+       input[name="fin_tf_account"]:checked เหมือนเดิมทุกประการ) */
     if(method === "transfer"){
         extraFieldsHtml = `
             <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">เลือกบัญชี:</label>
-                <div class="flex flex-col sm:flex-row flex-wrap gap-3">
-                    <label class="flex items-center gap-2 cursor-pointer bg-white px-4 py-2.5 rounded-xl border border-gray-200 shadow-sm">
-                        <input type="radio" name="fin_tf_account" value="บัญชีพี่พลอย" class="text-blue-600 focus:ring-blue-500" onchange="onFinTransferAccountChange()">
-                        <span class="text-sm">บัญชีพี่พลอย</span>
+                <label class="block text-sm font-medium text-gray-700 mb-3">เลือกบัญชี:</label>
+                <div class="grid grid-cols-3 gap-3">
+
+                    <label class="cursor-pointer block">
+                        <input type="radio" name="fin_tf_account" value="PLOY BROKERS" class="peer hidden" onchange="onFinTransferAccountChange()">
+                        <div class="flex flex-col items-center gap-2 rounded-2xl px-2 py-4 text-white font-bold shadow-md select-none
+                                    bg-gradient-to-br from-orange-400 to-orange-600
+                                    ring-2 ring-transparent peer-checked:ring-white peer-checked:ring-offset-2 peer-checked:ring-offset-orange-500
+                                    peer-checked:scale-105 transition-transform">
+                            <span class="w-20 h-20 flex items-center justify-center">
+                                <img src="logos/Logo-BBL.png" alt="BBL" class="w-full h-full object-contain" onerror="this.parentElement.innerHTML='<span class=&quot;text-[10px] font-extrabold tracking-tight&quot; style=&quot;color:#1e4a9c;&quot;>BBL</span>'">
+                            </span>
+                            <span class="text-[10px] sm:text-xs text-center leading-tight">PLOY BROKERS</span>
+                        </div>
                     </label>
-                    <label class="flex items-center gap-2 cursor-pointer bg-white px-4 py-2.5 rounded-xl border border-gray-200 shadow-sm">
-                        <input type="radio" name="fin_tf_account" value="บัญชีพี่เอ" class="text-blue-600 focus:ring-blue-500" onchange="onFinTransferAccountChange()">
-                        <span class="text-sm">บัญชีพี่เอ</span>
+
+                    <label class="cursor-pointer block">
+                        <input type="radio" name="fin_tf_account" value="นายณุพล วิทยาขาว" class="peer hidden" onchange="onFinTransferAccountChange()">
+                        <div class="flex flex-col items-center gap-2 rounded-2xl px-2 py-4 text-white font-bold shadow-md select-none
+                                    bg-gradient-to-br from-blue-500 to-blue-700
+                                    ring-2 ring-transparent peer-checked:ring-white peer-checked:ring-offset-2 peer-checked:ring-offset-blue-600
+                                    peer-checked:scale-105 transition-transform">
+                            <span class="w-20 h-20 flex items-center justify-center">
+                                <img src="logos/Logo-BBL.png" alt="BBL" class="w-full h-full object-contain" onerror="this.parentElement.innerHTML='<span class=&quot;text-[10px] font-extrabold tracking-tight&quot; style=&quot;color:#1e4a9c;&quot;>BBL</span>'">
+                            </span>
+                            <span class="text-[10px] sm:text-xs text-center leading-tight">นายณุพล วิทยาขาว</span>
+                        </div>
                     </label>
-                    <label class="flex items-center gap-2 cursor-pointer bg-white px-4 py-2.5 rounded-xl border border-gray-200 shadow-sm">
-                        <input type="radio" name="fin_tf_account" value="อื่นๆ" class="text-blue-600 focus:ring-blue-500" onchange="onFinTransferAccountChange()">
-                        <span class="text-sm">อื่นๆ</span>
+
+                    <label class="cursor-pointer block">
+                        <input type="radio" name="fin_tf_account" value="อื่นๆ" class="peer hidden" onchange="onFinTransferAccountChange()">
+                        <div class="flex flex-col items-center gap-2 rounded-2xl px-2 py-4 text-gray-900 font-bold shadow-md select-none
+                                    bg-gradient-to-br from-amber-300 to-amber-400
+                                    ring-2 ring-transparent peer-checked:ring-white peer-checked:ring-offset-2 peer-checked:ring-offset-amber-400
+                                    peer-checked:scale-105 transition-transform">
+                            <span class="w-20 h-20 rounded-full bg-white flex items-center justify-center text-3xl">✏️</span>
+                            <span class="text-[10px] sm:text-xs text-center leading-tight">อื่นๆ</span>
+                        </div>
                     </label>
+
                 </div>
                 <input type="text" id="fin_tf_account_other" placeholder="ระบุชื่อบัญชี"
-                    class="hidden mt-2 w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    class="hidden mt-3 w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
         `;
     }
@@ -888,6 +1034,22 @@ function renderPaymentForm(method){
 
     initFinDateTimePickers();
     initFinTimeDropdowns();
+
+    // เพิ่มใหม่: ถ้ามาจากปุ่ม "ชำระงวด" ของหน้าลูกหนี้ (เลือกลูกค้าเดียว) ให้เติมยอดเงินของงวดที่
+    // ระบบเลือกให้อัตโนมัติ และล็อกช่องนี้ไว้ไม่ให้แก้ไข เพื่อให้ตรงกับงวดที่กำลังบันทึกจริง
+    if (financeTarget && selectedIds.size === 1 && selectedIds.has(financeTarget.id)) {
+        const targetItem = debtList.find(x => x.id === financeTarget.id);
+        if (targetItem) {
+            const inst = computeNextInstallment(targetItem);
+            const amountInput = document.getElementById("fin_amount");
+            if (amountInput) {
+                // แก้ไข: เติมยอดที่ระบบคำนวณให้อัตโนมัติเป็นค่าเริ่มต้นเท่านั้น
+                // แต่ไม่ล็อกช่องนี้อีกต่อไป (เดิม readOnly = true ทำให้แก้ไขยอดเองไม่ได้)
+                // พนักงานยังคงแก้ไข/พิมพ์ยอดเงินเองได้ตามจริงเสมอ
+                amountInput.value = inst.dueAmount.toFixed(2);
+            }
+        }
+    }
 }
 
 /* เพิ่มใหม่: ผูก flatpickr เข้ากับช่อง "วันที่" ทุกครั้งที่สร้างฟอร์มขึ้นใหม่
@@ -946,20 +1108,40 @@ async function persistPaymentRecords(fields){
 
     try{
 
-        await Promise.all(targets.map(item => addDoc(collection(db, "paymentRecords"), {
-            customerId: item.id,
-            customer: item.customer || "",
-            company: item.company || "",
-            plate: item.plate || "",
-            start: item.start || "",
-            phone: item.phone || "",
-            ...fields,
-            recordedBy: recordedBy,
-            checked: false,
-            checkedBy: "",
-            checkedAt: null,
-            createdAt: serverTimestamp()
-        })));
+        await Promise.all(targets.map(async (item) => {
+
+            // เพิ่มใหม่: ระบบเลือก "งวดที่ยังไม่ได้ชำระ" ให้อัตโนมัติ พนักงานไม่ต้องเลือกงวดเอง
+            const inst = computeNextInstallment(item);
+
+            await addDoc(collection(db, "paymentRecords"), {
+                customerId: item.id,
+                customer: item.customer || "",
+                company: item.company || "",
+                plate: item.plate || "",
+                start: item.start || "",
+                phone: item.phone || "",
+                installmentNumber: inst.installmentNumber,
+                ...fields,
+                recordedBy: recordedBy,
+                checked: false,
+                checkedBy: "",
+                checkedAt: null,
+                createdAt: serverTimestamp()
+            });
+
+            // เพิ่มใหม่: อัปเดตข้อมูลลูกหนี้จริงใน insuranceData (แหล่งข้อมูลกลางเดียวกับ
+            // customer_debt.html / report.html) ให้งวดที่เพิ่งชำระถูกบันทึกเป็น "ชำระแล้ว" ทันที
+            // เพื่อให้ครั้งถัดไปที่กด "ชำระงวด" ระบบดึงงวดถัดไปมาให้อัตโนมัติ และรายงานอัปเดตตรงกัน
+            await setDoc(
+                doc(db, "insuranceData", item.id),
+                {
+                    [inst.field]: Number(fields.amount) || 0,
+                    [inst.dateField]: fields.dateDisplay || fields.date || ""
+                },
+                { merge: true }
+            );
+
+        }));
 
         // ซ่อนเฉพาะลูกค้าที่ยอดชำระสะสม (รวมรายการที่เพิ่งบันทึกนี้) ครบตามยอดค้างชำระแล้วเท่านั้น
         targets.forEach(item => {
@@ -974,6 +1156,14 @@ async function persistPaymentRecords(fields){
 
         selectedIds.clear();
         currentMethod = null;
+
+        // เพิ่มใหม่: เคลียร์ข้อมูลลูกค้าที่ส่งมาจากหน้าลูกหนี้หลังบันทึกสำเร็จ ป้องกันไม่ให้ค้าง
+        // เลือกซ้ำถ้าเปิดหน้านี้อีกครั้งโดยไม่ได้มาจากปุ่ม "ชำระงวด"
+        if (financeTarget) {
+            localStorage.removeItem("financePayTarget");
+            financeTarget = null;
+        }
+
         rebuildDebtList();
 
         showToast("✅ บันทึกข้อมูลเรียบร้อย");
@@ -1160,16 +1350,23 @@ function renderReportTable(){
     tbody.innerHTML = rows.map(row => `
         <tr class="hover:bg-gray-50">
             <td class="p-3 text-center">
-                <button type="button"
-                    class="check-status-btn ${row.checked ? "check-status-done" : "check-status-pending"}"
-                    onclick="toggleChecked('${row.id}', ${row.checked ? "true" : "false"})">
-                    ${row.checked ? "✅ เช็คแล้ว" : "⏳ รอตรวจสอบ"}
-                </button>
+                ${
+                    isManagerUser()
+                    ? `<button type="button"
+                            class="check-status-btn ${row.checked ? "check-status-done" : "check-status-pending"}"
+                            onclick="toggleChecked('${row.id}', ${row.checked ? "true" : "false"})">
+                            ${row.checked ? "✅ เช็คแล้ว" : "⏳ รอตรวจสอบ"}
+                        </button>`
+                    : `<span class="check-status-btn ${row.checked ? "check-status-done" : "check-status-pending"}" style="cursor:default;">
+                            ${row.checked ? "✅ เช็คแล้ว" : "⏳ รอตรวจสอบ"}
+                        </span>`
+                }
             </td>
             <td class="p-3 font-medium text-gray-900">${safe(row.customer)}</td>
             <td class="p-3">${safe(row.company)}</td>
             <td class="p-3">${safe(row.plate)}</td>
             <td class="p-3 whitespace-nowrap">${safe(row.start)}</td>
+            <td class="p-3 text-center font-semibold text-blue-700 whitespace-nowrap">${row.installmentNumber ? "งวดที่ " + row.installmentNumber : "-"}</td>
             <td class="p-3">${row.methodLabel || METHOD_LABELS[row.method] || "-"}</td>
             <td class="p-3 text-blue-700 font-semibold whitespace-nowrap">${fmt(row.amount)} ฿</td>
             <td class="p-3">${safe(row.recordedBy)}</td>
@@ -1179,8 +1376,14 @@ function renderReportTable(){
                     🕒 ดูประวัติ
                 </button>
             </td>
+            <td class="p-3 text-center">
+                <button type="button" onclick="deleteReportRow('${row.id}', '${row.customerId || ""}', ${row.installmentNumber ? row.installmentNumber : "null"})"
+                    class="px-3 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 text-xs font-semibold">
+                    🗑️ ลบ
+                </button>
+            </td>
         </tr>
-    `).join("") || `<tr><td colspan="9" class="p-6 text-center text-gray-400">ไม่มีข้อมูล</td></tr>`;
+    `).join("") || `<tr><td colspan="11" class="p-6 text-center text-gray-400">ไม่มีข้อมูล</td></tr>`;
 
     const total = rows.reduce((s,r)=>s+Number(r.amount||0), 0);
     document.getElementById("reportTotal").innerText = `💰 ยอดรวม: ${fmt(total)} บาท (${rows.length} รายการ)`;
@@ -1194,6 +1397,12 @@ document.getElementById("reportSearch").addEventListener("input", renderReportTa
 /* ปุ่มสถานะ: สลับ "รอตรวจสอบ" <-> "เช็คแล้ว" — ให้ผู้จัดการกดยืนยันเมื่อตรวจสอบเสร็จ
    เช็คแล้วจะยังคงอยู่ในรายงานเสมอ (ไม่ลบ/ไม่ซ่อน) เพื่อเก็บเป็นประวัติ */
 window.toggleChecked = async function(id, currentlyChecked){
+
+    if(!isManagerUser()){
+        alert("เฉพาะผู้จัดการเท่านั้นที่สามารถกดเช็คสถานะนี้ได้");
+        return;
+    }
+
     try{
         const nowChecked = !currentlyChecked;
         await updateDoc(doc(db, "paymentRecords", id), {
@@ -1222,7 +1431,7 @@ window.openHistoryModal = function(customerId, customerName){
     document.getElementById("historyModalBody").innerHTML = history.map(r => `
         <div class="border border-gray-200 rounded-xl p-3 flex justify-between items-center gap-3">
             <div>
-                <div class="font-semibold text-gray-800">${r.dateDisplay || toThaiDateDisplay(r.date)} เวลา ${r.time || "-"}</div>
+                <div class="font-semibold text-gray-800">${r.dateDisplay || toThaiDateDisplay(r.date)} เวลา ${r.time || "-"} ${r.installmentNumber ? "· งวดที่ " + r.installmentNumber : ""}</div>
                 <div class="text-xs text-gray-500 mt-0.5">
                     ${r.methodLabel || METHOD_LABELS[r.method] || "-"} · ${accountDisplay(r)} · บันทึกโดย ${safe(r.recordedBy)}
                 </div>
@@ -1258,7 +1467,7 @@ window.openAllHistoryModal = function(){
     document.getElementById("historyModalBody").innerHTML = history.map(r => `
         <div class="border border-gray-200 rounded-xl p-3 flex justify-between items-center gap-3">
             <div>
-                <div class="font-semibold text-gray-800">${safe(r.customer)} · ${r.dateDisplay || toThaiDateDisplay(r.date)} เวลา ${r.time || "-"}</div>
+                <div class="font-semibold text-gray-800">${safe(r.customer)} · ${r.dateDisplay || toThaiDateDisplay(r.date)} เวลา ${r.time || "-"} ${r.installmentNumber ? "· งวดที่ " + r.installmentNumber : ""}</div>
                 <div class="text-xs text-gray-500 mt-0.5">
                     ${r.methodLabel || METHOD_LABELS[r.method] || "-"} · ${accountDisplay(r)} · บันทึกโดย ${safe(r.recordedBy)}
                 </div>
@@ -1277,6 +1486,43 @@ window.openAllHistoryModal = function(){
 };
 
 document.getElementById("btnAllHistory").addEventListener("click", openAllHistoryModal);
+
+/* เพิ่มใหม่: ลบรายการในรายงานการเงิน (paymentRecords) 1 รายการ
+   พร้อมย้อนคืนค่าในงวดที่บันทึกไว้ใน insuranceData (installmentN / installmentNDate)
+   กลับเป็นค่าว่าง เพื่อให้ยอดค้างชำระที่ customer_debt.html / report.html เห็น
+   ตรงกันทันที และครั้งถัดไปที่กด "ชำระงวด" ระบบจะดึงงวดนั้นกลับมาให้ชำระใหม่ได้ถูกต้อง
+   (ถ้ารายการนี้ไม่มี customerId/installmentNumber เช่นข้อมูลเก่าก่อนอัปเดต จะลบแค่ประวัติ
+   การชำระอย่างเดียว ไม่ไปแตะ insuranceData) */
+window.deleteReportRow = async function(id, customerId, installmentNumber){
+
+    if(!confirm("ต้องการลบรายการนี้หรือไม่ ?")) return;
+
+    try{
+
+        await deleteDoc(doc(db, "paymentRecords", id));
+
+        if(customerId && installmentNumber){
+            await setDoc(
+                doc(db, "insuranceData", customerId),
+                {
+                    ["installment" + installmentNumber]: "",
+                    ["installment" + installmentNumber + "Date"]: ""
+                },
+                { merge: true }
+            );
+        }
+
+        // ลูกค้ารายนี้อาจเคยถูกซ่อนออกจากตารางลูกหนี้เพราะถือว่าจ่ายครบแล้ว
+        // เมื่อลบรายการชำระออก ต้องเอากลับมาแสดงในตารางลูกหนี้ให้ถูกต้องอีกครั้ง
+        if(customerId) hiddenIds.delete(customerId);
+
+        showToast("🗑️ ลบข้อมูลเรียบร้อย");
+
+    }catch(err){
+        console.error("ลบข้อมูลไม่สำเร็จ:", err);
+        alert("ลบข้อมูลไม่สำเร็จ: " + (err.message || "กรุณาลองใหม่อีกครั้ง"));
+    }
+};
 
 /* =========================================================
    Export Excel
@@ -1298,6 +1544,7 @@ window.exportExcel = function(){
         "บริษัท": row.company,
         "ทะเบียน": row.plate,
         "วันเริ่ม": row.start,
+        "งวดที่ชำระ": row.installmentNumber ? "งวดที่ " + row.installmentNumber : "-",
         "วิธีการชำระ": row.methodLabel || METHOD_LABELS[row.method] || "-",
         "บัญชี/รายละเอียด": accountDisplay(row),
         "ยอดเงินที่ชำระ": row.amount,
