@@ -170,12 +170,20 @@
             font-size:11px;
             text-align:center;
             min-height:70px;
+            transition:opacity .2s ease, filter .2s ease, transform .15s ease;
         }
 
         .pay-account-card input:checked + .card-inner{
             outline:3px solid #fff;
             outline-offset:-3px;
             transform:scale(1.03);
+        }
+
+        /* เพิ่มใหม่: การ์ดบัญชีที่ "ไม่ถูกเลือก" จะจางลง เพื่อเน้นการ์ดที่เลือกอยู่ให้เด่นชัด
+           การ์ดที่ถูกเลือกยังคงหน้าตาเดิมทุกประการ (ไม่ติดคลาสนี้) */
+        .pay-account-card .card-inner.pay-account-dim{
+            opacity:.4;
+            filter:grayscale(60%);
         }
 
         .pay-time-row{
@@ -381,7 +389,7 @@
                 <label for="installmentCount4">4 งวด</label>
             </div>
  
-            <div class="section-title">3️⃣ บันทึกการชำระเงิน (งวดที่ 1)</div>
+            <div class="section-title"> บันทึกการชำระเงิน (งวดที่ 1)</div>
             <p class="subtitle" style="margin-top:-14px;margin-bottom:20px;">
                 ระบบจะบันทึกการชำระเงินนี้เป็น "งวดที่ 1" ให้อัตโนมัติ ส่วนงวดที่ 2 เป็นต้นไป
                 ให้ไปบันทึกที่เมนู "บันทึกการเงิน" ภายหลัง
@@ -461,6 +469,91 @@
 
         /* เก็บข้อมูลเดิมของรายการที่กำลังแก้ไข (ถ้ามี) ไว้ใช้อ้างอิงทั่วไป (เช่น id ของเอกสาร) */
         let loadedRecordData = null;
+
+        /* เพิ่มใหม่: id ของเอกสารใน collection "paymentRecords" (รายงานการเงิน) ที่ผูกกับ
+           การชำระเงินงวดที่ 1 ของรายการนี้ (ถ้าเคยสร้างไว้แล้ว) ใช้กันไม่ให้กดบันทึกซ้ำแล้ว
+           กลายเป็นสร้างรายการซ้อนในรายงานการเงินหลายใบ - จะ "อัปเดต" รายการเดิมแทนเสมอ */
+        let installment1PaymentRecordId = null;
+
+        const PAY_METHOD_LABELS = { transfer: "โอน", cash: "จ่ายสด", check: "เช็ค", direct: "จ่ายตรง" };
+
+        /* แปลงวันที่รูปแบบ d/m/Y (ปี ค.ศ. จากปฏิทินที่เลือก) เป็น Y-m-d
+           ให้ตรงกับรูปแบบ "date" ที่ finance.html ใช้กรอง/เรียงลำดับข้อมูลในรายงานการเงิน */
+        function toISODateFromDMY(dmy) {
+            if (!dmy) return "";
+            const parts = String(dmy).split("/");
+            if (parts.length !== 3) return "";
+            const [d, m, y] = parts;
+            return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+        }
+
+        /* แปลงวันที่รูปแบบ d/m/Y (ปี ค.ศ.) เป็นข้อความวันที่แบบไทย (ปี พ.ศ.)
+           ให้ตรงกับ "dateDisplay" ที่ finance.html ใช้แสดงผลในตารางรายงานการเงิน */
+        function toThaiDateDisplayFromDMY(dmy) {
+            if (!dmy) return "-";
+            const parts = String(dmy).split("/");
+            if (parts.length !== 3) return dmy;
+            const [d, m, y] = parts;
+            return `${d}/${m}/${Number(y) + 543}`;
+        }
+
+        /* เพิ่มใหม่: สร้าง/อัปเดตรายการ "การชำระเงินงวดที่ 1" ในระบบ "รายงานการเงิน" (finance.html)
+           เพื่อให้ผู้จัดการเห็นและกดเช็คสถานะได้ทันทีที่บันทึกจากฟอร์มนี้
+           - ถ้ายังไม่ได้เลือกวิธีชำระ/ยังไม่กรอกยอดเงินในส่วน "บันทึกการชำระเงิน (งวดที่ 1)" -> ข้ามไปเลย
+           - ถ้าเคยสร้างรายการไว้แล้ว (installment1PaymentRecordId มีค่า) -> อัปเดตรายการเดิม ไม่สร้างซ้ำ */
+        async function syncInstallment1PaymentRecord(record, savedId) {
+
+            const payment1 = collectPaymentInstallment1();
+
+            if (!payment1.method || !payment1.amount) {
+                return;
+            }
+
+            if (typeof window.savePaymentRecord !== "function") {
+                console.error("ไม่พบ window.savePaymentRecord (script.js อาจโหลดไม่สำเร็จ)");
+                return;
+            }
+
+            const paymentRecord = {
+                customerId: savedId,
+                customer: record.customer || "",
+                company: record.company || "",
+                plate: record.plate || "",
+                start: record.start || "",
+                phone: record.phone || "",
+                installmentNumber: 1,
+                method: payment1.method,
+                methodLabel: PAY_METHOD_LABELS[payment1.method] || payment1.method,
+                account: payment1.account || "",
+                bank: payment1.bank || "",
+                checkNo: payment1.checkNo || "",
+                payee: payment1.payee || "",
+                amount: Number(payment1.amount) || 0,
+                date: toISODateFromDMY(payment1.date),
+                dateDisplay: toThaiDateDisplayFromDMY(payment1.date),
+                time: payment1.time || "",
+                note: payment1.note || "",
+                recordedBy: (typeof getEmployeeName === "function") ? getEmployeeName() : ""
+            };
+
+            if (installment1PaymentRecordId) {
+                paymentRecord.id = installment1PaymentRecordId;
+            }
+
+            try {
+                const recId = await window.savePaymentRecord(paymentRecord);
+
+                if (recId && recId !== installment1PaymentRecordId) {
+                    installment1PaymentRecordId = recId;
+
+                    // เก็บ id ของรายการรายงานการเงินไว้กับข้อมูลลูกค้าหลัก เพื่อให้ครั้งถัดไป
+                    // (แก้ไข/บันทึกซ้ำ) รู้ว่าต้อง "อัปเดต" รายการเดิมนี้ ไม่ใช่สร้างใหม่ซ้อนขึ้นมา
+                    await window.saveRecord({ id: savedId, installment1PaymentRecordId: recId });
+                }
+            } catch (err) {
+                console.error("บันทึกรายการในรายงานการเงินไม่สำเร็จ:", err);
+            }
+        }
  
         function getInstallmentCount() {
             const checked = document.querySelector('input[name="installmentCount"]:checked');
@@ -600,15 +693,30 @@
             document.querySelectorAll(".pay-flip-list.show").forEach(l => l.classList.remove("show"));
         });
 
+        /* เพิ่มใหม่: การ์ดบัญชีที่ "ไม่ถูกเลือก" จะจางลง เพื่อเน้นการ์ดที่เลือกอยู่ให้เด่นชัด
+           การ์ดที่ถูกเลือกยังคงหน้าตาเดิมทุกประการ */
         function onPayTransferAccountChange() {
             const selected = document.querySelector('input[name="pay_tf_account"]:checked');
             const otherInput = document.getElementById("pay_tf_account_other");
-            if (!otherInput) return;
-            if (selected && selected.value === "อื่นๆ") {
-                otherInput.style.display = "block";
-            } else {
-                otherInput.style.display = "none";
+
+            if (otherInput) {
+                if (selected && selected.value === "อื่นๆ") {
+                    otherInput.style.display = "block";
+                } else {
+                    otherInput.style.display = "none";
+                }
             }
+
+            document.querySelectorAll('input[name="pay_tf_account"]').forEach(radio => {
+                const cardInner = radio.parentElement.querySelector(".card-inner");
+                if (!cardInner) return;
+
+                if (selected && radio !== selected) {
+                    cardInner.classList.add("pay-account-dim");
+                } else {
+                    cardInner.classList.remove("pay-account-dim");
+                }
+            });
         }
 
         function renderPayForm(method) {
@@ -835,6 +943,12 @@
         record.id = savedId;
         loadedRecordData = record;
     }
+
+    // เพิ่มใหม่: ถ้ามีการกรอก "บันทึกการชำระเงิน (งวดที่ 1)" ไว้ ให้สร้าง/อัปเดตรายการ
+    // ในระบบ "รายงานการเงิน" (finance.html) ให้อัตโนมัติ เพื่อให้ผู้จัดการเห็นและกดเช็คได้ทันที
+    if (savedId) {
+        await syncInstallment1PaymentRecord(record, savedId);
+    }
  
     // เก็บไว้เฉพาะข้อมูลชั่วคราวสำหรับเปิดเอกสาร PDF ของรายการนี้ทันที (ถ้ากดปุ่มเอกสารต่อ)
     localStorage.setItem(
@@ -875,6 +989,10 @@
             loadedRecordData = record;
         }
 
+        if (savedId) {
+            await syncInstallment1PaymentRecord(record, savedId);
+        }
+
         localStorage.setItem(
             "pdfData",
             JSON.stringify(record)
@@ -908,6 +1026,10 @@
             editingId = savedId;
             record.id = savedId;
             loadedRecordData = record;
+        }
+
+        if (savedId) {
+            await syncInstallment1PaymentRecord(record, savedId);
         }
 
         localStorage.setItem(
@@ -1032,6 +1154,10 @@
 
             editingId = oldData.id;
             loadedRecordData = oldData; // เก็บข้อมูลเดิมของรายการที่กำลังแก้ไขไว้ใช้อ้างอิง
+
+            // เพิ่มใหม่: โหลด id ของรายการในรายงานการเงิน (ถ้าเคยสร้างไว้แล้ว) เพื่อให้บันทึกซ้ำ
+            // ครั้งนี้ไปอัปเดตรายการเดิม ไม่สร้างรายการซ้อนใหม่ในรายงานการเงิน
+            installment1PaymentRecordId = oldData.installment1PaymentRecordId || null;
 
             document.getElementById("company").value = oldData.company || "";
             document.getElementById("requestName").value = oldData.requestName || "";

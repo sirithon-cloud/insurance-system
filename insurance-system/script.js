@@ -152,6 +152,48 @@ async function saveRecord(record) {
 }
 
 
+/* เพิ่มใหม่: บันทึก/อัปเดตรายการ "การชำระเงิน" ลง collection กลาง "paymentRecords"
+   (collection เดียวกับที่ finance.html แท็บ "รายงานการเงิน" อ่านอยู่ realtime อยู่แล้ว)
+   ใช้รูปแบบเดียวกับ saveRecord() ด้านบน:
+   - ถ้ามี record.id (เคยสร้างรายการนี้ไว้แล้ว) -> อัปเดตด้วย setDoc({merge:true})
+     (ไม่แตะ checked/checkedBy/checkedAt เดิม เผื่อผู้จัดการเช็คไปแล้ว)
+   - ถ้าไม่มี record.id (สร้างครั้งแรก) -> addDoc พร้อมตั้งค่าเริ่มต้น checked:false
+   คืนค่า id ของเอกสารกลับไปให้หน้าที่เรียกใช้เก็บอ้างอิงไว้ (กันสร้างซ้ำ) */
+async function savePaymentRecord(record) {
+
+    let savedId = record.id || null;
+
+    if (record.id) {
+
+        const { id, ...fields } = record;
+
+        await setDoc(
+            doc(db, "paymentRecords", id),
+            fields,
+            { merge: true }
+        );
+
+        savedId = id;
+
+    } else {
+
+        record.checked = false;
+        record.checkedBy = "";
+        record.checkedAt = null;
+        record.createdAt = serverTimestamp();
+
+        const docRef = await addDoc(
+            collection(db, "paymentRecords"),
+            record
+        );
+
+        savedId = docRef.id;
+
+    }
+
+    return savedId;
+}
+
 /* =========================
    SAFE
 ========================= */
@@ -321,5 +363,6 @@ function editData(){
 }
 
 window.saveRecord = saveRecord;
+window.savePaymentRecord = savePaymentRecord;
 window.editData = editData;
 window.deleteData = deleteData;

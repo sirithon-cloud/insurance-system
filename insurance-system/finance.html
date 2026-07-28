@@ -793,17 +793,31 @@ function resetMethodButtons(){
     });
 }
 
-/* เลือกบัญชี "อื่นๆ" ของการโอนเงิน -> โชว์ช่องกรอกชื่อบัญชีเพิ่ม */
+/* เลือกบัญชี "อื่นๆ" ของการโอนเงิน -> โชว์ช่องกรอกชื่อบัญชีเพิ่ม
+   เพิ่มใหม่: การ์ดบัญชีที่ "ไม่ถูกเลือก" จะจางลง (ลดความสว่าง/สี) เพื่อเน้นการ์ดที่เลือกอยู่ให้เด่นชัด
+   ส่วนการ์ดที่ถูกเลือกยังคงหน้าตาเดิมทุกประการ */
 window.onFinTransferAccountChange = function(){
     const selected = document.querySelector('input[name="fin_tf_account"]:checked');
     const otherInput = document.getElementById("fin_tf_account_other");
-    if(!otherInput) return;
 
-    if(selected && selected.value === "อื่นๆ"){
-        otherInput.classList.remove("hidden");
-    } else {
-        otherInput.classList.add("hidden");
+    if(otherInput){
+        if(selected && selected.value === "อื่นๆ"){
+            otherInput.classList.remove("hidden");
+        } else {
+            otherInput.classList.add("hidden");
+        }
     }
+
+    document.querySelectorAll('input[name="fin_tf_account"]').forEach(radio => {
+        const cardInner = radio.parentElement.querySelector(".tf-account-card-inner");
+        if(!cardInner) return;
+
+        if(selected && radio !== selected){
+            cardInner.classList.add("opacity-40", "grayscale");
+        } else {
+            cardInner.classList.remove("opacity-40", "grayscale");
+        }
+    });
 };
 
 /* แก้ไข: ย่อขนาดตัวเลือกเวลาให้เล็กลง และเปลี่ยนจาก <select> จริง (ที่เบราว์เซอร์อาจกางรายการ
@@ -903,10 +917,10 @@ function renderPaymentForm(method){
 
                     <label class="cursor-pointer block">
                         <input type="radio" name="fin_tf_account" value="PLOY BROKERS" class="peer hidden" onchange="onFinTransferAccountChange()">
-                        <div class="flex flex-col items-center gap-2 rounded-2xl px-2 py-4 text-white font-bold shadow-md select-none
+                        <div class="tf-account-card-inner flex flex-col items-center gap-2 rounded-2xl px-2 py-4 text-white font-bold shadow-md select-none
                                     bg-gradient-to-br from-orange-400 to-orange-600
                                     ring-2 ring-transparent peer-checked:ring-white peer-checked:ring-offset-2 peer-checked:ring-offset-orange-500
-                                    peer-checked:scale-105 transition-transform">
+                                    peer-checked:scale-105 transition-all">
                             <span class="w-20 h-20 flex items-center justify-center">
                                 <img src="logos/Logo-BBL.png" alt="BBL" class="w-full h-full object-contain" onerror="this.parentElement.innerHTML='<span class=&quot;text-[10px] font-extrabold tracking-tight&quot; style=&quot;color:#1e4a9c;&quot;>BBL</span>'">
                             </span>
@@ -916,10 +930,10 @@ function renderPaymentForm(method){
 
                     <label class="cursor-pointer block">
                         <input type="radio" name="fin_tf_account" value="นายณุพล วิทยาขาว" class="peer hidden" onchange="onFinTransferAccountChange()">
-                        <div class="flex flex-col items-center gap-2 rounded-2xl px-2 py-4 text-white font-bold shadow-md select-none
+                        <div class="tf-account-card-inner flex flex-col items-center gap-2 rounded-2xl px-2 py-4 text-white font-bold shadow-md select-none
                                     bg-gradient-to-br from-blue-500 to-blue-700
                                     ring-2 ring-transparent peer-checked:ring-white peer-checked:ring-offset-2 peer-checked:ring-offset-blue-600
-                                    peer-checked:scale-105 transition-transform">
+                                    peer-checked:scale-105 transition-all">
                             <span class="w-20 h-20 flex items-center justify-center">
                                 <img src="logos/Logo-BBL.png" alt="BBL" class="w-full h-full object-contain" onerror="this.parentElement.innerHTML='<span class=&quot;text-[10px] font-extrabold tracking-tight&quot; style=&quot;color:#1e4a9c;&quot;>BBL</span>'">
                             </span>
@@ -929,10 +943,10 @@ function renderPaymentForm(method){
 
                     <label class="cursor-pointer block">
                         <input type="radio" name="fin_tf_account" value="อื่นๆ" class="peer hidden" onchange="onFinTransferAccountChange()">
-                        <div class="flex flex-col items-center gap-2 rounded-2xl px-2 py-4 text-gray-900 font-bold shadow-md select-none
+                        <div class="tf-account-card-inner flex flex-col items-center gap-2 rounded-2xl px-2 py-4 text-gray-900 font-bold shadow-md select-none
                                     bg-gradient-to-br from-amber-300 to-amber-400
                                     ring-2 ring-transparent peer-checked:ring-white peer-checked:ring-offset-2 peer-checked:ring-offset-amber-400
-                                    peer-checked:scale-105 transition-transform">
+                                    peer-checked:scale-105 transition-all">
                             <span class="w-20 h-20 rounded-full bg-white flex items-center justify-center text-3xl">✏️</span>
                             <span class="text-[10px] sm:text-xs text-center leading-tight">อื่นๆ</span>
                         </div>
