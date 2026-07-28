@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=794, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=794, initial-scale=1, maximum-scale=5, user-scalable=yes">
 <title>เอกสาร</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -474,6 +474,36 @@ table.grid th{ background:#f0f2f5; }
     font-size:11px;
     line-height:1;
 }
+
+/* เพิ่มใหม่: ไฮไลท์สีส้มให้เฉพาะ "ช่องที่ถูกติ๊กเลือกอยู่จริง" เท่านั้น (หัวคอลัมน์ระยะเวลาที่เลือก
+   และช่องราคาซ้ายสุดของแถวที่เลือก) คอลัมน์อื่นในแถว/หัวตารางอื่นไม่ไฮไลท์ตาม
+   สีจะเติมเต็มพอดีในกรอบเซลล์เดิมของตาราง ไม่มีส่วนล้นออกนอกกรอบ */
+.axa3 table.premium th.axa-period-highlight{
+    background:#ffb648 !important;
+}
+.axa3 tr.axa-amt-row-highlight td.axa-chk-amt{
+    background:#ffb648 !important;
+}
+
+/* เพิ่มใหม่: ขยายช่องติ๊กเฉพาะคอลัมน์ "จำนวนเงินจำกัดความรับผิดสำหรับรถ 1 คัน (บาท)" ให้ใหญ่เต็มกรอบเซลล์
+   (สโคปเฉพาะ .axa-amt-box เพื่อไม่กระทบช่องติ๊กเลือกระยะเวลา 1 เดือน/3 เดือน/1 ปี ที่ใช้คลาส .axa-box ร่วมกันอยู่) */
+.axa3 table.premium td.axa-chk-amt .axa-amt-box{
+    width:20px;
+    height:20px;
+    top:0;
+    margin-right:8px;
+    border-width:1.5px;
+}
+.axa3 table.premium td.axa-chk-amt .axa-amt-box.on::after{
+    left:0;
+    top:0;
+    width:100%;
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:17px;
+}
 .axa3 .qr-corner-axa{
     position:absolute;
     right:28px;
@@ -820,6 +850,13 @@ function axaGroupSelect(box) {
         else b.classList.remove("on");
     });
 
+    /* เพิ่มใหม่: ไฮไลท์สีส้มให้ช่องที่ถูกเลือกอยู่ (ทั้งแถวตัวเลือกด้านบนและหัวตารางเบี้ยประกัน)
+       และเอาไฮไลท์ของช่องที่ไม่ได้เลือกออก ไม่ว่าจะติ๊กจากจุดไหนก็ตาม */
+    document.querySelectorAll(`.axa-box[data-group="${group}"]`).forEach(b => {
+        const highlightEl = b.closest("th") || b.closest("label");
+        if (highlightEl) highlightEl.classList.toggle("axa-period-highlight", b.classList.contains("on"));
+    });
+
     /* เพิ่มใหม่: ถ้าเป็นกลุ่มเลือก "ระยะเวลาประกันภัย" (1 เดือน / 3 เดือน / 1 ปี) ของ AXA
        ให้คำนวณ "วันสิ้นสุด" ใหม่จากวันที่เริ่มจริง (data.start) บวกจำนวนเดือนตามที่เลือกทันที
        แทนที่จะใช้วันที่สิ้นสุดที่กรอกในฟอร์มตรงๆ (ซึ่งอาจไม่ตรงกับช่วงเวลาที่เลือก) */
@@ -838,12 +875,18 @@ function axaGroupSelect(box) {
 
 function axaSelectAmtBox(box, amount) {
     const willTurnOn = !box.classList.contains("on");
-    document.querySelectorAll(".axa-amt-box").forEach(b => b.classList.remove("on"));
+    document.querySelectorAll(".axa-amt-box").forEach(b => {
+        b.classList.remove("on");
+        const tr = b.closest("tr");
+        if (tr) tr.classList.remove("axa-amt-row-highlight");
+    });
     const el1 = document.getElementById("axaLimit1");
     const el2 = document.getElementById("axaLimit2");
     const el3 = document.getElementById("axaLimit3");
     if (willTurnOn) {
         box.classList.add("on");
+        const tr = box.closest("tr");
+        if (tr) tr.classList.add("axa-amt-row-highlight");
         const amtStr = fmt(amount) + " บาท";
         if (el1) el1.textContent = amtStr;
         if (el2) el2.textContent = amtStr;
@@ -1854,36 +1897,36 @@ function renderAxaMain() {
                 <thead>
                     <tr>
                         <th rowspan="2" style="width:140px;">จำนวนเงินจำกัดความรับผิด<br>สำหรับรถ 1 คัน (บาท)</th>
-                        <th colspan="2"><label>${axaGroupBox(isMonth1, "axaPeriod", "m1")} 1 เดือน (25MR07)</label></th>
-                        <th colspan="2"><label>${axaGroupBox(isMonth3, "axaPeriod", "m3")} 3 เดือน (25MR08)</label></th>
-                        <th colspan="2"><label>${axaGroupBox(isYear1, "axaPeriod", "y1")} 1 ปี (26MR04)</label></th>
+                        <th colspan="2" class="${isMonth1 ? "axa-period-highlight" : ""}"><label>${axaGroupBox(isMonth1, "axaPeriod", "m1")} 1 เดือน (25MR07)</label></th>
+                        <th colspan="2" class="${isMonth3 ? "axa-period-highlight" : ""}"><label>${axaGroupBox(isMonth3, "axaPeriod", "m3")} 3 เดือน (25MR08)</label></th>
+                        <th colspan="2" class="${isYear1 ? "axa-period-highlight" : ""}"><label>${axaGroupBox(isYear1, "axaPeriod", "y1")} 1 ปี (26MR04)</label></th>
                     </tr>
                     <tr>
                         <th>สุทธิ</th><th>รวม</th><th>สุทธิ</th><th>รวม</th><th>สุทธิ</th><th>รวม</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
+                    <tr class="${isAmt(100000) ? "axa-amt-row-highlight" : ""}">
                         <td class="axa-chk-amt">${axaAmtBox(isAmt(100000), 100000)}<span>100,000.00</span></td>
                         <td>1,395.00</td><td>1,499.07</td><td>2,791.00</td><td>2,999.21</td><td>9,000.00</td><td>9,668.52</td>
                     </tr>
-                    <tr>
+                    <tr class="${isAmt(300000) ? "axa-amt-row-highlight" : ""}">
                         <td class="axa-chk-amt">${axaAmtBox(isAmt(300000), 300000)}<span>300,000.00</span></td>
                         <td>2,187.00</td><td>2,349.72</td><td>4,374.00</td><td>4,699.44</td><td>12,000.00</td><td>12,891.36</td>
                     </tr>
-                    <tr>
+                    <tr class="${isAmt(500000) ? "axa-amt-row-highlight" : ""}">
                         <td class="axa-chk-amt">${axaAmtBox(isAmt(500000), 500000)}<span>500,000.00</span></td>
                         <td>2,512.00</td><td>2,699.61</td><td>5,025.00</td><td>5,399.22</td><td>14,000.00</td><td>15,039.92</td>
                     </tr>
-                    <tr>
+                    <tr class="${isAmt(1000000) ? "axa-amt-row-highlight" : ""}">
                         <td class="axa-chk-amt">${axaAmtBox(isAmt(1000000), 1000000)}<span>1,000,000.00</span></td>
                         <td>3,723.00</td><td>3,999.66</td><td>7,446.00</td><td>7,999.32</td><td>17,000.00</td><td>18,262.76</td>
                     </tr>
-                    <tr>
+                    <tr class="${isAmt(1500000) ? "axa-amt-row-highlight" : ""}">
                         <td class="axa-chk-amt">${axaAmtBox(isAmt(1500000), 1500000)}<span>1,500,000.00</span></td>
                         <td>4,886.00</td><td>5,249.42</td><td>9,308.00</td><td>10,000.22</td><td>20,000.00</td><td>21,485.60</td>
                     </tr>
-                    <tr>
+                    <tr class="${isAmt(2000000) ? "axa-amt-row-highlight" : ""}">
                         <td class="axa-chk-amt">${axaAmtBox(isAmt(2000000), 2000000)}<span>2,000,000.00</span></td>
                         <td>5,957.00</td><td>6,399.67</td><td>13,031.00</td><td>13,999.88</td><td>22,000.00</td><td>23,634.16</td>
                     </tr>

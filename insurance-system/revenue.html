@@ -217,6 +217,9 @@
             "น้ำ": "photos/po8.png",
             "สุนิษา ยางไธสงค์": "photos/po7.png",
             "ศิริธร สอนสอาด": "photos/po9.png",
+            "อรุณลักษณ์ มหาจตุพัฒน์": "photos/po10.png",
+            "ณุพล วิยาขาว": "photos/po11.png",
+            "น้ำทิพย์ ใบลี": "photos/po8.png",
             
 
         };
@@ -230,7 +233,7 @@
         let revenueChartInstance = null; // เพิ่มใหม่: เก็บ instance ของ Chart.js เพื่อทำลายทิ้งก่อนวาดใหม่ทุกครั้ง
 
         /* =========================
-           แปลงวันที่แจ้งงาน (createDate) เช่น "16/07/2569"
+           แปลงวันที่แจ้งงาน (createDate) เช่น "16/07/2569" — เหลือไว้เผื่อใช้งานจุดอื่นในอนาคต
         ========================= */
         function parseCreateDate(createDate){
             if(!createDate) return { day:null, month:null, year:null };
@@ -245,6 +248,42 @@
             if(isNaN(day) || day < 1 || day > 31) return { day:null, month:String(month).padStart(2,"0"), year:year };
 
             return { day:String(day).padStart(2,"0"), month:String(month).padStart(2,"0"), year:year };
+        }
+
+        /* เพิ่มใหม่: แปลงวันที่ "เริ่ม" กรมธรรม์ (item.start) มาใช้กรองแทนวันที่แจ้งงาน (createDate)
+           รองรับทั้งรูปแบบ DD/MM/YYYY (จากช่องกรอกวันที่ในฟอร์ม ปี ค.ศ.) และ YYYY-MM-DD (ข้อมูลเก่า)
+           แปลงปีเป็น พ.ศ. เสมอก่อนเทียบกับตัวกรอง "ปี" (ซึ่งใช้ พ.ศ.) — ถ้าปีที่บันทึกไว้น้อยกว่า 2400
+           ถือว่าเป็น ค.ศ. แล้วบวก 543 ให้อัตโนมัติ ถ้ามากกว่าหรือเท่ากับ 2400 ถือว่าเป็น พ.ศ. อยู่แล้ว ไม่บวกซ้ำ */
+        function parseStartDate(startDate){
+            if(!startDate) return { day:null, month:null, year:null };
+            const s = String(startDate).trim();
+
+            let day, month, year;
+
+            let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{3,4})$/);
+            if(m){
+                day = parseInt(m[1],10);
+                month = parseInt(m[2],10);
+                year = parseInt(m[3],10);
+            } else {
+                m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+                if(m){
+                    year = parseInt(m[1],10);
+                    month = parseInt(m[2],10);
+                    day = parseInt(m[3],10);
+                } else {
+                    return { day:null, month:null, year:null };
+                }
+            }
+
+            if(isNaN(month) || month < 1 || month > 12) return { day:null, month:null, year:null };
+            if(isNaN(year)) return { day:null, month:null, year:null };
+
+            if(year < 2400) year += 543;
+
+            if(isNaN(day) || day < 1 || day > 31) return { day:null, month:String(month).padStart(2,"0"), year:String(year) };
+
+            return { day:String(day).padStart(2,"0"), month:String(month).padStart(2,"0"), year:String(year) };
         }
 
         function fmt(n){ return "฿" + Number(n||0).toLocaleString(); }
@@ -283,7 +322,7 @@
 
             const yearsFromData = new Set();
             allData.forEach(item=>{
-                const p = parseCreateDate(item.createDate);
+                const p = parseStartDate(item.start);
                 if(p.year) yearsFromData.add(p.year);
             });
 
@@ -340,7 +379,7 @@
             const company = document.getElementById("filterCompany").value;
 
             return allData.filter(item=>{
-                const p = parseCreateDate(item.createDate);
+                const p = parseStartDate(item.start);
                 const dayOK = day === "all" || p.day === day;
                 const monthOK = month === "all" || p.month === month;
                 const yearOK = year === "all" || p.year === year;

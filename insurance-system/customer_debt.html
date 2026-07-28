@@ -35,519 +35,399 @@
     --coral:#FF8A65;
     --mint:#2FBF9B;
     --sky:#3E7BFA;
+
+    --red:#E4432E;
+    --red-soft:#FFEBEA;
+    --green:#1A9C4B;
+    --green-soft:#EAFBF1;
+    --orange:#F08A1E;
+    --orange-soft:#FFF3E2;
 }
 
 *{
     box-sizing:border-box;
 }
 
-body{
+html, body{
+    max-width:100%;
+    overflow-x:hidden;
+}
 
+body{
     font-family:"Kanit",sans-serif;
     background:var(--bg);
-    padding:30px 15px;
-
+    padding:18px 12px 40px;
 }
 
+.debt-wrap{
+    max-width:1300px;
+    width:100%;
+    margin:0 auto;
+    overflow-x:hidden;
+}
 
 .debt-card{
-
-    max-width:1500px;
-    margin:0 auto;
-    min-height:calc(100vh - 60px);
-
     background:var(--surface);
     border:1px solid var(--border);
-    border-radius:26px;
+    border-radius:24px;
     box-shadow:0 14px 34px rgba(21,42,84,.10);
-
-    padding:32px;
-
-    overflow-x:auto;
-    -webkit-overflow-scrolling:touch;
-
+    padding:20px 18px 26px;
+    max-width:100%;
+    overflow-x:hidden;
 }
 
-
-
 h1{
-
     text-align:center;
     color:var(--navy);
-    font-size:clamp(18px, 4vw, 24px);
+    font-size:clamp(19px, 4.5vw, 25px);
     font-weight:700;
-    margin-bottom:6px;
-
+    margin-bottom:14px;
 }
 
 .debt-subtitle{
     text-align:center;
     color:var(--text-soft);
-    font-size:14px;
-    margin-bottom:10px;
+    font-size:12.5px;
+    line-height:1.6;
+    margin:2px 0 4px;
 }
-
-
 
 /* =========================
-   เพิ่มใหม่: ทำให้ตารางดูเหมือนตาราง Excel
-   - เส้นกรอบครบทุกเซลล์ (ไม่ใช่แค่ border-bottom เหมือนเดิม)
-   - หัวตารางลอยติดด้านบนเวลาเลื่อน (sticky header) เหมือนแถวหัวคอลัมน์ที่ freeze ไว้ใน Excel
+   แถวบน: ปุ่มกลับ (ซ้าย) + ยอดลูกหนี้รวม (ขวา)
 ========================= */
-.table-scroll{
-
-    width:100%;
-    max-height:75vh;
-    overflow:auto;
-    -webkit-overflow-scrolling:touch;
-    touch-action:pan-x pan-y pinch-zoom;
-    margin-top:25px;
-    border-radius:12px;
-    border:1px solid var(--border);
-
+.debt-top-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-bottom:14px;
 }
 
-table{
-
-    width:100%;
-    min-width:1080px;
-    border-collapse:collapse;
-
-    font-size:13px;
-
-}
-
-
-
-th{
-
-    background:var(--navy);
-    color:white;
-    font-weight:600;
-
-    padding:10px 6px;
-
-    white-space:nowrap;
-
-    /* เพิ่มใหม่: หัวตารางลอยตามการเลื่อน (เหมือน freeze แถวบนของ Excel) */
-    position:sticky;
-    top:0;
-    z-index:3;
-
-    border:1px solid #2a4276;
-
-}
-
-
-
-td{
-
-    padding:6px 6px;
-
-    border:1px solid var(--border);
-
-    text-align:center;
-
-    white-space:nowrap;
-
-    height:44px;
-
-}
-
-/* จอแคบ: ย่อฟอนต์/padding ลงอีกชั้น เพื่อให้เห็นข้อมูลได้มากขึ้นโดยไม่ต้องเลื่อนมากเกินไป */
-@media(max-width:768px){
-
-    table{
-        font-size:11.5px;
-        min-width:920px;
-    }
-
-    th{
-        padding:8px 5px;
-    }
-
-    td{
-        padding:5px 5px;
-        height:40px;
-    }
-
-    .debt-input{
-        min-width:56px;
-        font-size:11px;
-        padding:5px 6px;
-    }
-}
-
-tbody tr.overdue:hover,
-tbody tr.not-overdue:hover,
-tbody tr.paid-complete:hover{
-    filter:brightness(.97);
-}
-
-tbody tr:not(.overdue):not(.not-overdue):not(.paid-complete):hover{
-    background:var(--blue-light);
-}
-
-/* แถบสีทั้งแถวตามสถานะ (กลับไปใช้พื้นหลังสีทึบแบบเดิม) */
-tr.overdue td{
-    background:#ff3737;
-    color:#ffffff;
-    font-weight:600;
-}
-
-tr.not-overdue td{
-    background:#66ee61d5;
-    color:#025c0e;
-    font-weight:600;
-}
-
-tr.paid-complete td{
+.back-btn-debt{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
     background:var(--blue-light);
     color:var(--blue-dark);
+    border:none;
+    padding:11px 20px;
+    border-radius:999px;
+    cursor:pointer;
+    font-family:"Kanit",sans-serif;
     font-weight:600;
+    font-size:14px;
+    transition:.2s;
+    flex:0 0 auto;
+}
+.back-btn-debt:hover{
+    background:#DCE9FF;
 }
 
-/* =========================
-   แก้ไข: แถวที่ "จ่ายครบ 4 งวดแล้ว แต่ยังมียอดค้างอยู่" ให้ขึ้นเป็นสีส้มแทน (ไม่ต้องมีกรอบ)
-========================= */
-tr.debt-carryover td{
-    background:#FF9800 !important;
-    color:#3a2200 !important;
+.debt-total{
+    font-size:15px;
     font-weight:700;
+    color:var(--navy);
+    background:var(--blue-light);
+    padding:11px 18px;
+    border-radius:999px;
+    box-shadow:0 6px 16px rgba(21,42,84,.08);
+    white-space:nowrap;
+}
+
+@media(max-width:480px){
+    .debt-top-row{
+        justify-content:center;
+    }
+    .back-btn-debt, .debt-total{
+        flex:1 1 100%;
+        text-align:center;
+        justify-content:center;
+    }
+    .debt-total{ order:2; }
 }
 
 /* =========================
-   เพิ่มใหม่: คอลัมน์ "งวดที่..." ที่เกินจากงวดที่ 4 (กรณีลูกค้าชำระเกิน 4 งวดแล้วยังไม่หมด)
-   ให้ขอบด้านขวาเป็นสีแดงเด่นชัด เพื่อบอกว่านี่คือคอลัมน์งวดที่ต่อขยายเพิ่มมาจากงวดปกติ (1-4)
+   แถบตัวกรอง
 ========================= */
-th.extra-installment{
-    background:#7a1010;
-    color:#ffe3e3;
-    border-right:3px solid #ff3737 !important;
+.debt-filter-row{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:10px;
+
+    margin-bottom:16px;
+
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:14px;
 }
 
-td.extra-installment-cell{
-    border-right:3px solid #ff3737 !important;
+.debt-filter-row span{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    min-width:0;
 }
 
-/* =========================
-   เพิ่มใหม่: ช่องกรอกข้อมูลในตาราง (โหมดแก้ไข/บันทึก/ลบ)
-========================= */
-.debt-input{
+.debt-filter-row label{
+    font-size:11px;
+    font-weight:600;
+    color:var(--navy);
+    white-space:nowrap;
+}
+
+.debt-filter-row select{
     width:100%;
-    min-width:70px;
-    padding:6px 8px;
+    min-width:0;
+    max-width:100%;
+    box-sizing:border-box;
+    padding:9px 8px;
+    border-radius:10px;
     border:1.5px solid var(--border);
-    border-radius:8px;
     background:var(--surface);
     font-family:"Kanit",sans-serif;
     font-size:12.5px;
-    text-align:center;
     color:var(--navy);
+    min-height:38px;
 }
 
-.debt-input:disabled{
-    background:transparent;
-    border-color:transparent;
-    color:inherit;
-    font-weight:600;
-    cursor:default;
-}
-
-.debt-input:not(:disabled){
-    background:#fffef0;
-    border-color:#ffb648;
-    color:#152A54;
-}
-
-.debt-input:not(:disabled):focus{
+.debt-filter-row select:focus{
     outline:none;
     border-color:var(--blue);
-    box-shadow:0 0 0 3px var(--blue-light);
 }
 
-/* =========================
-   เพิ่มใหม่: คอลัมน์ "จัดการ" (แก้ไข / บันทึก / ลบ) อยู่ท้ายสุดของตาราง
-   แก้ไข: กำหนดความกว้างตายตัวให้พอดีกับปุ่มทั้ง 4 ปุ่มเสมอ (เดิมไม่ได้กำหนดความกว้าง
-   ทำให้บางจอเห็นปุ่มไม่ครบ/ปุ่มถูกบีบจนซ้อนกัน) และเพิ่มเงาด้านซ้ายให้ดูเป็นคอลัมน์ที่ "ตรึงอยู่"
-   ชัดเจนขึ้น (เหมือน freeze pane ของ Excel)
-========================= */
-th.debt-action-th,
-td.debt-action-td{
-    position:sticky;
-    right:0;
-    z-index:2;
-    background:var(--surface);
-
-    width:152px;
-    min-width:152px;
-    max-width:152px;
-
-    box-shadow:-3px 0 6px rgba(21,42,84,.10);
+.debt-filter-hint{
+    grid-column:1 / -1;
+    text-align:center;
+    font-size:11px;
+    color:var(--text-soft);
+    margin-top:2px;
 }
 
-th.debt-action-th{
-    z-index:5;
-    background:var(--navy);
-}
-
-/* แก้ไข: ทำให้คอลัมน์ "จัดการ" ที่ตรึงไว้ ใช้สีพื้นหลังตรงกับสถานะของแถวนั้นเสมอ
-   (เดิมคอลัมน์นี้ตายตัวเป็นสีขาว/เทาอ่อนแม้แถวนั้นจะเป็นแถวสีแดง/เขียว/ส้ม ทำให้ดูเหมือน
-   ข้อมูลแถวนั้นๆ "ขาดหาย" ไปช่วงคอลัมน์สุดท้าย) ใช้ !important เพื่อชนะกฎพื้นฐานด้านบนแน่นอน */
-tr.overdue td.debt-action-td{ background:#ff3737 !important; }
-tr.not-overdue td.debt-action-td{ background:#66ee61d5 !important; }
-tr.paid-complete td.debt-action-td{ background:var(--blue-light) !important; }
-tr.debt-carryover td.debt-action-td{ background:#FF9800 !important; }
-
-/* =========================
-   เพิ่มใหม่: ตรึงคอลัมน์ "ลำดับ / เกินกำหนด(วัน) / เงินที่ค้าง / ชื่อ / ทะเบียน" ไว้ด้านซ้ายเสมอ
-   (freeze pane เหมือน Excel) เพื่อให้เลื่อนดูงวด/ยอดเงินทางขวาได้ โดยยังเห็นข้อมูลสำคัญของลูกค้า
-   รายนี้อยู่ตลอด ไม่ต้องเลื่อนกลับไปดู
-   ลำดับความกว้าง (สะสม left ต่อกันตามลำดับ):
-   ลำดับ 40px -> เกินกำหนด(วัน) 78px -> เงินที่ค้าง 92px -> ชื่อ 130px -> ทะเบียน 100px
-========================= */
-th.debt-frozen-col,
-td.debt-frozen-col{
-    position:sticky;
-    z-index:2;
-    background:var(--surface);
-}
-
-th.debt-frozen-col{
-    z-index:5;
-    background:var(--navy);
-}
-
-th.debt-col-index, td.debt-col-index{
-    left:0;
-    width:40px;
-    min-width:40px;
-    max-width:40px;
-}
-
-th.debt-col-overdue, td.debt-col-overdue{
-    left:40px;
-    width:78px;
-    min-width:78px;
-    max-width:78px;
-}
-
-th.debt-col-debt, td.debt-col-debt{
-    left:118px;
-    width:92px;
-    min-width:92px;
-    max-width:92px;
-}
-
-th.debt-col-name, td.debt-col-name{
-    left:210px;
-    width:130px;
-    min-width:130px;
-    max-width:130px;
-    white-space:normal;
-}
-
-th.debt-col-plate, td.debt-col-plate{
-    left:340px;
-    width:100px;
-    min-width:100px;
-    max-width:100px;
-
-    /* เส้นแบ่งชัดเจนระหว่างคอลัมน์ที่ตรึงไว้กับคอลัมน์ที่เลื่อนได้ */
-    box-shadow:3px 0 6px rgba(21,42,84,.10);
-}
-
-/* คงสีพื้นหลังของคอลัมน์ที่ตรึงไว้ให้ตรงกับสถานะของแถวเสมอ เหมือนคอลัมน์ "จัดการ" */
-tr.overdue td.debt-frozen-col{ background:#ff3737 !important; }
-tr.not-overdue td.debt-frozen-col{ background:#66ee61d5 !important; }
-tr.paid-complete td.debt-frozen-col{ background:var(--blue-light) !important; }
-tr.debt-carryover td.debt-frozen-col{ background:#FF9800 !important; }
-
-@media(max-width:768px){
-
-    th.debt-action-th,
-    td.debt-action-td{
-        width:126px;
-        min-width:126px;
-        max-width:126px;
+@media(max-width:600px){
+    .debt-filter-row{
+        grid-template-columns:repeat(2, 1fr);
+        gap:8px;
+        padding:12px;
     }
-
-    th.debt-col-index, td.debt-col-index{ width:32px; min-width:32px; max-width:32px; }
-    th.debt-col-overdue, td.debt-col-overdue{ left:32px; width:60px; min-width:60px; max-width:60px; }
-    th.debt-col-debt, td.debt-col-debt{ left:92px; width:74px; min-width:74px; max-width:74px; }
-    th.debt-col-name, td.debt-col-name{ left:166px; width:100px; min-width:100px; max-width:100px; }
-    th.debt-col-plate, td.debt-col-plate{ left:266px; width:80px; min-width:80px; max-width:80px; }
 }
 
-.debt-actions{
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    gap:4px;
+@media(max-width:380px){
+    .debt-filter-row{
+        grid-template-columns:1fr;
+    }
+}
+
+/* =========================
+   ตารางลูกหนี้ (เลื่อนได้ทั้งแนวตั้ง-แนวนอน ยกเว้นคอลัมน์ "จัดการ" ที่ fix ไว้ขวา)
+========================= */
+.debt-empty{
+    text-align:center;
+    color:var(--text-soft);
+    padding:40px 10px;
+    font-size:14px;
+}
+
+.debt-table-outer{
+    width:100%;
+    max-width:100%;
+    max-height:74vh;
+    overflow:auto;
+    border:1.5px solid var(--border);
+    border-radius:18px;
+    background:var(--surface);
+    -webkit-overflow-scrolling:touch;
+}
+
+.debt-table{
+    border-collapse:separate;
+    border-spacing:0;
+    width:max-content;
+    font-size:12.5px;
+}
+
+.debt-table th,
+.debt-table td{
+    padding:8px 10px;
+    white-space:nowrap;
+    text-align:center;
+    border-bottom:1px solid var(--border);
+    vertical-align:middle;
+}
+
+.debt-table thead th{
+    position:sticky;
+    top:0;
+    background:var(--navy);
+    color:#fff;
+    font-size:11.5px;
+    font-weight:700;
+    z-index:3;
     white-space:nowrap;
 }
 
-.debt-actions button{
-    width:28px;
-    height:28px;
-    border:none;
-    border-radius:6px;
-    font-size:13px;
-    cursor:pointer;
-    flex:0 0 auto;
-    transition:.15s;
+.debt-table tbody tr.row-overdue{ background:var(--red-soft); }
+.debt-table tbody tr.row-normal{ background:var(--green-soft); }
+.debt-table tbody tr.row-paid{ background:var(--blue-light); }
+.debt-table tbody tr.row-carryover{ background:var(--orange-soft); }
+
+.debt-table td.col-rank{
+    font-weight:700;
+    color:var(--navy);
 }
 
-.debt-actions button:hover{
-    transform:scale(1.1);
+.debt-table td.col-name{
+    text-align:left;
 }
 
-@media(max-width:768px){
-    .debt-actions{
-        gap:3px;
-    }
-    .debt-actions button{
-        width:24px;
-        height:24px;
-        font-size:11px;
-    }
+/* เพิ่มใหม่: ลดความกว้าง/ระยะห่างเฉพาะคอลัมน์ "ทะเบียน" ให้แคบลง ชิดกับคอลัมน์ข้างๆ มากขึ้น
+   (ไม่กระทบคอลัมน์อื่น) */
+.debt-table th.col-plate,
+.debt-table td.col-plate{
+    padding-left:4px;
+    padding-right:4px;
 }
 
-.debt-edit-btn{
-    background:#ffc000;
-    color:#002d72;
+.col-plate .table-input{
+    min-width:44px;
 }
 
-.debt-save-btn{
-    background:#198754;
+.debt-table td.col-overdue,
+.debt-table td.col-debt{
+    color:var(--red);
+    font-weight:700;
+}
+
+.carryover-tag{
+    display:inline-block;
+    margin-left:6px;
+    padding:2px 8px;
+    border-radius:999px;
+    background:var(--orange);
     color:#fff;
+    font-size:10px;
+    font-weight:700;
+    white-space:nowrap;
+    vertical-align:middle;
 }
 
-.debt-delete-btn{
-    background:#dc3545;
-    color:#fff;
-}
-
-/* เพิ่มใหม่: ปุ่ม "จ่ายงวด" กดจ่ายค่างวดถัดไปได้ทันทีจากตารางลูกหนี้ โดยไม่ต้องไปแก้ที่ฟอร์ม */
-.debt-pay-btn{
-    background:#2FBF9B;
-    color:#fff;
-}
-
-/* เพิ่มใหม่: โมดัลจ่ายงวด (เบา ไม่ต้องเปิดโหมดแก้ไขทั้งแถว) */
-.debt-pay-overlay{
-    position:fixed;
-    inset:0;
-    background:rgba(21,42,84,.45);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:16px;
-    z-index:99998;
-    opacity:0;
-    visibility:hidden;
-    transition:.2s;
-}
-
-.debt-pay-overlay.show{
-    opacity:1;
-    visibility:visible;
-}
-
-.debt-pay-box{
-    background:var(--surface);
-    border-radius:20px;
-    max-width:380px;
-    width:100%;
-    padding:24px;
-    box-shadow:0 20px 50px rgba(21,42,84,.3);
+.table-input{
+    border:1.5px solid transparent;
+    border-radius:8px;
+    background:transparent;
     font-family:"Kanit",sans-serif;
-    transform:translateY(-10px) scale(.97);
-    transition:.2s;
-}
-
-.debt-pay-overlay.show .debt-pay-box{
-    transform:translateY(0) scale(1);
-}
-
-.debt-pay-box h3{
     color:var(--navy);
-    font-size:17px;
-    margin-bottom:10px;
-}
-
-.debt-pay-remaining{
-    color:var(--text-soft);
-    font-size:14px;
-    margin-bottom:16px;
-}
-
-.debt-pay-remaining b{
-    color:#FF3737;
-}
-
-.debt-pay-box label{
-    display:block;
-    font-size:13px;
-    font-weight:600;
-    color:var(--navy);
-    margin-bottom:6px;
-}
-
-.debt-pay-amount-input{
+    padding:4px 5px;
+    font-size:12.5px;
+    text-align:center;
     width:100%;
-    padding:12px 14px;
-    border-radius:12px;
-    border:1.5px solid var(--border);
-    font-family:"Kanit",sans-serif;
-    font-size:16px;
-    color:var(--navy);
-    box-sizing:border-box;
+    min-width:60px;
 }
 
-.debt-pay-amount-input:focus{
+.col-name .table-input{
+    text-align:left;
+    font-weight:700;
+    min-width:92px;
+}
+
+.table-input:disabled{ color:var(--navy); }
+
+.table-input:not(:disabled){
+    background:#fffef0;
+    border-color:#ffb648;
+}
+
+.table-input:not(:disabled):focus{
     outline:none;
     border-color:var(--blue);
     box-shadow:0 0 0 3px var(--blue-light);
 }
 
-.debt-pay-actions{
+/* คอลัมน์ "จัดการ" fix ไว้ไม่เลื่อนตาม */
+.col-actions{
+    position:sticky;
+    right:0;
+    z-index:2;
+    background:inherit;
+    box-shadow:-6px 0 10px rgba(21,42,84,.10);
+}
+
+thead th.col-actions{
+    z-index:4;
+    background:var(--navy);
+    box-shadow:-6px 0 10px rgba(0,0,0,.18);
+}
+
+.table-actions{
     display:flex;
-    justify-content:flex-end;
-    gap:10px;
-    margin-top:20px;
+    gap:4px;
+    justify-content:center;
 }
 
-.debt-pay-actions button{
-    padding:10px 20px;
+.table-actions button{
     border:none;
-    border-radius:999px;
-    font-family:"Kanit",sans-serif;
-    font-weight:600;
-    font-size:14px;
+    border-radius:8px;
+    width:26px;
+    height:26px;
+    font-size:12px;
     cursor:pointer;
-    transition:.2s;
+    transition:.15s;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex:0 0 auto;
 }
 
-.debt-pay-cancel-btn{
-    background:var(--blue-light);
-    color:var(--blue-dark);
+.table-actions button:active{ transform:scale(.9); }
+
+.tbl-pay-btn{ background:var(--mint); color:#fff; }
+.tbl-edit-btn{ background:#ffc000; color:#5b3d00; }
+.tbl-save-btn{ background:#198754; color:#fff; }
+.tbl-delete-btn{ background:#dc3545; color:#fff; }
+
+.debt-table td.col-extra-inst{ border-left:2px solid var(--orange); }
+
+/* จอมือถือ: บีบให้แน่นขึ้นอีก เพื่อให้เห็นคอลัมน์ "ชื่อ" โดยไม่ต้องเลื่อนมาก */
+@media(max-width:600px){
+    .debt-table{
+        font-size:11.5px;
+    }
+    .debt-table th,
+    .debt-table td{
+        padding:6px 7px;
+    }
+    .debt-table thead th{
+        font-size:10.5px;
+    }
+    .table-input{
+        min-width:46px;
+        padding:3px 4px;
+        font-size:11.5px;
+    }
+    .col-name .table-input{
+        min-width:72px;
+    }
+    .debt-table th.col-plate,
+    .debt-table td.col-plate{
+        padding-left:3px;
+        padding-right:3px;
+    }
+    .col-plate .table-input{
+        min-width:38px;
+    }
+    .table-actions{
+        gap:3px;
+    }
+    .table-actions button{
+        width:22px;
+        height:22px;
+        font-size:10.5px;
+        border-radius:6px;
+    }
 }
 
-.debt-pay-cancel-btn:hover{
-    background:var(--blue-soft, #DCE9FF);
-}
-
-.debt-pay-confirm-btn{
-    background:#198754;
-    color:#fff;
-}
-
-.debt-pay-confirm-btn:hover{
-    background:#157347;
-}
-
-/* toast แจ้งเตือนแบบไม่บล็อกหน้าจอ */
+/* toast */
 .debt-toast{
     position:fixed;
     left:50%;
@@ -565,81 +445,14 @@ tr.debt-carryover td.debt-frozen-col{ background:#FF9800 !important; }
     z-index:99999;
     pointer-events:none;
     transition:opacity .25s ease, transform .25s ease;
-    white-space:nowrap;
+    text-align:center;
+    max-width:80vw;
 }
 
 .debt-toast.show{
     opacity:1;
     transform:translate(-50%, -50%) scale(1);
 }
-
-.debt-total{
-
-    margin-top:18px;
-    margin-bottom:6px;
-
-    font-size:18px;
-
-    font-weight:600;
-
-    color:var(--navy);
-
-    background:var(--blue-light);
-    display:inline-block;
-    padding:12px 22px;
-    border-radius:16px;
-
-}
-
-/* แถวบนสุดรวมปุ่มกลับ + ยอดลูกหนี้รวม ให้อยู่แถวเดียวกัน */
-.debt-top-row{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    flex-wrap:wrap;
-    gap:14px;
-    margin-top:18px;
-    margin-bottom:6px;
-}
-
-.debt-top-row .debt-total{
-    margin-top:0;
-    margin-bottom:0;
-}
-
-
-
-.back-btn-debt{
-
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-
-    background:#79797486;
-
-    color:#fff;
-
-    border:none;
-
-    padding:12px 26px;
-
-    border-radius:999px;
-
-    cursor:pointer;
-
-    font-family:"Kanit";
-    font-weight:600;
-
-    font-size:15px;
-
-    transition:.2s;
-
-}
-
-.back-btn-debt:hover{
-    background:#C62828;
-}
-
 
 </style>
 
@@ -651,6 +464,7 @@ tr.debt-carryover td.debt-frozen-col{ background:#FF9800 !important; }
 <body>
 
 
+<div class="debt-wrap">
 <div class="debt-card">
 
 
@@ -659,89 +473,55 @@ tr.debt-carryover td.debt-frozen-col{ background:#FF9800 !important; }
 </h1>
 
 <div class="debt-subtitle">
-    🍊 คอลัมน์สีส้ม = งวดเกิน 4 งวด (ลูกค้ายังชำระไม่หมด) &nbsp;•&nbsp; กด ✏️ เพื่อแก้ไข, 💾 เพื่อบันทึก, 🗑️ เพื่อลบ
+    🟥 เกินกำหนด 🟧 ไม่เกินกำหนดแต่ เกิน 4 งวด 🟩 ระหว่างชำระ 🟦 จ่ายครบ <br> 💵 จ่ายงวด ✏️แก้ไข 💾บันทึก 🗑️ลบ
+
 </div>
 
+
 <div class="debt-top-row">
-    <button class="back-btn-debt"
-    onclick="location.href='account_menu.html'">
-    ← กลับเมนูบัญชี
+    <button class="back-btn-debt" onclick="location.href='account_menu.html'">
+        ← กลับเมนูบัญชี
     </button>
 
     <div class="debt-total" id="debtTotal"></div>
 </div>
 
+<!-- แถบตัวกรอง วัน/เดือน/ปี/พนักงาน -->
+<div class="debt-filter-row">
 
+    <span>
+        <label for="debtFilterDay">📆 เลือกวัน</label>
+        <select id="debtFilterDay"></select>
+    </span>
 
-<div class="table-scroll">
-<table>
+    <span>
+        <label for="debtFilterMonth">📅 เลือกเดือน</label>
+        <select id="debtFilterMonth"></select>
+    </span>
 
+    <span>
+        <label for="debtFilterYear">🗓️ เลือกปี</label>
+        <select id="debtFilterYear"></select>
+    </span>
 
-<thead>
-
-<!-- แก้ไข: จัดเรียงคอลัมน์ใหม่และ "ตรึง" คอลัมน์สำคัญไว้ทั้ง 2 ฝั่ง (เหมือน freeze pane ของ Excel)
-     ฝั่งซ้าย (ตรึงตลอด ไม่เลื่อนหาย): ลำดับ -> เกินกำหนด(วัน) -> เงินที่ค้าง -> ชื่อ -> ทะเบียน
-     ฝั่งกลาง (เลื่อนดูได้): เบอร์โทร -> วันที่เริ่ม -> รวม(เบี้ย) -> งวดที่ 1..N
-     ฝั่งขวา (ตรึงตลอด): จัดการ
-     คอลัมน์ "งวดที่..." ถูกสร้างแบบไดนามิกด้วย JS (ดูฟังก์ชัน renderDebtHeader ด้านล่าง)
-     เพื่อรองรับกรณีลูกค้าชำระเกิน 4 งวดแล้วยังไม่หมด ระบบจะขยายจำนวนคอลัมน์งวดให้อัตโนมัติ
-     (คอลัมน์งวดที่เกิน 4 จะมีกรอบขวาสีแดงเด่นชัด) -->
-<tr id="debtHeadRow">
-
-<th class="debt-frozen-col debt-col-index">ลำดับ</th>
-
-<th class="debt-frozen-col debt-col-overdue">เกินกำหนด(วัน)</th>
-
-<th class="debt-frozen-col debt-col-debt">เงินที่ค้าง</th>
-
-<th class="debt-frozen-col debt-col-name">ชื่อ</th>
-
-<th class="debt-frozen-col debt-col-plate">ทะเบียน</th>
-
-<th>เบอร์โทร</th>
-
-<th>วันที่เริ่ม</th>
-
-<th id="debtHeadTotal">รวม(เบี้ย)</th>
-
-<th class="debt-action-th">จัดการ</th>
-
-</tr>
-
-</thead>
-
-
-
-<tbody id="debtTable">
-
-
-</tbody>
-
-
-
-</table>
-</div>
-
-
-
+    <span>
+        <label for="debtFilterEmployee">👤 เลือกพนักงาน</label>
+        <select id="debtFilterEmployee"></select>
+    </span>
 
 </div>
 
+<!-- ตารางลูกหนี้: เลื่อนได้ทั้งแนวตั้ง-แนวนอน ยกเว้นคอลัมน์ "จัดการ" ที่ fix ไว้ -->
+<div class="debt-table-outer">
+    <table class="debt-table">
+        <thead>
+            <tr id="debtTableHead"></tr>
+        </thead>
+        <tbody id="debtTableBody"></tbody>
+    </table>
+</div>
 
-<!-- เพิ่มใหม่: โมดัลจ่ายงวด กดจ่ายค่างวดถัดไปได้ทันทีจากตารางนี้ ไม่ต้องไปเปิดฟอร์มแก้ไข -->
-<div class="debt-pay-overlay" id="debtPayOverlay" onclick="if(event.target===this) window.debtClosePayModal()">
-    <div class="debt-pay-box">
-        <h3 id="debtPayTitle">💵 จ่ายงวด</h3>
-        <div class="debt-pay-remaining">ยอดค้างชำระปัจจุบัน: <b id="debtPayRemaining">0</b> บาท</div>
-
-        <label for="debtPayAmount">จำนวนเงินที่จ่ายงวดนี้</label>
-        <input type="number" id="debtPayAmount" class="debt-pay-amount-input" min="0" step="1">
-
-        <div class="debt-pay-actions">
-            <button type="button" class="debt-pay-cancel-btn" onclick="window.debtClosePayModal()">ยกเลิก</button>
-            <button type="button" class="debt-pay-confirm-btn" onclick="window.debtConfirmPayInstallment()">✅ บันทึกการจ่าย</button>
-        </div>
-    </div>
+</div>
 </div>
 
 
@@ -772,59 +552,144 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 
+/* =========================================================
+   ตัวกรอง วัน / เดือน / ปี / พนักงาน
+========================================================= */
+const THAI_MONTHS = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน",
+    "กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+
+let debtFiltersInitialized = false;
+
+function parseDebtDate(dateStr){
+
+    if(!dateStr) return { day:null, month:null, year:null };
+
+    const s = String(dateStr).trim();
+    let day, month, year;
+
+    let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{3,4})$/);
+    if(m){
+        day = parseInt(m[1],10);
+        month = parseInt(m[2],10);
+        year = parseInt(m[3],10);
+    } else {
+        m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+        if(m){
+            year = parseInt(m[1],10);
+            month = parseInt(m[2],10);
+            day = parseInt(m[3],10);
+        } else {
+            return { day:null, month:null, year:null };
+        }
+    }
+
+    if(isNaN(month) || month < 1 || month > 12) return { day:null, month:null, year:null };
+    if(isNaN(year)) return { day:null, month:null, year:null };
+
+    if(year < 2400) year += 543;
+
+    if(isNaN(day) || day < 1 || day > 31){
+        return { day:null, month:String(month).padStart(2,"0"), year:String(year) };
+    }
+
+    return { day:String(day).padStart(2,"0"), month:String(month).padStart(2,"0"), year:String(year) };
+}
+
+function populateDebtFilters(data){
+
+    const daySel = document.getElementById("debtFilterDay");
+    const monthSel = document.getElementById("debtFilterMonth");
+    const yearSel = document.getElementById("debtFilterYear");
+    const empSel = document.getElementById("debtFilterEmployee");
+
+    if(!daySel || !monthSel || !yearSel || !empSel) return;
+
+    const prevDay = daySel.value || "all";
+    const prevMonth = monthSel.value || "all";
+    const prevYear = yearSel.value || "all";
+    const prevEmployee = empSel.value || "all";
+
+    let dayOpts = `<option value="all">ทั้งหมด</option>`;
+    for(let d = 1; d <= 31; d++){
+        const key = String(d).padStart(2,"0");
+        dayOpts += `<option value="${key}">${d}</option>`;
+    }
+    daySel.innerHTML = dayOpts;
+
+    let monthOpts = `<option value="all">ทั้งหมด</option>`;
+    THAI_MONTHS.forEach((name,i)=>{
+        const key = String(i+1).padStart(2,"0");
+        monthOpts += `<option value="${key}">${name}</option>`;
+    });
+    monthSel.innerHTML = monthOpts;
+
+    const yearsSet = new Set();
+    data.forEach(item=>{
+        const parsed = parseDebtDate(item.start);
+        if(parsed.year) yearsSet.add(parsed.year);
+    });
+    const nowBEYear = String(new Date().getFullYear() + 543);
+    yearsSet.add(nowBEYear);
+    const years = [...yearsSet].sort();
+    yearSel.innerHTML = `<option value="all">ทั้งหมด</option>` +
+        years.map(y=>`<option value="${y}">${y}</option>`).join("");
+
+    const employeesSet = new Set();
+    data.forEach(item=>{
+        const name = item.employeeName || item.requestName;
+        if(name) employeesSet.add(name);
+    });
+    const employees = [...employeesSet].sort();
+    empSel.innerHTML = `<option value="all">ทั้งหมด</option>` +
+        employees.map(e=>`<option value="${e}">${e}</option>`).join("");
+
+    daySel.value = [...daySel.options].some(o=>o.value===prevDay) ? prevDay : "all";
+    monthSel.value = [...monthSel.options].some(o=>o.value===prevMonth) ? prevMonth : "all";
+    yearSel.value = years.includes(prevYear) ? prevYear : "all";
+    empSel.value = employees.includes(prevEmployee) ? prevEmployee : "all";
+
+    if(!debtFiltersInitialized){
+
+        debtFiltersInitialized = true;
+
+        const now = new Date();
+        const curDay = String(now.getDate()).padStart(2,"0");
+        const curMonth = String(now.getMonth()+1).padStart(2,"0");
+        const curYear = String(now.getFullYear() + 543);
+
+        if([...daySel.options].some(o=>o.value===curDay)) daySel.value = curDay;
+        if([...monthSel.options].some(o=>o.value===curMonth)) monthSel.value = curMonth;
+        if(years.includes(curYear)) yearSel.value = curYear;
+    }
+}
+
 function calculateOverdue(date){
 
     if(!date) return 0;
 
-    // รองรับวันที่แบบ dd/mm/yyyy (ปี ค.ศ. จริงเสมอ ไม่ใช่ พ.ศ.)
     let parts = date.split("/");
-
     let due;
 
     if(parts.length === 3){
-
-        due = new Date(
-            Number(parts[2]),
-            Number(parts[1])-1,
-            Number(parts[0])
-        );
-
-    }
-    else{
-
+        due = new Date(Number(parts[2]), Number(parts[1])-1, Number(parts[0]));
+    } else {
         due = new Date(date);
-
     }
 
     let today = new Date();
-
     today.setHours(0,0,0,0);
     due.setHours(0,0,0,0);
 
     let diff = today - due;
-
-    let days = Math.floor(
-        diff / (1000*60*60*24)
-    );
+    let days = Math.floor(diff / (1000*60*60*24));
 
     return days > 0 ? days : 0;
-
 }
 
-
-/* หาจำนวน "งวด" สูงสุดที่ควรแสดงเป็นคอลัมน์
-   - ค่าเริ่มต้นขั้นต่ำคือ 4 งวด (installment1-4) เหมือนเดิม
-   - ขั้นที่ 1: ถ้าข้อมูลรายการไหนมีฟิลด์ installment5, installment6, ... อยู่แล้วจริงใน Firestore
-     (เช่น เคยกรอกไว้จากที่อื่น) ระบบจะขยายจำนวนคอลัมน์งวดตามนั้นก่อน
-   - ขั้นที่ 2 (เพิ่มใหม่): ถ้ารายการไหน "กรอกงวดสุดท้ายที่มีอยู่ครบแล้ว" (มีค่าในช่องงวดสุดท้าย)
-     แต่ยัง "มียอดค้างชำระ" (รวมยังไม่ครบตามยอดรวม) ให้ขยายคอลัมน์งวดถัดไปเพิ่มให้อัตโนมัติ
-     (งวดที่ 5, 6, 7, ... ไปเรื่อยๆ) เพื่อให้กรอกงวดต่อไปได้ทันที
-     ถ้าไม่มีรายการไหนเข้าเงื่อนไขนี้เลย จะไม่ขึ้นคอลัมน์เพิ่มโดยไม่จำเป็น */
 function getMaxInstallmentCount(data){
 
     let max = 4;
 
-    // ขั้นที่ 1: ขยายตามฟิลด์ installmentN ที่มีอยู่จริงในข้อมูลก่อน
     data.forEach(item=>{
         Object.keys(item).forEach(key=>{
             const m = key.match(/^installment(\d+)$/);
@@ -835,8 +700,6 @@ function getMaxInstallmentCount(data){
         });
     });
 
-    // ขั้นที่ 2: ถ้ายังมีรายการที่กรอกงวดสุดท้ายเต็มแล้วแต่ยังค้างอยู่ ให้ขยายคอลัมน์ต่อไปอีกทีละ 1
-    // วนจนกว่าจะไม่มีรายการไหนต้องการคอลัมน์เพิ่มอีกแล้ว
     let needMore = true;
 
     while(needMore){
@@ -857,8 +720,6 @@ function getMaxInstallmentCount(data){
             const lastVal = item["installment" + max];
             const lastFilled = lastVal !== undefined && lastVal !== null && String(lastVal).trim() !== "";
 
-            // ยังค้างอยู่จริง (debtAmount > 0) และงวดสุดท้ายที่มีคอลัมน์อยู่ตอนนี้ถูกกรอกแล้ว
-            // แปลว่าต้องเปิดคอลัมน์งวดถัดไปให้กรอกต่อ
             if(debtAmount > 0 && lastFilled){
                 needMore = true;
             }
@@ -872,246 +733,202 @@ function getMaxInstallmentCount(data){
     return max;
 }
 
-
-/* สร้าง/อัปเดตหัวตารางคอลัมน์ "งวดที่ N" แบบไดนามิกตามจำนวนงวดสูงสุดที่พบ
-   แทรกต่อจากคอลัมน์ "รวม(เบี้ย)" (id="debtHeadTotal") เสมอ
-   เพิ่มใหม่: คอลัมน์งวดที่เกินจากงวดปกติ 4 งวด จะได้ class "extra-installment"
-   เพื่อให้มีกรอบขวาสีแดงเด่นชัด บอกว่าเป็นงวดที่ต่อขยายเพิ่ม */
-function renderDebtHeader(maxInstallments){
-
-    const headRow = document.getElementById("debtHeadRow");
-
-    // ลบคอลัมน์งวดเก่าที่เคยสร้างไว้ก่อนหน้า (กันสร้างซ้ำเวลาข้อมูลอัปเดต)
-    headRow.querySelectorAll(".debt-installment-th").forEach(th => th.remove());
-
-    const totalTh = document.getElementById("debtHeadTotal");
-
-    let html = "";
-    for(let i = 1; i <= maxInstallments; i++){
-        const extraClass = i > 4 ? " extra-installment" : "";
-        html += `<th class="debt-installment-th${extraClass}">งวดที่ ${i}</th>`;
-    }
-
-    totalTh.insertAdjacentHTML("afterend", html);
+function fmtMoney(n){
+    return Number(n||0).toLocaleString();
 }
 
+function safeVal(v){
+    return (v === undefined || v === null) ? "" : v;
+}
 
+/* =========================================================
+   RENDER: การ์ดลูกหนี้ (แนวตั้ง อ่านง่ายในมือถือ ไม่มีเลื่อนซ้าย-ขวา)
+========================================================= */
 function renderDebt(data, maxInstallments){
 
+    let debt = data;
 
-/*
- เอาเฉพาะรายการที่มียอดค้าง
-*/
+    debt.forEach(item=>{
 
-let debt = data;
+        let total = Number(item.total || 0);
 
+        let paid = 0;
+        for(let i = 1; i <= maxInstallments; i++){
+            paid += Number(item["installment" + i] || 0);
+        }
 
+        item.debtAmount = total - paid;
+        item.overdue = calculateOverdue(item.end);
+    });
 
-debt.forEach(item=>{
+    const selDay = document.getElementById("debtFilterDay")?.value || "all";
+    const selMonth = document.getElementById("debtFilterMonth")?.value || "all";
+    const selYear = document.getElementById("debtFilterYear")?.value || "all";
+    const selEmployee = document.getElementById("debtFilterEmployee")?.value || "all";
 
+    debt = debt.filter(item=>{
 
-    let total = Number(item.total || 0);
+        const parsed = parseDebtDate(item.start);
 
+        const dayOK = selDay === "all" || parsed.day === selDay;
+        const monthOK = selMonth === "all" || parsed.month === selMonth;
+        const yearOK = selYear === "all" || parsed.year === selYear;
 
-    let paid = 0;
-    for(let i = 1; i <= maxInstallments; i++){
-        paid += Number(item["installment" + i] || 0);
+        const dateOK = (dayOK && monthOK && yearOK) || item.overdue > 0;
+
+        const empName = item.employeeName || item.requestName || "";
+        const employeeOK = selEmployee === "all" || empName === selEmployee;
+
+        return dateOK && employeeOK;
+    });
+
+    debt.sort((a,b)=> b.overdue - a.overdue);
+
+    /* ---- หัวตาราง (สร้างใหม่ทุกครั้งเพราะจำนวนคอลัมน์งวดปรับตาม maxInstallments) ---- */
+    const headEl = document.getElementById("debtTableHead");
+    if(headEl){
+        let instHeadHtml = "";
+        for(let i = 1; i <= maxInstallments; i++){
+            instHeadHtml += `<th>งวดที่ ${i}</th>`;
+        }
+        headEl.innerHTML = `
+            <th class="col-rank">ลำดับ</th>
+            <th>เกินกำหนด(วัน)</th>
+            <th>เงินที่ค้าง</th>
+            <th>ชื่อ</th>
+            <th class="col-plate">ทะเบียน</th>
+            <th>เบอร์โทร</th>
+            <th>วันที่เริ่ม</th>
+            <th>รวม(เบี้ยประกัน)</th>
+            ${instHeadHtml}
+            <th class="col-actions">จัดการ</th>
+        `;
     }
 
+    const body = document.getElementById("debtTableBody");
 
+    if(debt.length === 0){
+        const colCount = 9 + maxInstallments;
+        body.innerHTML = `<tr><td colspan="${colCount}"><div class="debt-empty">ไม่มีลูกค้าตรงกับเงื่อนไขที่เลือก</div></td></tr>`;
+    } else {
 
-    item.debtAmount = total - paid;
+        body.innerHTML = debt.map((item, index)=>{
 
+            let rowClass = "row-paid";
 
+            if(item.debtAmount > 0 && item.overdue > 0){
+                rowClass = "row-overdue";
+            } else if(item.debtAmount > 0){
+                rowClass = "row-normal";
+            }
 
-    item.overdue =
-    calculateOverdue(item.end);
+            let paidThrough4 = true;
+            for(let i = 1; i <= 4; i++){
+                const v = item["installment" + i];
+                if(v === undefined || v === null || String(v).trim() === ""){
+                    paidThrough4 = false;
+                    break;
+                }
+            }
+            const isCarryover = paidThrough4 && item.debtAmount > 0;
+            if(isCarryover){
+                rowClass = "row-carryover";
+            }
 
-});
+            let installmentCellsHtml = "";
+            for(let i = 1; i <= maxInstallments; i++){
+                const extraClass = i > 4 ? " col-extra-inst" : "";
+                installmentCellsHtml += `
+                    <td class="${extraClass.trim()}">
+                        <input type="number"
+                            class="debt-input table-input"
+                            data-row="${item.id}"
+                            data-field="installment${i}"
+                            value="${safeVal(item["installment" + i])}"
+                            disabled>
+                    </td>`;
+            }
 
+            return `
+            <tr class="${rowClass}" data-row="${item.id}">
 
-/*
- เรียงเกินกำหนดมากสุดขึ้นก่อน
-*/
+                <td class="col-rank">${index+1}</td>
 
+                <td class="col-overdue">${item.overdue}</td>
 
-debt.sort((a,b)=>{
+                <td class="col-debt">${fmtMoney(item.debtAmount)}</td>
 
+                <td class="col-name">
+                    <input type="text"
+                        class="debt-input table-input"
+                        data-row="${item.id}"
+                        data-field="customer"
+                        value="${safeVal(item.customer)}"
+                        disabled>
+                    ${isCarryover ? `<span class="carryover-tag">เกิน 4 งวด</span>` : ""}
+                </td>
 
-return b.overdue-a.overdue;
+                <td class="col-plate">
+                    <input type="text"
+                        class="debt-input table-input"
+                        data-row="${item.id}"
+                        data-field="plate"
+                        value="${safeVal(item.plate)}"
+                        disabled>
+                </td>
 
+                <td>
+                    <input type="text"
+                        class="debt-input table-input"
+                        data-row="${item.id}"
+                        data-field="phone"
+                        value="${safeVal(item.phone)}"
+                        disabled>
+                </td>
 
-});
+                <td>
+                    <input type="text"
+                        class="debt-input table-input"
+                        data-row="${item.id}"
+                        data-field="start"
+                        value="${safeVal(item.start)}"
+                        disabled>
+                </td>
 
+                <td>
+                    <input type="number"
+                        class="debt-input table-input"
+                        data-row="${item.id}"
+                        data-field="total"
+                        value="${safeVal(item.total)}"
+                        disabled>
+                </td>
 
+                ${installmentCellsHtml}
 
+                <td class="col-actions">
+                    <div class="table-actions">
+                        <button class="tbl-pay-btn" title="จ่ายงวด" onclick="window.debtPayInstallment('${item.id}')">💵</button>
+                        <button class="tbl-edit-btn" title="แก้ไข" onclick="window.debtToggleEdit('${item.id}')">✏️</button>
+                        <button class="tbl-save-btn" title="บันทึก" onclick="window.debtSaveRow('${item.id}')">💾</button>
+                        <button class="tbl-delete-btn" title="ลบ" onclick="window.debtDeleteRow('${item.id}')">🗑️</button>
+                    </div>
+                </td>
 
-
-let html="";
-
-
-
-debt.forEach((item,index)=>{
-
-
-let rowClass = "";
-
-if(item.debtAmount <= 0){
-
-    rowClass = "paid-complete";
-
-}
-else if(item.overdue > 0){
-
-    rowClass = "overdue";
-
-}
-else{
-
-    rowClass = "not-overdue";
-
-}
-
-/* เพิ่มใหม่: ตรวจว่ารายการนี้ "จ่ายครบ 4 งวดแล้ว (มีค่าในงวดที่ 1-4 ครบ) แต่ยังมียอดค้างอยู่" หรือไม่
-   ถ้าใช่ ให้ติด class "debt-carryover" เพื่อขึ้นกรอบแดงรอบแถว (ไม่กระทบสีพื้นหลังเดิมของแถว) */
-let paidThrough4 = true;
-for(let i = 1; i <= 4; i++){
-    const v = item["installment" + i];
-    if(v === undefined || v === null || String(v).trim() === ""){
-        paidThrough4 = false;
-        break;
+            </tr>
+            `;
+        }).join("");
     }
-}
-const isCarryover = paidThrough4 && item.debtAmount > 0;
-if(isCarryover){
-    rowClass += " debt-carryover";
-}
 
+    let totalDebt = debt.reduce((sum,item)=> sum + item.debtAmount, 0);
 
-
-/* เพิ่มใหม่: ช่องกรอกงวดที่ 1..N แบบแก้ไขได้ในตาราง
-   คอลัมน์งวดที่เกิน 4 จะมี class "extra-installment-cell" ให้กรอบขวาเป็นสีแดงตรงกับหัวตาราง */
-let installmentCells = "";
-for(let i = 1; i <= maxInstallments; i++){
-    const extraClass = i > 4 ? " extra-installment-cell" : "";
-    installmentCells += `
-        <td class="${extraClass.trim()}">
-            <input type="number"
-                class="debt-input"
-                data-row="${item.id}"
-                data-field="installment${i}"
-                value="${item["installment" + i] || ""}"
-                disabled>
-        </td>`;
+    document.getElementById("debtTotal").innerText =
+        "ยอดลูกหนี้รวม : " + totalDebt.toLocaleString() + " บาท";
 }
 
-
-
-html+=`
-
-<tr class="${rowClass}" data-row="${item.id}">
-
-
-<td class="debt-frozen-col debt-col-index">${index+1}</td>
-
-<td class="debt-frozen-col debt-col-overdue">
-${item.overdue}
-</td>
-
-<td class="debt-frozen-col debt-col-debt">
-${item.debtAmount.toLocaleString()}
-</td>
-
-<td class="debt-frozen-col debt-col-name">
-    <input type="text"
-        class="debt-input"
-        data-row="${item.id}"
-        data-field="customer"
-        value="${item.customer || ""}"
-        disabled>
-</td>
-
-<td class="debt-frozen-col debt-col-plate">
-    <input type="text"
-        class="debt-input"
-        data-row="${item.id}"
-        data-field="plate"
-        value="${item.plate || ""}"
-        disabled>
-</td>
-
-<td>
-    <input type="text"
-        class="debt-input"
-        data-row="${item.id}"
-        data-field="phone"
-        value="${item.phone || ""}"
-        disabled>
-</td>
-
-<td>
-    <input type="text"
-        class="debt-input"
-        data-row="${item.id}"
-        data-field="start"
-        value="${item.start || ""}"
-        disabled>
-</td>
-
-<td>
-    <input type="number"
-        class="debt-input"
-        data-row="${item.id}"
-        data-field="total"
-        value="${item.total || ""}"
-        disabled>
-</td>
-
-${installmentCells}
-
-<td class="debt-action-td">
-    <div class="debt-actions">
-        <button class="debt-pay-btn" onclick="window.debtPayInstallment('${item.id}')" title="จ่ายงวด">💵</button>
-        <button class="debt-edit-btn" onclick="window.debtToggleEdit('${item.id}')" title="แก้ไข">✏️</button>
-        <button class="debt-save-btn" onclick="window.debtSaveRow('${item.id}')" title="บันทึก">💾</button>
-        <button class="debt-delete-btn" onclick="window.debtDeleteRow('${item.id}')" title="ลบ">🗑️</button>
-    </div>
-</td>
-
-</tr>
-
-
-`;
-
-
-});
-
-
-
-document.getElementById("debtTable").innerHTML=html;
-
-
-
-let totalDebt=debt.reduce(
-(sum,item)=>sum+item.debtAmount,0
-);
-
-
-
-document.getElementById("debtTotal").innerText=
-
-"ยอดลูกหนี้รวม : "+
-totalDebt.toLocaleString()+
-" บาท";
-
-
-
-}
-
-
-/* =========================
-   เพิ่มใหม่: แก้ไข / บันทึก / ลบ ข้อมูลแต่ละแถวโดยตรงในตาราง (เหมือนตาราง Excel ที่แก้ได้)
-========================= */
+/* =========================================================
+   แก้ไข / บันทึก / ลบ ข้อมูลแต่ละการ์ด
+========================================================= */
 
 function showDebtToast(message){
     let toast = document.createElement("div");
@@ -1127,15 +944,12 @@ function showDebtToast(message){
     }, 2200);
 }
 
-/* กด ✏️ แก้ไข: เปิดให้แก้ไขทุกช่องของแถวนั้น (เดิมเป็น disabled ใช้แสดงผลอย่างเดียว) */
 window.debtToggleEdit = function(id){
     const inputs = document.querySelectorAll(`input[data-row="${id}"]`);
     inputs.forEach(inp => { inp.disabled = false; });
     if(inputs.length) inputs[0].focus();
 };
 
-/* กด 💾 บันทึก: รวบรวมค่าจากทุกช่องของแถวนั้น แล้วบันทึกกลับ Firestore ด้วย merge:true
-   (ไม่กระทบ field อื่นที่ไม่ได้แสดงในตารางนี้ เช่น address, chassis, group ฯลฯ) */
 window.debtSaveRow = async function(id){
 
     const inputs = document.querySelectorAll(`input[data-row="${id}"]`);
@@ -1170,7 +984,6 @@ window.debtSaveRow = async function(id){
 
 };
 
-/* กด 🗑️ ลบ: ลบเอกสารออกจาก Firestore โดยตรง (onSnapshot จะอัปเดตตารางให้อัตโนมัติทุกเครื่อง) */
 window.debtDeleteRow = async function(id){
 
     if(!confirm("ต้องการลบข้อมูลนี้หรือไม่ ?")) return;
@@ -1189,15 +1002,18 @@ window.debtDeleteRow = async function(id){
 
 };
 
-
-/* เพิ่มใหม่: เก็บข้อมูลล่าสุด + จำนวนงวดสูงสุดปัจจุบันไว้ใช้กับโมดัล "จ่ายงวด"
-   (หาแถวจาก id และหางวดถัดไปที่ยังว่างได้ทันที โดยไม่ต้องอ่านจาก DOM) */
 let currentDebtData = [];
 let currentMaxInstallments = 4;
-let currentPayItem = null;
 
-/* ฟังข้อมูลจาก Firestore แบบ realtime — อัปเดตอัตโนมัติทุกครั้งที่มีการบันทึก/แก้ไข/ลบ
-   จากหน้า form_car.html / form_product.html / report.html / finance.html หรือจากตารางนี้เอง */
+["debtFilterDay","debtFilterMonth","debtFilterYear","debtFilterEmployee"].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el){
+        el.addEventListener("change", ()=>{
+            renderDebt(currentDebtData, currentMaxInstallments);
+        });
+    }
+});
+
 onSnapshot(collection(db, "insuranceData"), (snapshot) => {
 
     const data = snapshot.docs.map(d => ({
@@ -1210,24 +1026,15 @@ onSnapshot(collection(db, "insuranceData"), (snapshot) => {
     const maxInstallments = getMaxInstallmentCount(data);
     currentMaxInstallments = maxInstallments;
 
-    renderDebtHeader(maxInstallments);
+    populateDebtFilters(data);
     renderDebt(data, maxInstallments);
 
 });
 
 /* =========================================================
-   เพิ่มใหม่: จ่ายเฉพาะ "ค่างวด" ได้ทันทีจากตารางลูกหนี้ ไม่ต้องไปเปิดฟอร์มแก้ไขทั้งใบ
-   - กดปุ่ม 💵 -> ระบบหางวดถัดไปที่ยังไม่ได้กรอกให้อัตโนมัติ (ถ้างวดที่มีคอลัมน์อยู่ตอนนี้
-     ถูกกรอกครบหมดแล้วแต่ยังมียอดค้าง จะเปิดงวดถัดไปเพิ่มให้เองเหมือนตอนกรอกในฟอร์ม)
-   - บันทึกด้วย setDoc({merge:true}) ลง field installmentN ของรายการนั้นตรงๆ ใน collection
-     "insuranceData" เดียวกับที่ report.html / finance.html / revenue.html อ่านอยู่แล้ว
-     ทำให้ยอดค้างในตารางนี้และตัวเลขในหน้ารายงานอัปเดตตรงกันทันทีแบบ realtime
-     โดยไม่ต้องแก้ไขข้อมูลอื่นของลูกค้ารายนั้นเลย
-========================================================= */
-/* แก้ไข (ตามคำขอ): กด "ชำระงวด" แล้วส่งข้อมูลลูกค้ารายนี้ไปบันทึกการชำระเงินที่หน้า finance.html
-   โดยอัตโนมัติแทนการเปิดโมดัลในหน้านี้ พนักงานไม่ต้องค้นหา/เลือกลูกค้าซ้ำที่หน้า finance.html เลย
+   ปุ่ม "ชำระงวด": ส่งข้อมูลลูกค้ารายนี้ไปบันทึกการชำระเงินที่หน้า finance.html
    ระบบจะคำนวณ "งวดที่ยังไม่ได้ชำระ" ให้อัตโนมัติและส่งไปพร้อมกันผ่าน localStorage
-   (โมดัลจ่ายงวดเดิมของหน้านี้ยังคงมีโค้ดอยู่เผื่อใช้ในอนาคต แต่ปุ่ม "ชำระงวด" จะไม่เปิดโมดัลนี้อีกต่อไป) */
+========================================================= */
 window.debtPayInstallment = function(id){
 
     const item = currentDebtData.find(x => x.id === id);
@@ -1250,7 +1057,6 @@ window.debtPayInstallment = function(id){
         return;
     }
 
-    // หางวดถัดไปที่ยังไม่ได้กรอก (ว่างหรือเป็น 0) ภายในจำนวนงวดที่มีคอลัมน์อยู่ตอนนี้
     let nextSlot = null;
     for(let i = 1; i <= currentMaxInstallments; i++){
         const v = item["installment" + i];
@@ -1261,13 +1067,10 @@ window.debtPayInstallment = function(id){
         }
     }
 
-    // งวดที่มีคอลัมน์อยู่ตอนนี้ถูกกรอกครบหมดแล้ว แต่ยังมียอดค้าง -> เปิดงวดถัดไปเพิ่มให้เอง
     if(nextSlot === null){
         nextSlot = currentMaxInstallments + 1;
     }
 
-    // ยอดที่ควรเรียกเก็บของงวดนี้ (ถ้ามีแผนจำนวนงวด (installmentCount) ให้หารเฉลี่ยเท่าๆ กัน
-    // ถ้าไม่มีแผน ให้ใช้ยอดค้างทั้งหมดเป็นค่าเริ่มต้น)
     const planCount = parseInt(item.installmentCount, 10) || 0;
     const perInstallment = planCount > 0 ? (total / planCount) : debtAmount;
     const dueAmount = Math.max(0, Math.min(debtAmount, perInstallment > 0 ? perInstallment : debtAmount));
@@ -1288,44 +1091,6 @@ window.debtPayInstallment = function(id){
 
     window.location.href = "finance.html";
 };
-
-window.debtClosePayModal = function(){
-    document.getElementById("debtPayOverlay").classList.remove("show");
-    currentPayItem = null;
-};
-
-window.debtConfirmPayInstallment = async function(){
-
-    if(!currentPayItem) return;
-
-    const amountInput = document.getElementById("debtPayAmount");
-    const amount = Number(amountInput.value);
-
-    if(!amount || amount <= 0){
-        alert("กรุณากรอกจำนวนเงินที่จ่ายให้ถูกต้อง");
-        return;
-    }
-
-    try{
-
-        await setDoc(
-            doc(db, "insuranceData", currentPayItem.id),
-            { [currentPayItem.field]: amount },
-            { merge: true }
-        );
-
-        showDebtToast("✅ บันทึกการจ่ายงวดเรียบร้อย");
-        window.debtClosePayModal();
-
-    }catch(err){
-
-        console.error("บันทึกการจ่ายงวดไม่สำเร็จ:", err);
-        alert("บันทึกไม่สำเร็จ: " + (err.message || "กรุณาลองใหม่อีกครั้ง"));
-
-    }
-
-};
-
 
 </script>
 
