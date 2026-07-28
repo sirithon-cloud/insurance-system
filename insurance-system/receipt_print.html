@@ -329,7 +329,12 @@ function applyCustomerStartDay(date, startDay) {
    ใช้สูตรเดียวกับ contract_print.html (บวกทีละ 30 วันต่องวด แล้วปรับ "วัน" ให้ตรงกับวันเริ่มของลูกค้า) */
 function getInstallmentDueDate(contractDate, installmentIndex, startDay) {
     const due = new Date(contractDate);
-    due.setDate(due.getDate() + 30 * (installmentIndex + 1));
+    /* แก้ไข: เดิมบวก 30*(installmentIndex+1) ทำให้งวดที่ 1 ถูกเลื่อนไปเดือนถัดไปเสมอ
+       (เช่น เริ่ม 28/07 -> งวดที่ 1 กลายเป็น 28/08) ทั้งที่งวดแรกควรอยู่เดือนเดียวกับวันที่เริ่ม
+       แก้เป็นบวก 30*installmentIndex แทน (งวดที่ 1 = index 0 -> บวก 0 วัน = เดือนเริ่ม,
+       งวดที่ 2 = index 1 -> บวก 30 วัน = เดือนถัดไป, ไล่ไปเรื่อยๆ ตามลำดับ)
+       ให้ตรงกับสูตรเดียวกันใน contract_print.html */
+    due.setDate(due.getDate() + 30 * installmentIndex);
     return applyCustomerStartDay(due, startDay);
 }
 
