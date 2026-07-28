@@ -787,10 +787,10 @@
         <th>ทุนประกัน</th>
         <th>รวม</th>
         <th>กลุ่มสินค้า</th>
-        <th>งวด1</th>
-        <th>งวด2</th>
-        <th>งวด3</th>
-        <th>งวด4</th>
+        <th class="inst-th">งวด1</th>
+        <th class="inst-th">งวด2</th>
+        <th class="inst-th">งวด3</th>
+        <th class="inst-th" id="theadInst4">งวด4</th>
         <th>ยอดค้าง</th>
         <th>ประเภทประกัน</th>
         <th>ที่อยู่</th>
@@ -1069,6 +1069,69 @@ if(loggedInEmployee){
         }
 
         /* =========================
+        เพิ่มใหม่: รองรับงวดที่ 5, 6, 7, ... (ไม่จำกัดแค่ 1-4 เหมือนเดิม)
+        customer_debt.html / finance.html รองรับกรณีลูกค้าชำระเกิน 4 งวดอยู่แล้ว
+        (สร้างฟิลด์ installment5, installment6, ... ให้อัตโนมัติ) แต่หน้ารายงานนี้เดิมคำนวณ
+        "ยอดค้าง" และแสดงคอลัมน์งวดแค่ 1-4 เท่านั้น ทำให้ยอดค้างของลูกค้าที่จ่ายเกิน 4 งวด
+        ไปแล้วแสดงผิด (สูงเกินจริง) และมองไม่เห็นงวดที่ 5 ขึ้นไปในตาราง/Excel เลย
+        ========================= */
+
+        /* หาจำนวนเงินที่ชำระไปแล้วทั้งหมดของรายการหนึ่ง โดยรวมทุกฟิลด์ installmentN
+           (ไม่ว่าจะมีกี่งวดก็ตาม ไม่จำกัดแค่ 1-4) */
+        function calcPaidTotal(item){
+            let paid = 0;
+            Object.keys(item || {}).forEach(key=>{
+                const m = key.match(/^installment(\d+)$/);
+                if(m) paid += Number(item[key] || 0);
+            });
+            return paid;
+        }
+
+        /* หาเลขงวดสูงสุดที่มีอยู่จริงในชุดข้อมูล (ขั้นต่ำ 4 เหมือนเดิม) ใช้กำหนดว่าต้อง
+           แสดงคอลัมน์ "งวดที่ N" ในตาราง/Excel ไปถึงงวดไหน */
+        function getMaxInstallmentCount(data){
+            let max = 4;
+            (data || []).forEach(item=>{
+                Object.keys(item || {}).forEach(key=>{
+                    const m = key.match(/^installment(\d+)$/);
+                    if(m){
+                        const n = parseInt(m[1],10);
+                        if(n > max) max = n;
+                    }
+                });
+            });
+            return max;
+        }
+
+        /* สร้าง/อัปเดตหัวคอลัมน์ "งวดที่ 5" เป็นต้นไปแบบไดนามิก แทรกต่อจาก "งวด4" (#theadInst4)
+           เสมอ ลบคอลัมน์เก่าที่เคยสร้างไว้ก่อนหน้าออกก่อน กันสร้างซ้ำเวลาข้อมูลอัปเดต */
+        function renderExtraInstallmentHeaders(maxInstallments){
+            const headRow = document.querySelector("#table thead tr");
+            if(!headRow) return;
+
+            headRow.querySelectorAll(".dynamic-inst-th").forEach(th => th.remove());
+
+            const anchor = document.getElementById("theadInst4");
+            if(!anchor) return;
+
+            let html = "";
+            for(let i = 5; i <= maxInstallments; i++){
+                html += `<th class="inst-th dynamic-inst-th">งวด${i}</th>`;
+            }
+
+            if(html) anchor.insertAdjacentHTML("afterend", html);
+        }
+
+        /* สร้างเซลล์ "งวดที่ 1" ถึงงวดสูงสุดของรายการหนึ่ง แทนที่การเขียนคอลัมน์ 1-4 ตายตัวแบบเดิม */
+        function buildInstallmentCellsHtml(item, maxInstallments){
+            let html = "";
+            for(let i = 1; i <= maxInstallments; i++){
+                html += `<td>${item["installment" + i] || "-"}</td>`;
+            }
+            return html;
+        }
+
+        /* =========================
         แสดงข้อมูลตาราง
         ========================= */
  
@@ -1084,6 +1147,11 @@ if(loggedInEmployee){
             let tbody = document.querySelector("tbody");
  
             tbody.innerHTML = "";
+
+            // เพิ่มใหม่: คำนวณจำนวนงวดสูงสุดจากข้อมูลทั้งหมด (ไม่ใช่แค่ที่กรองอยู่) เพื่อให้
+            // หัวตารางคงที่ไม่กระพริบ/เปลี่ยนจำนวนคอลัมน์ไปมาเวลาสลับตัวกรอง
+            const maxInstallments = getMaxInstallmentCount(allData);
+            renderExtraInstallmentHeaders(maxInstallments);
  
  
             getFilteredData().forEach((item,i)=>{
@@ -1170,21 +1238,12 @@ if(loggedInEmployee){
  
         </td>
         <td>${item.group || "-"}</td>
-        <td>${item.installment1 || "-"}</td>
-        <td>${item.installment2 || "-"}</td>
-        <td>${item.installment3 || "-"}</td>
-        <td>${item.installment4 || "-"}</td>
+        ${buildInstallmentCellsHtml(item, maxInstallments)}
  
         <td>
         ${
         (
-        Number(item.total || 0) -
-        (
-        Number(item.installment1 || 0) +
-        Number(item.installment2 || 0) +
-        Number(item.installment3 || 0) +
-        Number(item.installment4 || 0)
-        )
+        Number(item.total || 0) - calcPaidTotal(item)
         ).toLocaleString()
         }
         </td>
@@ -2121,18 +2180,16 @@ function exportReportExcel(){
         return;
     }
 
+    // แก้ไข: เดิมคำนวณ "ยอดค้าง" และคอลัมน์งวดแค่ 1-4 เท่านั้น ทำให้ลูกค้าที่ชำระเกิน 4 งวด
+    // (customer_debt.html / finance.html รองรับกรณีนี้อยู่แล้ว) ยอดค้างใน Excel แสดงผิด (สูงเกินจริง)
+    // และมองไม่เห็นงวดที่ 5 ขึ้นไปเลย แก้เป็นคำนวณจากจำนวนงวดสูงสุดที่มีอยู่จริงในชุดข้อมูลที่ export แทน
+    const maxInstallmentsExport = getMaxInstallmentCount(rows);
+
     const excelData = rows.map((item, i) => {
 
-        const debtAmount =
-            Number(item.total || 0) -
-            (
-                Number(item.installment1 || 0) +
-                Number(item.installment2 || 0) +
-                Number(item.installment3 || 0) +
-                Number(item.installment4 || 0)
-            );
+        const debtAmount = Number(item.total || 0) - calcPaidTotal(item);
 
-        return {
+        const row = {
             "ลำดับ": i + 1,
             "ชื่อผู้เอาประกัน": item.customer || "-",
             "ทะเบียน": item.plate || "-",
@@ -2145,16 +2202,19 @@ function exportReportExcel(){
             "วันสิ้นสุด": toBEDateDisplay(item.end),
             "ทุนประกัน": Number(item.sumInsured || 0),
             "รวม": Number(item.total || 0),
-            "กลุ่มสินค้า": item.group || "-",
-            "งวด1": item.installment1 || "-",
-            "งวด2": item.installment2 || "-",
-            "งวด3": item.installment3 || "-",
-            "งวด4": item.installment4 || "-",
-            "ยอดค้าง": debtAmount,
-            "ประเภทประกัน": item.type === "car" ? "ประกันรถยนต์" : (item.type === "product" ? "ประกันสินค้า" : "-"),
-            "ที่อยู่": item.address || "-",
-            "ชื่อผู้แจ้ง": item.employeeName || item.requestName || "-"
+            "กลุ่มสินค้า": item.group || "-"
         };
+
+        for(let n = 1; n <= maxInstallmentsExport; n++){
+            row["งวด" + n] = item["installment" + n] || "-";
+        }
+
+        row["ยอดค้าง"] = debtAmount;
+        row["ประเภทประกัน"] = item.type === "car" ? "ประกันรถยนต์" : (item.type === "product" ? "ประกันสินค้า" : "-");
+        row["ที่อยู่"] = item.address || "-";
+        row["ชื่อผู้แจ้ง"] = item.employeeName || item.requestName || "-";
+
+        return row;
     });
 
     const ws = XLSX.utils.json_to_sheet(excelData);

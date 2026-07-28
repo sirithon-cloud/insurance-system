@@ -65,14 +65,15 @@
             color:#6b7280;
         }
 
-        /* แก้ไข: เปลี่ยนช่องชั่วโมง/นาทีจากปุ่มพื้นเข้ม เป็นกล่องสีขาวแบบเดียวกับช่อง "วันที่"
-           (bg-white + border-gray-300 + rounded-xl) ยังคงกดเพื่อเปิดรายการเลือกได้อย่างเดียวเหมือนเดิม
-           พิมพ์เองไม่ได้ */
+        /* แก้ไข: กล่องชั่วโมง/นาที พิมพ์เลขเองได้ ขนาดเท่ากับช่อง "ยอดเงิน"/"วันที่" ข้างๆ กัน
+           (เดิมเล็กกว่าช่องอื่นในแถวเดียวกันมาก) เพิ่ม box-sizing กันขนาดเพี้ยนตอนมี padding/border
+           และ -moz-appearance:textfield เพื่อเอาลูกศรขึ้น-ลงของ input type="number" ออกในเบราว์เซอร์ที่ใช้ Gecko (Firefox) */
         .fin-flip-btn{
-            width:52px;
-            height:40px;
+            box-sizing:border-box;
+            width:72px;
+            height:46px;
             margin:0;
-            padding:0;
+            padding:0 4px;
 
             background:#ffffff;
             color:#111827;
@@ -81,12 +82,13 @@
             border-radius:12px;
 
             font-family:'Prompt',sans-serif;
-            font-size:16px;
+            font-size:18px;
             font-weight:600;
             text-align:center;
 
-            cursor:pointer;
+            cursor:text;
             transition:.15s;
+            
         }
 
         .fin-flip-btn:hover{
@@ -99,12 +101,19 @@
             box-shadow:0 0 0 3px rgba(59,130,246,.35);
         }
 
+        /* เอาลูกศรขึ้น-ลง (spinner) ของ input type="number" ออกในเบราว์เซอร์ตระกูล Chrome/Safari (WebKit) */
+        .fin-flip-btn::-webkit-outer-spin-button,
+        .fin-flip-btn::-webkit-inner-spin-button{
+            -webkit-appearance:none;
+            margin:0;
+        }
+
         .fin-time-flip-colon{
-            font-size:18px;
+            font-size:20px;
             font-weight:700;
             color:#111827;
             line-height:1;
-            margin-top:10px;
+            margin-top:12px;
         }
 
         /* รายการตัวเลือก (แทน <option> ของ select เดิม) กางลงด้านล่างปุ่มเสมอ ไม่มีทางขึ้นบน */
@@ -699,8 +708,18 @@ function renderDebtTable(){
     }).join("") || `<tr><td colspan="8" class="p-6 text-center text-gray-400">ไม่มีลูกค้าค้างชำระ</td></tr>`;
 }
 
+/* แก้ไข (สำคัญ): เดิมเลือกลูกค้าได้พร้อมกันหลายคน (Set สะสมได้เรื่อยๆ) แล้วถ้ากรอกยอดเงิน
+   ช่องเดียวตอนบันทึกการชำระเงิน ระบบจะเอา "ยอดเดียวกัน" ไปบันทึกให้ทุกคนที่เลือกทั้งหมด
+   เสี่ยงบันทึกยอดเงินผิดเพราะลูกค้าแต่ละคนอาจจ่ายไม่เท่ากัน
+   แก้เป็นเลือกได้ทีละคนเท่านั้น: เลือกคนใหม่จะแทนที่คนเดิมที่เคยเลือกไว้เสมอ
+   (คลิกคนที่เลือกอยู่ซ้ำ = ยกเลิกการเลือก) */
 window.toggleSelectCustomer = function(id){
-    if(selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
+    if(selectedIds.has(id)){
+        selectedIds.delete(id);
+    } else {
+        selectedIds.clear();
+        selectedIds.add(id);
+    }
     renderDebtTable();
     renderSelectionStage();
 };
@@ -1005,24 +1024,19 @@ function renderPaymentForm(method){
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">เวลา</label>
-                <!-- แก้ไข: ย่อขนาดให้เล็กกะทัดรัดลง และเปลี่ยนจาก <select> จริงมาเป็นปุ่ม + รายการ
-                     ที่คุมเอง (ดู finToggleTimeList / finSelectTime ด้านล่าง) เพื่อบังคับให้รายการ
-                     ตัวเลขกางลง "ด้านล่างปุ่ม" เสมอ ไม่มีทางกางขึ้นบนแบบ select ธรรมดา -->
+                <!-- แก้ไข: ปรับให้เป็นกล่องเล็กกะทัดรัดแบบเดิม (เหมือนปุ่มเลือกเวลาตอนแรก) แต่ยังพิมพ์เลขเองได้ทั้งคู่
+                     ตั้งค่าเริ่มต้นเป็นเวลาปัจจุบันให้อัตโนมัติ -->
                 <div class="fin-time-flip">
                     <div class="fin-flip-card">
-                        <button type="button" class="fin-flip-btn" id="fin_hour_btn"
-                            data-value="${getFinCurrentHour()}"
-                            onclick="finToggleTimeList('hour')">${getFinCurrentHour()}</button>
+                        <input type="number" id="fin_hour_input" min="0" max="23"
+                            value="${getFinCurrentHour()}" class="fin-flip-btn">
                         <span class="fin-flip-card-label">ชม.</span>
-                        <div class="fin-flip-list" id="fin_hour_list"></div>
                     </div>
                     <span class="fin-time-flip-colon">:</span>
                     <div class="fin-flip-card">
-                        <button type="button" class="fin-flip-btn" id="fin_minute_btn"
-                            data-value="${getFinCurrentMinute()}"
-                            onclick="finToggleTimeList('minute')">${getFinCurrentMinute()}</button>
+                        <input type="number" id="fin_minute_input" min="0" max="59"
+                            value="${getFinCurrentMinute()}" class="fin-flip-btn">
                         <span class="fin-flip-card-label">นาที</span>
-                        <div class="fin-flip-list" id="fin_minute_list"></div>
                     </div>
                 </div>
             </div>
@@ -1047,7 +1061,6 @@ function renderPaymentForm(method){
     `;
 
     initFinDateTimePickers();
-    initFinTimeDropdowns();
 
     // เพิ่มใหม่: ถ้ามาจากปุ่ม "ชำระงวด" ของหน้าลูกหนี้ (เลือกลูกค้าเดียว) ให้เติมยอดเงินของงวดที่
     // ระบบเลือกให้อัตโนมัติ และล็อกช่องนี้ไว้ไม่ให้แก้ไข เพื่อให้ตรงกับงวดที่กำลังบันทึกจริง
@@ -1234,16 +1247,20 @@ window.savePayment = async function(){
         return;
     }
 
-    // แก้ไข: เวลาตอนนี้มาจากปุ่ม 2 กล่องแยก (ชั่วโมง/นาที) อ่านค่าจาก data-value รวมเป็น "HH:MM" เหมือนเดิม
-    const hourVal = document.getElementById("fin_hour_btn")?.dataset.value;
-    const minuteVal = document.getElementById("fin_minute_btn")?.dataset.value;
-    const timeVal = (hourVal !== undefined && hourVal !== "" && minuteVal !== undefined && minuteVal !== "")
-        ? `${hourVal}:${minuteVal}`
-        : "";
-    if(!timeVal){
-        alert("กรุณาเลือกเวลา");
+    // แก้ไข: ทั้ง "ชั่วโมง" และ "นาที" พิมพ์เองทั้งคู่ ต้องตรวจสอบทั้งสองช่องว่าเป็นตัวเลขในช่วงที่ถูกต้อง
+    const hourRaw = document.getElementById("fin_hour_input")?.value;
+    const hourNum = Number(hourRaw);
+    if(hourRaw === "" || hourRaw === null || hourRaw === undefined || isNaN(hourNum) || hourNum < 0 || hourNum > 23){
+        alert("กรุณากรอกชั่วโมงให้ถูกต้อง (0-23)");
         return;
     }
+    const minuteRaw = document.getElementById("fin_minute_input")?.value;
+    const minuteNum = Number(minuteRaw);
+    if(minuteRaw === "" || minuteRaw === null || minuteRaw === undefined || isNaN(minuteNum) || minuteNum < 0 || minuteNum > 59){
+        alert("กรุณากรอกนาทีให้ถูกต้อง (0-59)");
+        return;
+    }
+    const timeVal = `${String(hourNum).padStart(2,"0")}:${String(minuteNum).padStart(2,"0")}`;
 
     const bank = savedMethod === "check" ? (document.getElementById("fin_bank")?.value || "") : "";
     const checkNo = savedMethod === "check" ? (document.getElementById("fin_checkNo")?.value || "") : "";

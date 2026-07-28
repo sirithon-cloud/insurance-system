@@ -338,6 +338,21 @@ function getInstallmentDueDate(contractDate, installmentIndex, startDay) {
     return applyCustomerStartDay(due, startDay);
 }
 
+/* เพิ่มใหม่: หาเลขงวดสูงสุดที่มีอยู่จริงในข้อมูล (รองรับงวดที่ 5, 6, 7, ... ไม่ใช่แค่ 1-4)
+   เพื่อให้ใบรับเงินออกครบทุกงวดที่ลูกค้าชำระจริง แม้จะชำระเกิน 4 งวด
+   (customer_debt.html / finance.html รองรับการชำระเกิน 4 งวดอยู่แล้ว จุดนี้ตามให้ทัน) */
+function getMaxInstallmentIndex(record) {
+    let max = 4;
+    Object.keys(record || {}).forEach(key => {
+        const m = key.match(/^installment(\d+)$/);
+        if (m) {
+            const n = parseInt(m[1], 10);
+            if (n > max) max = n;
+        }
+    });
+    return max;
+}
+
 /* ==========================================================
    โหลดข้อมูลฟอร์มล่าสุด (ส่งมาจากปุ่ม "โหลดใบเสร็จ" ในหน้า report.html)
 ========================================================== */
@@ -551,7 +566,11 @@ const baseDate = parseFlexibleDate(data.start) || new Date();
 const paidInstallments = [];
 let cumulative = 0;
 
-for (let i = 1; i <= 4; i++) {
+/* แก้ไข: เดิมวนแค่ i=1 ถึง 4 ทำให้ลูกค้าที่ชำระงวดที่ 5 ขึ้นไปไม่ได้รับใบเสร็จของงวดนั้นเลย
+   เปลี่ยนเป็นวนตามจำนวนงวดสูงสุดที่มีอยู่จริงในข้อมูล (getMaxInstallmentIndex) แทน */
+const maxInstallmentIndex = getMaxInstallmentIndex(data);
+
+for (let i = 1; i <= maxInstallmentIndex; i++) {
     const amt = Number(data["installment" + i]) || 0;
     if (amt > 0) {
         cumulative += amt;

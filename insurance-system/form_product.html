@@ -203,16 +203,25 @@
         }
 
         .pay-flip-btn{
-            width:52px;
-            height:44px;
+            box-sizing:border-box;
+            width:76px;
+            height:52px;
             border:1.5px solid var(--border);
-            border-radius:10px;
+            border-radius:12px;
             background:var(--bg);
             font-family:'Kanit',sans-serif;
-            font-size:16px;
+            font-size:20px;
             font-weight:600;
             text-align:center;
-            cursor:pointer;
+            cursor:text;
+            
+        }
+
+        /* เพิ่มใหม่: เอาลูกศรขึ้น-ลง (spinner) ของ input type="number" ออก เหลือแค่ช่องกรอกตัวเลขเปล่าๆ */
+        .pay-flip-btn::-webkit-outer-spin-button,
+        .pay-flip-btn::-webkit-inner-spin-button{
+            -webkit-appearance:none;
+            margin:0;
         }
 
         .pay-flip-list{
@@ -794,17 +803,19 @@
                     </div>
                 </div>
                 <label>เวลา</label>
+                <!-- แก้ไข: ปรับให้เป็นกล่องเล็กกะทัดรัดแบบเดิม (เหมือนปุ่มเลือกเวลาตอนแรก) แต่ยังพิมพ์เลขเองได้ทั้งคู่
+                     ตั้งค่าเริ่มต้นเป็นเวลาปัจจุบันให้อัตโนมัติ -->
                 <div class="pay-time-row">
                     <div class="pay-flip-card">
-                        <button type="button" class="pay-flip-btn" id="pay_hour_btn" data-value="${getPayCurrentHour()}" onclick="payToggleTimeList('hour')">${getPayCurrentHour()}</button>
+                        <input type="number" id="pay_hour_input" min="0" max="23"
+                            value="${getPayCurrentHour()}" class="pay-flip-btn">
                         <span style="font-size:10px;color:var(--text-soft);">ชม.</span>
-                        <div class="pay-flip-list" id="pay_hour_list"></div>
                     </div>
-                    <span style="font-size:18px;font-weight:700;margin-bottom:18px;">:</span>
+                    <span style="font-size:22px;font-weight:700;margin-bottom:22px;">:</span>
                     <div class="pay-flip-card">
-                        <button type="button" class="pay-flip-btn" id="pay_minute_btn" data-value="${getPayCurrentMinute()}" onclick="payToggleTimeList('minute')">${getPayCurrentMinute()}</button>
+                        <input type="number" id="pay_minute_input" min="0" max="59"
+                            value="${getPayCurrentMinute()}" class="pay-flip-btn">
                         <span style="font-size:10px;color:var(--text-soft);">นาที</span>
-                        <div class="pay-flip-list" id="pay_minute_list"></div>
                     </div>
                 </div>
                 <label>หมายเหตุ (ไม่บังคับ)</label>
@@ -820,7 +831,6 @@
                 payDatePicker.setDate(new Date(), true, "d/m/Y");
             }
 
-            initPayTimeDropdowns();
         }
 
         /* รวบรวมค่าจากส่วน "บันทึกการชำระเงิน" ด้านบน ให้กลายเป็นข้อมูลของ "งวดที่ 1" เท่านั้น
@@ -832,9 +842,18 @@
 
             const amount = document.getElementById("pay_amount")?.value || "";
             const dateVal = document.getElementById("pay_date")?.value || "";
-            const hourVal = document.getElementById("pay_hour_btn")?.dataset.value || "";
-            const minuteVal = document.getElementById("pay_minute_btn")?.dataset.value || "";
-            const timeVal = (hourVal && minuteVal) ? `${hourVal}:${minuteVal}` : "";
+            // แก้ไข: ทั้ง "ชั่วโมง" และ "นาที" พิมพ์เองทั้งคู่ ถ้าช่องใดกรอกไม่ถูกต้อง (ว่าง/นอกช่วง) ถือว่ายังไม่ได้กรอกเวลา
+            const payHourRaw = document.getElementById("pay_hour_input")?.value;
+            const payHourNum = Number(payHourRaw);
+            const payHourOK = payHourRaw !== "" && payHourRaw !== null && payHourRaw !== undefined && !isNaN(payHourNum) && payHourNum >= 0 && payHourNum <= 23;
+
+            const payMinuteRaw = document.getElementById("pay_minute_input")?.value;
+            const payMinuteNum = Number(payMinuteRaw);
+            const payMinuteOK = payMinuteRaw !== "" && payMinuteRaw !== null && payMinuteRaw !== undefined && !isNaN(payMinuteNum) && payMinuteNum >= 0 && payMinuteNum <= 59;
+
+            const timeVal = (payHourOK && payMinuteOK)
+                ? `${String(payHourNum).padStart(2,"0")}:${String(payMinuteNum).padStart(2,"0")}`
+                : "";
 
             let account = "", bank = "", checkNo = "", payee = "";
 
@@ -1198,6 +1217,15 @@
 
                     if (payDatePicker && oldData.installment1Date) {
                         payDatePicker.setDate(oldData.installment1Date, true, "d/m/Y");
+                    }
+
+                    // เพิ่มใหม่: เติมชั่วโมง/นาทีที่เคยบันทึกไว้กลับเข้าฟอร์ม (เดิมช่องนี้ไม่เคยถูกเติมตอนโหลดแก้ไข)
+                    if (oldData.installment1Time) {
+                        const [savedHour, savedMinute] = String(oldData.installment1Time).split(":");
+                        const hourInputEl = document.getElementById("pay_hour_input");
+                        const minuteInputEl = document.getElementById("pay_minute_input");
+                        if (hourInputEl && savedHour) hourInputEl.value = savedHour.padStart(2, "0");
+                        if (minuteInputEl && savedMinute) minuteInputEl.value = savedMinute.padStart(2, "0");
                     }
 
                     if (oldData.installment1Account) {
