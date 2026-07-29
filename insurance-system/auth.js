@@ -74,18 +74,16 @@ const INVITE_CODE = "";
    เท่านั้น ไม่ใช่ข้อมูลลับ (รหัสผ่านยังคงเก็บ/ตรวจสอบผ่าน Firebase Authentication ตามปกติ) */
 const EMAIL_TO_NAME = {
     "viriyah127551@gmail.com": "ณุพล วิทยาขาว",
-    " viriyah127552@gmail.com ": " อรุณลักษณ์ มหาจตุพัฒน์ ",
-    " viriyah17277@gmail.com ": " วิภาพร คำเฮ้า ",
-    " viriyah666@gmail.com ": " รัชนก ผางโคกสูง ",
-    " viriyah888@gmail.com ": " วรรณิภา วิเศษบุตร ",
-    " viriyah17275@gmail.com ": " สุนิษา ยางไธสงค์ ",
-    " viriyah14904@gmail.com ": " เพ็ญพักตร์ ปลื้มใจ ",
-    " viriyah17276@gmail.com ": " สุชาวดี ภิษุณี ",
-    " viriyah3333@gmail.com ": " ไอลัดดา ดวงกุลสา ",
-    " viriyah111@gmail.com ": " น้ำทิพย์ ใบลี ",
-    " viriyah14821@gmail.com ": " ศิริธร สอนสอาด "
-
-
+    "viriyah127552@gmail.com": "อรุณลักษณ์ มหาจตุพัฒน์",
+    "viriyah17277@gmail.com": "วิภาพร คำเฮ้า",
+    "viriyah666@gmail.com": "รัชนก ผางโคกสูง",
+    "viriyah888@gmail.com": "วรรณิภา วิเศษบุตร",
+    "viriyah17275@gmail.com": "สุนิษา ยางไธสงค์",
+    "viriyah14904@gmail.com": "เพ็ญพักตร์ ปลื้มใจ",
+    "viriyah17276@gmail.com": "สุชาวดี ภิษุณี",
+    "viriyah3333@gmail.com": "ไอลัดดา ดวงกุลสา",
+    "viriyah111@gmail.com": "น้ำทิพย์ ใบลี",
+    "viriyah14821@gmail.com": "ศิริธร สอนสอาด"
 };
 
 /* คืนชื่อที่ล็อกไว้สำหรับอีเมลนี้ (ถ้ามีในตาราง) ไม่มีก็คืนค่าว่าง */
