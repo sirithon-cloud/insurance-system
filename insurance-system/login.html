@@ -802,21 +802,10 @@ h1{
 
         <form id="loginForm" autocomplete="off">
 
-            <!-- เพิ่มใหม่: ชื่อ-นามสกุล (แก้ปัญหา "ชื่อผู้แจ้ง" กลายเป็นอีเมล เพราะบางบัญชี
-                 ไม่เคยตั้งชื่อที่แสดงผล (displayName) ไว้เลย ให้กรอกชื่อทุกครั้งที่ล็อกอิน
-                 ระบบจะตั้ง/อัปเดตชื่อนี้ไว้กับบัญชีจริงให้อัตโนมัติ และจำชื่อไว้ในเครื่องนี้
-                 เพื่อเติมให้เองในครั้งถัดไป (ดู getSavedNameForEmail ใน auth.js) -->
-            <div class="form-group">
-                <div class="input-wrap">
-                    <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="8" r="4"/>
-                        <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-                    </svg>
-                    <input type="text" id="fullName" class="form-control" placeholder=" " autocomplete="name">
-                    <label for="fullName" class="floating-label">ชื่อ-นามสกุล</label>
-                </div>
-                <div class="field-error" id="fullNameError">กรุณากรอกชื่อ-นามสกุล</div>
-            </div>
+            <!-- แก้ไข: เดิมมีช่องให้พิมพ์ "ชื่อ-นามสกุล" เองทุกครั้งที่ login ทำให้พิมพ์ผิด/
+                 สะกดไม่ตรงกันได้ ตอนนี้ชื่อถูก "ล็อก" ไว้กับอีเมลแล้วในตาราง EMAIL_TO_NAME
+                 (ดู auth.js) ระบบจะดึงชื่อที่ถูกต้องมาแสดงเองอัตโนมัติตามอีเมลที่ login
+                 จึงตัดช่องกรอกชื่อออกจากฟอร์มนี้ ไม่ต้องพิมพ์ชื่อเองอีกต่อไป -->
 
             <!-- อีเมล -->
             <div class="form-group">
@@ -1188,49 +1177,13 @@ loginBtn.addEventListener("click", function(e){
 ========================================================= */
 const loginForm = document.getElementById("loginForm");
 
-const fullNameInput = document.getElementById("fullName");
 const emailInput = document.getElementById("email");
 
-const fullNameError = document.getElementById("fullNameError");
 const emailError = document.getElementById("emailError");
 const passwordError = document.getElementById("passwordError");
 
-/* เพิ่มใหม่: คลิก/โฟกัสช่องชื่อ -> เติมชื่อล่าสุดที่เคยกรอกสำเร็จให้ทันที
-   (ไม่ต้องรอพิมพ์อีเมลก่อน เพราะช่องชื่ออยู่ก่อนช่องอีเมลในฟอร์มนี้)
-   ทำเฉพาะตอนช่องชื่อยังว่างอยู่เท่านั้น ไม่ทับชื่อที่กำลังพิมพ์เอง */
-/* flag บอกว่าค่าปัจจุบันในช่องชื่อเป็นค่าที่ระบบเติมให้เอง (ยังไม่ใช่สิ่งที่ผู้ใช้พิมพ์เอง)
-   เพื่อให้ autofillNameFromEmail() แก้ไขให้แม่นยำขึ้นได้ภายหลัง โดยไม่ทับสิ่งที่ผู้ใช้พิมพ์เองจริงๆ */
-let nameWasAutofilled = false;
-fullNameInput.addEventListener("input", () => { nameWasAutofilled = false; });
-
-/* เพิ่มใหม่: คลิก/โฟกัสช่องชื่อ -> เติมชื่อล่าสุดที่เคยกรอกสำเร็จให้ทันที
-   (ไม่ต้องรอพิมพ์อีเมลก่อน เพราะช่องชื่ออยู่ก่อนช่องอีเมลในฟอร์มนี้) */
-function autofillNameOnFocus(){
-    if (fullNameInput.value.trim()) return;
-    const lastName = (typeof getLastUsedLoginName === "function") ? getLastUsedLoginName() : "";
-    if (lastName) {
-        fullNameInput.value = lastName;
-        nameWasAutofilled = true;
-        // เลือกข้อความทั้งหมดไว้ให้ ถ้าไม่ใช่คนเดิมจะได้พิมพ์ทับได้ทันทีโดยไม่ต้องลบเอง
-        fullNameInput.select();
-    }
-}
-fullNameInput.addEventListener("focus", autofillNameOnFocus);
-fullNameInput.addEventListener("click", autofillNameOnFocus);
-
-/* เพิ่มใหม่: พออกจากช่องอีเมล (หรือกำลังพิมพ์) ถ้าเคยจำชื่อไว้คู่กับอีเมลนี้แล้ว
-   ให้เติม/แก้ชื่อให้ตรงกับอีเมลนั้นแม่นยำขึ้น (เฉพาะตอนช่องชื่อยังว่างอยู่
-   หรือยังเป็นค่าที่ระบบเติมให้เอง ไม่ทับชื่อที่ผู้ใช้พิมพ์เองจริงๆ) */
-function autofillNameFromEmail(){
-    const saved = (typeof getSavedNameForEmail === "function") ? getSavedNameForEmail(emailInput.value) : "";
-    if (!saved) return;
-    if (!fullNameInput.value.trim() || nameWasAutofilled) {
-        fullNameInput.value = saved;
-        nameWasAutofilled = true;
-    }
-}
-emailInput.addEventListener("blur", autofillNameFromEmail);
-emailInput.addEventListener("input", autofillNameFromEmail);
+/* แก้ไข: ตัดระบบ autofill/จำชื่อออกทั้งหมด เพราะไม่มีช่องกรอกชื่อในฟอร์มนี้แล้ว
+   ชื่อที่แสดงผลถูกล็อกไว้กับอีเมลในตาราง EMAIL_TO_NAME (ดู auth.js) แทน */
 
 /* ถ้า Login อยู่แล้ว ให้เด้งเข้าหน้าแรกทันที ไม่ต้อง Login ซ้ำ */
 if (typeof isLoggedIn === "function" && isLoggedIn()) {
@@ -1252,8 +1205,8 @@ function clearInvalid(input, errorEl){
     errorEl.classList.remove("show");
 }
 
-[fullNameInput, emailInput, passwordInput].forEach((input, i) => {
-    const errorEl = [fullNameError, emailError, passwordError][i];
+[emailInput, passwordInput].forEach((input, i) => {
+    const errorEl = [emailError, passwordError][i];
     input.addEventListener("input", () => clearInvalid(input, errorEl));
 });
 
@@ -1262,18 +1215,10 @@ loginForm.addEventListener("submit", (e) => {
 
     if (loginBtn.classList.contains("is-loading") || loginBtn.classList.contains("is-success")) return;
 
-    const fullName = fullNameInput.value.trim();
     const email = emailInput.value.trim();
     const password = passwordInput.value;
 
     let hasError = false;
-
-    if (!fullName) {
-        markInvalid(fullNameInput, fullNameError, "กรุณากรอกชื่อ-นามสกุล");
-        hasError = true;
-    } else {
-        clearInvalid(fullNameInput, fullNameError);
-    }
 
     if (!email) {
         markInvalid(emailInput, emailError, "กรุณากรอกอีเมล");
@@ -1290,8 +1235,7 @@ loginForm.addEventListener("submit", (e) => {
     }
 
     if (hasError) {
-        if (!fullName) fullNameInput.focus();
-        else if (!email) emailInput.focus();
+        if (!email) emailInput.focus();
         else passwordInput.focus();
         return;
     }
@@ -1301,10 +1245,12 @@ loginForm.addEventListener("submit", (e) => {
 
     /* แก้ไข (สำคัญ): loginUser() ตอนนี้เป็น async function เพราะต้องรอผลลัพธ์การเชื่อมต่อ
        Firebase Authentication ด้วยอีเมล/รหัสผ่านจริงก่อนตัดสินใจว่าล็อกอินผ่านหรือไม่
-       ใช้ async () => {...} และเติม await หน้าการเรียก loginUser(email, password) */
+       ใช้ async () => {...} และเติม await หน้าการเรียก loginUser(email, password)
+       แก้ไข: ไม่ส่งชื่ออีกต่อไป (ไม่มีช่องกรอกชื่อในฟอร์มนี้แล้ว) auth.js จะดึงชื่อจาก
+       ตาราง EMAIL_TO_NAME ตามอีเมลที่ login ให้เองโดยอัตโนมัติ */
     setTimeout(async () => {
 
-        const success = (typeof loginUser === "function") && await loginUser(email, password, fullName);
+        const success = (typeof loginUser === "function") && await loginUser(email, password);
 
         if (!success) {
             loginBtn.classList.remove("is-loading");

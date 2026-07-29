@@ -62,8 +62,14 @@
 </head>
 <body class="bg-gray-100 pb-12">
 
+    <!-- เพิ่มใหม่: หน้านี้จำกัดเฉพาะอีเมล viriyah127551@gmail.com (ณุพล วิทยาขาว) เท่านั้นที่ดูได้
+         พนักงานคนอื่นที่ล็อกอินแล้วเปิดหน้านี้จะเห็นข้อความนี้แทนเนื้อหาทั้งหมด -->
+    <div id="accessDeniedBox" style="display:none;text-align:center;padding:80px 20px;color:#c0392b;font-weight:600;font-family:'Kanit',sans-serif;">
+        🔒 หน้านี้จำกัดเฉพาะผู้จัดการเท่านั้น
+    </div>
+
     <!-- Mobile Header -->
-    <header class="bg-white shadow-sm sticky top-0 z-10 px-4 py-3">
+    <header id="revenuePageHeader" class="bg-white shadow-sm sticky top-0 z-10 px-4 py-3">
         <div class="flex justify-between items-center">
             <div class="flex items-center gap-2">
                 <button onclick="location.href='index.html'"
@@ -79,7 +85,7 @@
     </header>
 
     <!-- Main Container -->
-    <main class="max-w-md mx-auto p-4 space-y-4">
+    <main id="revenueMainContent" class="max-w-md mx-auto p-4 space-y-4">
 
         <!-- ตัวกรอง: วัน / เดือน / ปี / บริษัท -->
         <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-gray-100">
@@ -190,6 +196,27 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+
+        /* เพิ่มใหม่: จำกัดสิทธิ์เข้าดูหน้านี้เฉพาะอีเมล viriyah127551@gmail.com (ณุพล วิทยาขาว) เท่านั้น
+           อีเมลอ่านจาก getEmployeeEmail() ของ auth.js (ผูกกับบัญชี Firebase Auth ที่ล็อกอินอยู่จริง)
+           ถ้าไม่ตรง จะซ่อนหัวข้อ+เนื้อหาทั้งหมด แสดงข้อความ "จำกัดสิทธิ์" แทน แล้วหยุดการทำงานของสคริปต์นี้ทั้งหมด
+           (ไม่ subscribe ข้อมูล ไม่โหลด Firestore ใดๆ เพื่อความปลอดภัยของข้อมูล) */
+        const ALLOWED_REVENUE_EMAILS = ["viriyah127551@gmail.com"];
+
+        function isAllowedRevenueUser(){
+            const email = (typeof getEmployeeEmail === "function") ? getEmployeeEmail() : "";
+            return ALLOWED_REVENUE_EMAILS.includes(String(email || "").trim().toLowerCase());
+        }
+
+        if(!isAllowedRevenueUser()){
+            const deniedBox = document.getElementById("accessDeniedBox");
+            const headerEl = document.getElementById("revenuePageHeader");
+            const mainEl = document.getElementById("revenueMainContent");
+            if(deniedBox) deniedBox.style.display = "block";
+            if(headerEl) headerEl.style.display = "none";
+            if(mainEl) mainEl.style.display = "none";
+            throw new Error("Access denied: revenue.html จำกัดสิทธิ์เฉพาะผู้ดูแลระบบ");
+        }
 
         const THAI_MONTHS = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน",
             "กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
@@ -361,16 +388,21 @@
             populateYearOptions();
             populateCompanyOptions();
 
-            // ค่าเริ่มต้นครั้งแรกที่เปิดหน้า: เดือนปัจจุบัน + ปีปัจจุบัน (พ.ศ.)
+            // [แก้ไข] ค่าเริ่มต้นครั้งแรกที่เปิดหน้า: เดิมตั้งแค่เดือน+ปีปัจจุบัน (เห็นข้อมูลทั้งเดือน)
+            // เปลี่ยนเป็นตั้ง "วันนี้" ด้วย (วัน+เดือน+ปีปัจจุบัน พ.ศ.) เพื่อให้เปิดมาเห็นเฉพาะยอดขายของวันนี้
+            // เท่านั้นก่อน พนักงาน/ผู้จัดการยังกดเปลี่ยนกลับเป็น "ทั้งหมด" ที่ตัวกรองวันได้เองทีหลังตามปกติ
             if(!filtersInitialized){
                 filtersInitialized = true;
                 const now = new Date();
+                const currentDay = String(now.getDate()).padStart(2,"0");
                 const currentMonth = String(now.getMonth()+1).padStart(2,"0");
                 const currentYearBE = String(now.getFullYear() + 543);
 
+                const daySel = document.getElementById("filterDay");
                 const monthSel = document.getElementById("filterMonth");
                 const yearSel = document.getElementById("filterYear");
 
+                if([...daySel.options].some(o=>o.value===currentDay)) daySel.value = currentDay;
                 if([...monthSel.options].some(o=>o.value===currentMonth)) monthSel.value = currentMonth;
                 if([...yearSel.options].some(o=>o.value===currentYearBE)) yearSel.value = currentYearBE;
             }

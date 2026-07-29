@@ -61,6 +61,39 @@ const SIGNUP_ENABLED = false;
 const INVITE_CODE = "";
 
 /* =========================================================
+   เพิ่มใหม่: ล็อกชื่อที่แสดงผลไว้กับอีเมล (ป้องกันพิมพ์ชื่อผิดตอน login)
+   =========================================================
+   เดิม: ผู้ใช้พิมพ์ "ชื่อ-นามสกุล" เองทุกครั้งที่ login (ช่องในหน้า login.html)
+        ทำให้พิมพ์ผิด/สะกดไม่ตรงกันได้ในแต่ละครั้ง
+   ใหม่: กำหนดชื่อที่ถูกต้องไว้ที่นี่ที่เดียว โดยผูกกับอีเมล (key ต้องเป็นตัวพิมพ์เล็กทั้งหมด)
+        ถ้าอีเมลที่ login ตรงกับรายการนี้ ระบบจะใช้ชื่อจากตารางนี้เสมอ
+        โดยไม่สนใจชื่อที่พิมพ์มาในฟอร์ม (ถ้ามี) เลย
+
+   วิธีเพิ่ม/แก้พนักงานคนใหม่: เพิ่ม/แก้บรรทัดในนี้ตรงๆ ได้เลย
+   หมายเหตุ: ค่านี้อยู่ในไฟล์ JS ฝั่ง client ใครก็เปิดดูโค้ดได้ จึงเหมาะกับ "ชื่อที่แสดงผล"
+   เท่านั้น ไม่ใช่ข้อมูลลับ (รหัสผ่านยังคงเก็บ/ตรวจสอบผ่าน Firebase Authentication ตามปกติ) */
+const EMAIL_TO_NAME = {
+    "viriyah127551@gmail.com": "ณุพล วิทยาขาว",
+    " viriyah127552@gmail.com ": " อรุณลักษณ์ มหาจตุพัฒน์ ",
+    " viriyah17277@gmail.com ": " วิภาพร คำเฮ้า ",
+    " viriyah666@gmail.com ": " รัชนก ผางโคกสูง ",
+    " viriyah888@gmail.com ": " วรรณิภา วิเศษบุตร ",
+    " viriyah17275@gmail.com ": " สุนิษา ยางไธสงค์ ",
+    " viriyah14904@gmail.com ": " เพ็ญพักตร์ ปลื้มใจ ",
+    " viriyah17276@gmail.com ": " สุชาวดี ภิษุณี ",
+    " viriyah3333@gmail.com ": " ไอลัดดา ดวงกุลสา ",
+    " viriyah111@gmail.com ": " น้ำทิพย์ ใบลี ",
+    " viriyah14821@gmail.com ": " ศิริธร สอนสอาด "
+
+
+};
+
+/* คืนชื่อที่ล็อกไว้สำหรับอีเมลนี้ (ถ้ามีในตาราง) ไม่มีก็คืนค่าว่าง */
+function getLockedNameForEmail(email) {
+    return EMAIL_TO_NAME[normalizeEmail(email)] || "";
+}
+
+/* =========================================================
    Firebase config (โปรเจกต์เดียวกับทุกหน้าในระบบ)
 ========================================================= */
 const firebaseConfig = {
@@ -276,15 +309,28 @@ async function loginUser(email, password, name) {
 
     const typedName = normalizeName(name);
 
-    if (typedName && typedName !== user.displayName) {
+    /* แก้ไข (สำคัญ - ล็อกชื่อไว้กับอีเมล): ถ้าอีเมลนี้มีอยู่ในตาราง EMAIL_TO_NAME
+       ให้ใช้ชื่อจากตารางนั้นเสมอ ไม่สนใจชื่อที่พิมพ์มาในฟอร์ม (กันพิมพ์ผิด/สะกดไม่ตรงกัน)
+       ถ้าอีเมลนี้ไม่มีในตาราง (เช่น พนักงานใหม่ที่ยังไม่ได้เพิ่มชื่อ) จึงค่อย fallback
+       ไปใช้ชื่อที่พิมพ์มา/ displayName เดิม เหมือนพฤติกรรมเดิม */
+    const lockedName = getLockedNameForEmail(email_);
+
+    if (lockedName) {
+        if (lockedName !== user.displayName) {
+            firebaseSetDisplayName(user, lockedName).catch(err => {
+                console.error("ตั้งชื่อที่แสดงผลไม่สำเร็จ:", err);
+            });
+        }
+    } else if (typedName && typedName !== user.displayName) {
         firebaseSetDisplayName(user, typedName).catch(err => {
             console.error("ตั้งชื่อที่แสดงผลไม่สำเร็จ:", err);
         });
     }
 
-    /* ดึงชื่อ-นามสกุลจริงที่ผูกไว้กับบัญชี (displayName)
-       ลำดับความสำคัญ: ชื่อที่เพิ่งกรอกมา > displayName เดิมที่มีอยู่แล้ว > อีเมล (fallback สุดท้าย) */
-    const fullName = typedName || user.displayName || email_;
+    /* ดึงชื่อ-นามสกุลจริงที่ใช้แสดงผล
+       ลำดับความสำคัญ: ชื่อที่ล็อกไว้กับอีเมล (ตาราง EMAIL_TO_NAME) > ชื่อที่เพิ่งกรอกมา
+       > displayName เดิมที่มีอยู่แล้ว > อีเมล (fallback สุดท้าย) */
+    const fullName = lockedName || typedName || user.displayName || email_;
 
     completeLogin(fullName, email_);
 
@@ -410,6 +456,7 @@ window.getEmployeeEmail = getEmployeeEmail;
 window.signupUser = signupUser;
 window.loginUser = loginUser;
 window.getSavedNameForEmail = getSavedNameForEmail;
+window.getLockedNameForEmail = getLockedNameForEmail;
 window.getLastUsedLoginName = getLastUsedLoginName;
 window.changeMyPassword = changeMyPassword;
 window.logoutEmployee = logoutEmployee;

@@ -36,12 +36,19 @@
     --mint:#2FBF9B;
     --sky:#3E7BFA;
 
-    --red:#E4432E;
+    --red:#d22812;
     --red-soft:#FFEBEA;
     --green:#1A9C4B;
     --green-soft:#EAFBF1;
     --orange:#F08A1E;
     --orange-soft:#FFF3E2;
+
+    /* เพิ่มใหม่: สีแถวตารางที่ผู้ใช้ปรับเองได้ผ่านแผงเลือกสี (ดูปุ่ม 🎨 เลือกสี)
+       ปรับสีเองได้ 3 สถานะ: เกิน 4 งวด / ระหว่างชำระ / จ่ายครบ
+       ส่วน "เกินกำหนด" เป็นสีแดงกระพริบตายตัวเท่านั้น (ดู .row-overdue ด้านล่าง) */
+    --row-carryover-bg:#EA580C;
+    --row-normal-bg:#15A876;
+    --row-paid-bg:#2F6FED;
 }
 
 *{
@@ -247,10 +254,76 @@ h1{
     white-space:nowrap;
 }
 
-.debt-table tbody tr.row-overdue{ background:var(--red-soft); }
-.debt-table tbody tr.row-normal{ background:var(--green-soft); }
-.debt-table tbody tr.row-paid{ background:var(--blue-light); }
-.debt-table tbody tr.row-carryover{ background:var(--orange-soft); }
+/* เกินกำหนด: พื้นหลังแดงกระพริบ ตัวอักษรขาว (ด่วนที่สุด) */
+.debt-table tbody tr.row-overdue{
+    animation:debtRowBlinkRed 1s ease-in-out infinite;
+    color:#fff;
+}
+
+/* เพิ่มใหม่: เกิน 4 งวด "และ" เกินกำหนดพร้อมกัน — ส้มกระพริบ ตัวอักษรขาว
+   (แยกจากเกินกำหนดธรรมดาที่เป็นแดงกระพริบ และแยกจากเกิน 4 งวดธรรมดาที่เป็นส้มทึบไม่กระพริบ) */
+.debt-table tbody tr.row-carryover-overdue{
+    animation:debtRowBlinkOrange 1s ease-in-out infinite;
+    color:#fff;
+}
+
+/* เกิน 4 งวด (แต่ยังไม่เกินกำหนด): ส้มเข้มทึบ ไม่กระพริบ ตัวอักษรขาว (เตือนไว้ก่อน เบากว่าเกินกำหนด) */
+.debt-table tbody tr.row-carryover{
+    background:var(--row-carryover-bg);
+    color:#fff;
+}
+
+.debt-table tbody tr.row-overdue td,
+.debt-table tbody tr.row-carryover-overdue td,
+.debt-table tbody tr.row-carryover td{
+    color:#fff !important;
+}
+
+.debt-table tbody tr.row-overdue td .table-input,
+.debt-table tbody tr.row-carryover-overdue td .table-input,
+.debt-table tbody tr.row-carryover td .table-input,
+.debt-table tbody tr.row-overdue td.col-overdue,
+.debt-table tbody tr.row-carryover-overdue td.col-overdue,
+.debt-table tbody tr.row-carryover td.col-overdue,
+.debt-table tbody tr.row-overdue td.col-debt,
+.debt-table tbody tr.row-carryover-overdue td.col-debt,
+.debt-table tbody tr.row-carryover td.col-debt{
+    color:#fff !important;
+}
+
+@keyframes debtRowBlinkRed{
+    0%,100%{ background:#DC2626; }
+    50%{ background:#8A1414; }
+}
+
+/* เพิ่มใหม่: กระพริบส้ม ใช้สีส้มที่ตั้งไว้ (ปรับได้ผ่านปุ่ม 🎨) สลับกับส้มเข้มจัดสำหรับจังหวะกระพริบ */
+@keyframes debtRowBlinkOrange{
+    0%,100%{ background:var(--row-carryover-bg); }
+    50%{ background:#7C2D12; }
+}
+
+/* ระหว่างชำระ: เขียวสด / จ่ายครบ: ฟ้าสด — ตัวอักษรสีขาวเหมือนกับแถวแดงกระพริบ */
+.debt-table tbody tr.row-normal,
+.debt-table tbody tr.row-paid{
+    color:#fff;
+}
+
+.debt-table tbody tr.row-normal td,
+.debt-table tbody tr.row-paid td{
+    color:#fff !important;
+}
+
+.debt-table tbody tr.row-normal td .table-input,
+.debt-table tbody tr.row-paid td .table-input,
+.debt-table tbody tr.row-normal td.col-overdue,
+.debt-table tbody tr.row-paid td.col-overdue,
+.debt-table tbody tr.row-normal td.col-debt,
+.debt-table tbody tr.row-paid td.col-debt{
+    color:#fff !important;
+}
+
+.debt-table tbody tr.row-normal{ background:var(--row-normal-bg); }
+.debt-table tbody tr.row-paid{ background:var(--row-paid-bg); }
 
 .debt-table td.col-rank{
     font-weight:700;
@@ -407,6 +480,104 @@ thead th.col-actions{
     }
 }
 
+/* =========================
+   แผงเลือกสี (เพิ่มใหม่)
+========================= */
+.color-picker-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+
+    background:var(--surface);
+    color:var(--navy);
+
+    border:1.5px solid var(--border);
+    padding:10px 18px;
+    border-radius:999px;
+
+    font-family:"Kanit",sans-serif;
+    font-weight:600;
+    font-size:14px;
+    white-space:nowrap;
+
+    cursor:pointer;
+    transition:.2s;
+}
+
+.color-picker-btn:hover{
+    background:var(--blue-light);
+}
+
+.color-picker-panel{
+    display:none;
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:14px;
+    margin-bottom:16px;
+}
+
+.color-picker-panel.show{
+    display:block;
+}
+
+.color-picker-grid{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:12px;
+}
+
+@media(max-width:600px){
+    .color-picker-grid{
+        grid-template-columns:repeat(2, 1fr);
+    }
+}
+
+.color-picker-item{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:10px;
+}
+
+.color-picker-item input[type="color"]{
+    width:38px;
+    height:38px;
+    border:none;
+    border-radius:8px;
+    padding:0;
+    cursor:pointer;
+    background:none;
+    flex:0 0 auto;
+}
+
+.color-picker-item label{
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--navy);
+    line-height:1.3;
+}
+
+.color-picker-actions{
+    display:flex;
+    justify-content:flex-end;
+    margin-top:12px;
+}
+
+.color-picker-reset{
+    background:none;
+    border:none;
+    color:var(--blue-dark);
+    font-family:"Kanit",sans-serif;
+    font-size:12.5px;
+    font-weight:600;
+    text-decoration:underline;
+    cursor:pointer;
+}
+
 /* toast */
 .debt-toast{
     position:fixed;
@@ -454,7 +625,7 @@ thead th.col-actions{
 
 <div class="debt-subtitle">
     🟥 เกินกำหนด 🟧 ไม่เกินกำหนดแต่ เกิน 4 งวด 🟩 ระหว่างชำระ 🟦 จ่ายครบ <br> 💵 จ่ายงวด ✏️แก้ไข 💾บันทึก 🗑️ลบ
-
+    <br>⏳ กำลังโหลดข้อมูล... กรุณาอย่ากดรีเฟรชซ้ำ
 </div>
 
 
@@ -463,7 +634,39 @@ thead th.col-actions{
         ← กลับเมนูบัญชี
     </button>
 
+
+
     <div class="debt-total" id="debtTotal"></div>
+</div>
+
+<!-- แผงเลือกสีแถวตาราง (เพิ่มใหม่)
+     หมายเหตุ: "เกินกำหนด" เป็นสีแดงกระพริบตายตัวเสมอ (เพื่อเน้นความเร่งด่วนที่สุด) จึงปรับสีเองไม่ได้
+     ส่วน "เกิน 4 งวด" / "ระหว่างชำระ" / "จ่ายครบ" ปรับสีเองได้ -->
+<div class="color-picker-panel" id="colorPickerPanel">
+    <div class="color-picker-grid">
+
+        <div class="color-picker-item">
+            <input type="color" id="colorPickCarryover">
+            <label>🟧 เกิน 4 งวด</label>
+        </div>
+
+        <div class="color-picker-item">
+            <input type="color" id="colorPickNormal">
+            <label>🟩 ระหว่างชำระ</label>
+        </div>
+
+        <div class="color-picker-item">
+            <input type="color" id="colorPickPaid">
+            <label>🟦 จ่ายครบ</label>
+        </div>
+
+    </div>
+
+    <div class="color-picker-actions">
+        <button type="button" class="color-picker-reset" id="colorPickerResetBtn">
+            ↺ คืนค่าสีเริ่มต้น
+        </button>
+    </div>
 </div>
 
 <!-- แถบตัวกรอง วัน/เดือน/ปี/พนักงาน -->
@@ -531,6 +734,96 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+
+/* =========================================================
+   แผงเลือกสีแถวตาราง (เพิ่มใหม่)
+   บันทึกสีที่ผู้ใช้เลือกไว้ใน localStorage ของเครื่องนี้ (เฉพาะเบราว์เซอร์นี้)
+   ค่าเริ่มต้นคือสีเดิมของระบบทุกประการ กด "คืนค่าสีเริ่มต้น" เพื่อล้างกลับไปใช้ค่าเดิมได้ทุกเมื่อ
+========================================================= */
+const DEBT_COLOR_KEY = "debtRowColors_v1";
+
+const DEBT_COLOR_FIELDS = {
+    carryover: { varName: "--row-carryover-bg", inputId: "colorPickCarryover", fallback: "#EA580C" },
+    normal:    { varName: "--row-normal-bg",    inputId: "colorPickNormal",   fallback: "#15A876" },
+    paid:      { varName: "--row-paid-bg",      inputId: "colorPickPaid",    fallback: "#2F6FED" }
+};
+
+function loadDebtColors(){
+    try{
+        const raw = localStorage.getItem(DEBT_COLOR_KEY);
+        return raw ? JSON.parse(raw) : {};
+    }catch(e){
+        return {};
+    }
+}
+
+function saveDebtColors(colors){
+    try{
+        localStorage.setItem(DEBT_COLOR_KEY, JSON.stringify(colors));
+    }catch(e){
+        /* localStorage ใช้งานไม่ได้ ข้ามไป ไม่กระทบการแสดงผลหลัก */
+    }
+}
+
+/* อ่านค่าสีปัจจุบันที่ประกาศไว้จริงบนหน้าเว็บ (รองรับ fallback ถ้าไม่เคยตั้งค่าไว้เลย) */
+function getComputedColorHex(varName, fallback){
+    const value = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+    return value || fallback;
+}
+
+function applyDebtColors(colors){
+    Object.entries(DEBT_COLOR_FIELDS).forEach(([key, field]) => {
+        const hex = colors[key];
+        if(hex){
+            document.documentElement.style.setProperty(field.varName, hex);
+        }
+        const input = document.getElementById(field.inputId);
+        if(input){
+            input.value = hex || getComputedColorHex(field.varName, field.fallback);
+        }
+    });
+}
+
+function initColorPicker(){
+
+    const toggleBtn = document.getElementById("colorPickerToggleBtn");
+    const panel = document.getElementById("colorPickerPanel");
+    const resetBtn = document.getElementById("colorPickerResetBtn");
+
+    if(!toggleBtn || !panel) return;
+
+    // แสดงสีปัจจุบัน (ที่เคยบันทึกไว้ หรือค่าเริ่มต้น) ลงในช่องเลือกสีทันทีที่หน้าโหลด
+    applyDebtColors(loadDebtColors());
+
+    toggleBtn.addEventListener("click", () => {
+        panel.classList.toggle("show");
+    });
+
+    Object.entries(DEBT_COLOR_FIELDS).forEach(([key, field]) => {
+        const input = document.getElementById(field.inputId);
+        if(!input) return;
+
+        input.addEventListener("input", () => {
+            document.documentElement.style.setProperty(field.varName, input.value);
+
+            const colors = loadDebtColors();
+            colors[key] = input.value;
+            saveDebtColors(colors);
+        });
+    });
+
+    if(resetBtn){
+        resetBtn.addEventListener("click", () => {
+            Object.values(DEBT_COLOR_FIELDS).forEach(field => {
+                document.documentElement.style.removeProperty(field.varName);
+            });
+            saveDebtColors({});
+            applyDebtColors({});
+        });
+    }
+}
+
+initColorPicker();
 
 /* =========================================================
    ตัวกรอง วัน / เดือน / ปี / พนักงาน
@@ -730,6 +1023,35 @@ function safeVal(v){
     return (v === undefined || v === null) ? "" : v;
 }
 
+/* เพิ่มใหม่: แปลงวันที่ให้แสดงเป็น พ.ศ. ไทยเสมอ (DD/MM/YYYY+543)
+   รองรับทั้งรูปแบบ ISO "YYYY-MM-DD" (ที่มาจาก <input type="date"> ตอนกรอกฟอร์ม)
+   และรูปแบบ "DD/MM/YYYY" ที่อาจเป็น ค.ศ. หรือ พ.ศ. อยู่แล้ว (ถ้าเป็น พ.ศ. อยู่แล้วจะไม่บวกซ้ำ) */
+function formatThaiDate(v){
+
+    if(!v) return "";
+
+    const s = String(v).trim();
+
+    let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if(m){
+        const yyyy = Number(m[1]) + 543;
+        const mm = m[2].padStart(2,"0");
+        const dd = m[3].padStart(2,"0");
+        return `${dd}/${mm}/${yyyy}`;
+    }
+
+    m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{3,4})$/);
+    if(m){
+        const dd = m[1].padStart(2,"0");
+        const mm = m[2].padStart(2,"0");
+        let yyyy = Number(m[3]);
+        if(yyyy < 2400) yyyy += 543;
+        return `${dd}/${mm}/${yyyy}`;
+    }
+
+    return s;
+}
+
 /* =========================================================
    RENDER: การ์ดลูกหนี้ (แนวตั้ง อ่านง่ายในมือถือ ไม่มีเลื่อนซ้าย-ขวา)
 ========================================================= */
@@ -831,7 +1153,10 @@ function renderDebt(data, maxInstallments){
             }
             const isCarryover = paidThrough4 && item.debtAmount > 0;
             if(isCarryover){
-                rowClass = "row-carryover";
+                // เพิ่มใหม่: ถ้าเกิน 4 งวด "พร้อมกับ" เกินกำหนดด้วย ให้ใช้สถานะแยกต่างหาก
+                // (ส้มกระพริบ) เพื่อไม่ให้ปนกับ "เกินกำหนดธรรมดา" (แดงกระพริบ)
+                // และไม่ให้ปนกับ "เกิน 4 งวดธรรมดา ไม่เกินกำหนด" (ส้มทึบ ไม่กระพริบ)
+                rowClass = (item.overdue > 0) ? "row-carryover-overdue" : "row-carryover";
             }
 
             let installmentCellsHtml = "";
@@ -906,7 +1231,7 @@ function renderDebt(data, maxInstallments){
                         class="debt-input table-input"
                         data-row="${item.id}"
                         data-field="start"
-                        value="${safeVal(item.start)}"
+                        value="${formatThaiDate(item.start)}"
                         disabled>
                 </td>
 

@@ -8,9 +8,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
 
-    <!-- สำหรับปุ่ม "Export Excel" -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
     <!-- เพิ่มใหม่: flatpickr สำหรับ Date Picker / Time Picker แบบกดเลือกจาก popup เท่านั้น
          (ห้ามผู้ใช้พิมพ์วันที่/เวลาเอง ใช้ allowInput:false บังคับให้กดเลือกจาก popup อย่างเดียว) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
@@ -391,7 +388,7 @@
                         📅 วันนี้ 
                     </button>
                 </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
                     <div>
                         <label class="block text-xs font-semibold text-blue-900 mb-1">วันที่</label>
                         <select id="reportFilterDay" class="w-full border border-gray-300 rounded-lg px-2 py-2 text-sm"></select>
@@ -400,50 +397,22 @@
                         <label class="block text-xs font-semibold text-blue-900 mb-1">เดือน</label>
                         <select id="reportFilterMonth" class="w-full border border-gray-300 rounded-lg px-2 py-2 text-sm"></select>
                     </div>
+
+                    <!-- เพิ่มใหม่: ตัวกรอง "ปี" (พ.ศ.) กรองฝั่ง client เหมือนวัน/เดือน (ดู getFilteredReportRows) -->
                     <div>
-                        <label class="block text-xs font-semibold text-blue-900 mb-1">ปี</label>
+                        <label class="block text-xs font-semibold text-blue-900 mb-1">ปี (พ.ศ.)</label>
                         <select id="reportFilterYear" class="w-full border border-gray-300 rounded-lg px-2 py-2 text-sm"></select>
                     </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-blue-900 mb-1">บริษัท</label>
-                        <select id="reportFilterCompany" class="w-full border border-gray-300 rounded-lg px-2 py-2 text-sm"></select>
-                    </div>
+
                     <!-- เพิ่มใหม่: ตัวกรอง "พนักงาน" (ผู้บันทึกการชำระ) เหมือนหน้าอื่นในระบบ -->
                     <div>
                         <label class="block text-xs font-semibold text-blue-900 mb-1">พนักงาน</label>
                         <select id="reportFilterEmployee" class="w-full border border-gray-300 rounded-lg px-2 py-2 text-sm"></select>
                     </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-blue-900 mb-1">วิธีชำระ</label>
-                        <select id="reportFilterMethod" class="w-full border border-gray-300 rounded-lg px-2 py-2 text-sm">
-                            <option value="all">ทั้งหมด</option>
-                            <option value="transfer">โอน</option>
-                            <option value="cash">จ่ายสด</option>
-                            <option value="check">เช็ค</option>
-                            <option value="direct">จ่ายตรง</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-blue-900 mb-1">สถานะตรวจสอบ</label>
-                        <select id="reportFilterStatus" class="w-full border border-gray-300 rounded-lg px-2 py-2 text-sm">
-                            <option value="all">ทั้งหมด</option>
-                            <option value="pending">รอตรวจสอบ</option>
-                            <option value="checked">เช็คแล้ว</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-blue-900 mb-1">🔍 ค้นหา</label>
-                        <input type="text" id="reportSearch" placeholder="ชื่อ / ทะเบียน"
-                            class="w-full border border-gray-300 rounded-lg px-2 py-2 text-sm">
-                    </div>
                 </div>
 
                 <div class="flex flex-col md:flex-row justify-between items-center gap-3">
                     <div id="reportTotal" class="font-bold text-blue-900 text-sm md:text-base"></div>
-                    <button onclick="exportExcel()"
-                        class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition shadow-sm">
-                        📥 Export Excel
-                    </button>
                 </div>
             </div>
 
@@ -478,6 +447,11 @@
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-bold text-blue-900" id="historyModalTitle">ประวัติการชำระ</h3>
                 <button onclick="closeHistoryModal()" class="text-gray-400 hover:text-gray-700 text-xl leading-none">✕</button>
+            </div>
+            <div id="allHistoryFilters" class="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4 hidden">
+                <select id="allHistoryFilterDay" class="border border-gray-300 rounded-lg px-2 py-2 text-sm"></select>
+                <select id="allHistoryFilterMonth" class="border border-gray-300 rounded-lg px-2 py-2 text-sm"></select>
+                <select id="allHistoryFilterEmployee" class="border border-gray-300 rounded-lg px-2 py-2 text-sm"></select>
             </div>
             <div id="historyModalBody" class="space-y-3"></div>
         </div>
@@ -578,56 +552,19 @@ function addFinKnownEmployees(names){
 const finLoggedInEmployee = (typeof getEmployeeName === "function") ? getEmployeeName() : "";
 if(finLoggedInEmployee) addFinKnownEmployees([finLoggedInEmployee]);
 
-/* แปลงตัวกรอง วัน/เดือน/ปี (พ.ศ.) ของแท็บ "รายงานการเงิน" เป็นช่วงวันที่ ISO (ค.ศ.)
-   เพื่อกรองที่ระดับ Firestore query ตรงๆ (field "date" เก็บเป็น "YYYY-MM-DD" อยู่แล้ว
-   เทียบแบบ string ได้เลยเพราะเรียงตามลำดับตัวอักษร = เรียงตามวันที่จริงพอดี)
-   ถ้าไม่ได้เลือกปีไว้ (year === "all") จะคำนวณช่วงที่แน่นอนไม่ได้ จึงไม่กรองวันที่ในกรณีนั้น */
-function finBuildDateRange(day, month, year){
-
-    if(year === "all") return null;
-
-    const gYear = Number(year) - 543;
-    if(isNaN(gYear)) return null;
-
-    if(day !== "all" && month !== "all"){
-        const exact = `${gYear}-${month}-${day}`;
-        return { start: exact, end: exact };
-    }
-
-    if(month !== "all"){
-        const start = `${gYear}-${month}-01`;
-        const lastDay = new Date(gYear, Number(month), 0).getDate();
-        const end = `${gYear}-${month}-${String(lastDay).padStart(2,"0")}`;
-        return { start, end };
-    }
-
-    return { start: `${gYear}-01-01`, end: `${gYear}-12-31` };
-}
-
 /* สร้าง Firestore Query ของ paymentRecords ตามตัวกรองปัจจุบันในแท็บ "รายงานการเงิน"
-   (วันที่/บริษัท/พนักงาน/วิธีชำระ) — ตัวกรอง "สถานะตรวจสอบ" และ "คำค้นหา" ยังกรองที่ฝั่ง client
-   เหมือนเดิม เพราะต้องอ่านครบทุกฟิลด์มาเทียบอยู่ดี ไม่คุ้มที่จะแยก query */
+   (เหลือแค่ "พนักงาน" ที่กรองระดับ query — วัน/เดือน กรองฝั่ง client ใน getFilteredReportRows) */
 function finBuildPaymentQuery(){
 
-    const day = document.getElementById("reportFilterDay")?.value || "all";
-    const month = document.getElementById("reportFilterMonth")?.value || "all";
-    const year = document.getElementById("reportFilterYear")?.value || "all";
-    const company = document.getElementById("reportFilterCompany")?.value || "all";
+    // แก้ไข: เอาตัวกรอง "ปี/บริษัท/วิธีชำระ" ออกตามที่ขอ เหลือ วัน/เดือน/พนักงาน เท่านั้น
+    // วัน/เดือนกรองที่ฝั่ง client อยู่แล้วใน getFilteredReportRows (ไม่ต้องพึ่งปีเลย จึงไม่ต้อง
+    // สร้างช่วงวันที่ที่นี่อีกต่อไป) ส่วนพนักงานยังกรองที่ระดับ Firestore query เพื่อลด reads
     const employee = document.getElementById("reportFilterEmployee")?.value || "all";
-    const method = document.getElementById("reportFilterMethod")?.value || "all";
 
     const base = collection(db, "paymentRecords");
     const constraints = [];
 
-    const range = finBuildDateRange(day, month, year);
-    if(range){
-        constraints.push(where("date", ">=", range.start));
-        constraints.push(where("date", "<=", range.end));
-    }
-
-    if(company !== "all") constraints.push(where("company", "==", company));
     if(employee !== "all") constraints.push(where("recordedBy", "==", employee));
-    if(method !== "all") constraints.push(where("method", "==", method));
 
     return constraints.length ? query(base, ...constraints) : base;
 }
@@ -735,11 +672,35 @@ function calculateOverdue(dateStr){
     return days > 0 ? days : 0;
 }
 
-function toThaiDateDisplay(isoDate){
-    if(!isoDate) return "-";
-    const [y,m,d] = isoDate.split("-");
-    if(!y || !m || !d) return isoDate;
-    return `${d}/${m}/${Number(y)+543}`;
+/* แก้ไข: เดิมรองรับเฉพาะรูปแบบ ISO "YYYY-MM-DD" เท่านั้น (ใช้ split("-") ตรงๆ)
+   ถ้าข้อมูลเป็นรูปแบบ "DD/MM/YYYY" (ไม่มี "-") จะคืนค่าเดิมกลับไปโดยไม่แปลงเป็น พ.ศ. ให้
+   ทำให้วันที่บางจุด (เช่น "วันเริ่ม" ของลูกค้าที่ดึงมาจาก insuranceData) ยังโชว์เป็น ค.ศ. อยู่
+   เพิ่มการรองรับรูปแบบ DD/MM/YYYY ด้วย (เช็คปีถ้าน้อยกว่า 2400 ถือว่าเป็น ค.ศ. แล้วบวก 543 ให้
+   ถ้าเป็น พ.ศ. อยู่แล้วจะไม่บวกซ้ำ) */
+function toThaiDateDisplay(dateStr){
+
+    if(!dateStr) return "-";
+
+    const s = String(dateStr).trim();
+
+    let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if(m){
+        const yyyy = Number(m[1]) + 543;
+        const mm = m[2].padStart(2,"0");
+        const dd = m[3].padStart(2,"0");
+        return `${dd}/${mm}/${yyyy}`;
+    }
+
+    m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{3,4})$/);
+    if(m){
+        const dd = m[1].padStart(2,"0");
+        const mm = m[2].padStart(2,"0");
+        let yyyy = Number(m[3]);
+        if(yyyy < 2400) yyyy += 543;
+        return `${dd}/${mm}/${yyyy}`;
+    }
+
+    return s;
 }
 
 /* =========================================================
@@ -886,7 +847,7 @@ function renderDebtTable(){
             <td class="p-3 font-medium text-gray-900">${safe(item.customer)}</td>
             <td class="p-3 text-gray-600">${safe(item.company)}</td>
             <td class="p-3 text-gray-600">${safe(item.plate)}</td>
-            <td class="p-3 text-gray-600 whitespace-nowrap">${safe(item.start)}</td>
+            <td class="p-3 text-gray-600 whitespace-nowrap">${toThaiDateDisplay(item.start)}</td>
             <td class="p-3 text-blue-600 font-semibold whitespace-nowrap">${fmt(item.debtAmount)} ฿</td>
             <td class="p-3 text-gray-600 whitespace-nowrap">${safe(item.phone)}</td>
             <td class="p-3 text-center">
@@ -961,7 +922,7 @@ function renderSelectionStage(){
                     <div><b>ชื่อผู้เอาประกัน:</b> ${safe(targetItem.customer)}</div>
                     <div><b>บริษัท:</b> ${safe(targetItem.company)}</div>
                     <div><b>ทะเบียน:</b> ${safe(targetItem.plate)}</div>
-                    <div><b>วันเริ่ม:</b> ${safe(targetItem.start)}</div>
+                    <div><b>วันเริ่ม:</b> ${toThaiDateDisplay(targetItem.start)}</div>
                     <div><b>เบอร์โทร:</b> ${safe(targetItem.phone)}</div>
                     <div><b>สถานะ:</b> ${targetItem.overdue > 0 ? "เกินกำหนด " + targetItem.overdue + " วัน" : "ปกติ"}</div>
                     <div><b>งวดที่ชำระ:</b> งวดที่ ${inst.installmentNumber}</div>
@@ -1489,10 +1450,8 @@ function populateReportFilters(){
 
     const daySelect = document.getElementById("reportFilterDay");
     const monthSelect = document.getElementById("reportFilterMonth");
-    const yearSelect = document.getElementById("reportFilterYear");
-    const companySelect = document.getElementById("reportFilterCompany");
 
-    // เพิ่มใหม่: ตัวเลือก "วันที่" (1-31) เหมือนตัวเลือกเดือน/ปี ใช้กรองวันที่ชำระแบบเจาะจงวันได้
+    // เพิ่มใหม่: ตัวเลือก "วันที่" (1-31) เหมือนตัวเลือกเดือน ใช้กรองวันที่ชำระแบบเจาะจงวันได้
     if(!daySelect.dataset.ready){
         let dayOptions = `<option value="all">ทั้งหมด</option>`;
         for(let d = 1; d <= 31; d++){
@@ -1509,30 +1468,19 @@ function populateReportFilters(){
         monthSelect.dataset.ready = "true";
     }
 
-    /* แก้ไข: เดิมสร้างรายการปีจากปีที่เจอใน paymentRecords ที่โหลดมาแล้วทั้ง collection
-       (ต้องโหลดทั้งหมดก่อนถึงจะรู้ว่ามีปีไหนบ้าง) เปลี่ยนเป็นสร้างช่วงปีตายตัวล่วงหน้า
-       (ปีปัจจุบัน ±3/2 ปี) เหมือนกับ filterYear ของ report.html ทำให้เลือกปีอื่นที่ยังไม่เคย
-       โหลดข้อมูลมาก่อนได้ตั้งแต่แรก โดยไม่ต้องพึ่งข้อมูลที่โหลดมาแล้ว */
+    /* เพิ่มใหม่: ตัวเลือก "ปี" แสดงเป็น พ.ศ. แต่เก็บค่า (value) เป็น ค.ศ. 4 หลัก
+       เพราะ row.date เก็บเป็น ISO "YYYY-MM-DD" (ค.ศ.) อยู่แล้ว (ดู getFilteredReportRows/parts[0])
+       แสดงย้อนหลัง 5 ปี ถึงล่วงหน้า 1 ปีจากปีปัจจุบัน ครอบคลุมการค้นหาข้อมูลเก่า */
+    const yearSelect = document.getElementById("reportFilterYear");
     if(!yearSelect.dataset.ready){
-        const prevYear = yearSelect.value || "all";
-        const nowBE = new Date().getFullYear() + 543;
-        let years = [];
-        for(let y = nowBE - 3; y <= nowBE + 2; y++) years.push(String(y));
-        yearSelect.innerHTML = `<option value="all">ทั้งหมด</option>` +
-            years.map(y=>`<option value="${y}">${y}</option>`).join("");
-        yearSelect.value = years.includes(prevYear) ? prevYear : "all";
+        const currentGregorianYear = new Date().getFullYear();
+        let yearOptions = `<option value="all">ทั้งหมด</option>`;
+        for(let y = currentGregorianYear + 1; y >= currentGregorianYear - 5; y--){
+            yearOptions += `<option value="${y}">${y + 543}</option>`;
+        }
+        yearSelect.innerHTML = yearOptions;
         yearSelect.dataset.ready = "true";
     }
-
-    /* แก้ไข: เดิมสร้างรายการบริษัทจาก paymentRecords ที่โหลดมาแล้ว เปลี่ยนเป็นใช้รายชื่อบริษัท
-       ที่รู้จักไว้ล่วงหน้า (คงที่) รวมกับบริษัทที่เจอใน insuranceData (โหลดอยู่แล้วสำหรับตาราง
-       "เลือกลูกค้า" ในแท็บ 1️⃣) ไม่ต้องพึ่งข้อมูล paymentRecords ทั้ง collection อีกต่อไป */
-    const prevCompany = companySelect.value || "all";
-    const companiesFromDebt = [...new Set((insuranceData || []).map(i => i.company).filter(Boolean))];
-    const companyList = [...new Set([...FIN_KNOWN_COMPANIES, ...companiesFromDebt])];
-    companySelect.innerHTML = `<option value="all">ทั้งหมด</option>` +
-        companyList.map(c=>`<option value="${c}">${c}</option>`).join("");
-    companySelect.value = companyList.includes(prevCompany) ? prevCompany : "all";
 
     /* แก้ไข: เดิมสร้างรายการพนักงานจาก recordedBy ที่เจอใน paymentRecords ที่โหลดมาแล้วเท่านั้น
        เปลี่ยนเป็นใช้ cache สะสมชื่อพนักงานที่เคยเจอไว้ใน localStorage + ชื่อพนักงานที่ล็อกอินอยู่
@@ -1546,7 +1494,7 @@ function populateReportFilters(){
     employeeSelect.value = employeeList.includes(prevEmployee) ? prevEmployee : "all";
 
     /* เพิ่มใหม่: ค่าเริ่มต้นตอนเปิดหน้าครั้งแรกเท่านั้น (ไม่ทับค่าที่พนักงานเลือกเองภายหลัง)
-       ตั้งเดือน/ปีปัจจุบันให้อัตโนมัติ (แสดงเฉพาะเดือนล่าสุดก่อน) และตั้งพนักงานเป็นคนที่ล็อกอินอยู่
+       ตั้งวัน/เดือนปัจจุบันให้อัตโนมัติ และตั้งพนักงานเป็นคนที่ล็อกอินอยู่
        (เห็นเฉพาะรายการที่ตัวเองบันทึกก่อน) พนักงานเปลี่ยนกลับเป็น "ทั้งหมด" เองได้เสมอถ้าต้องการเห็นทุกคน */
     if(!reportFiltersInitialized){
         reportFiltersInitialized = true;
@@ -1558,15 +1506,13 @@ function populateReportFilters(){
 }
 
 /* เพิ่มใหม่: ตั้งตัวกรองให้เหลือเฉพาะ "วันนี้ + พนักงานที่ล็อกอินอยู่" ในคลิกเดียว
-   ใช้ทั้งตอนเปิดหน้าครั้งแรก (auto) และตอนกดปุ่ม "📅 วันนี้ (ของฉัน)" เอง (manual) */
+   ใช้ทั้งตอนเปิดหน้าครั้งแรก (auto) และตอนกดปุ่ม "📅 วันนี้" เอง (manual) */
 function applyTodayFilter(shouldRender = true){
 
     const now = new Date();
     const currentDay = String(now.getDate()).padStart(2, "0");
     const currentMonth = String(now.getMonth() + 1).padStart(2, "0");
-    // แก้ไข: ต้องแปลงเป็นปี พ.ศ. (+543) ให้ตรงกับ dropdown ปีที่สร้างจาก nowBE (พ.ศ.)
-    // เดิมใช้ปี ค.ศ. ตรงๆ ทำให้หาปีใน options ไม่เจอ ปีจึงไม่ถูกเลือกให้อัตโนมัติตอนกด "วันนี้"
-    const currentYear = String(now.getFullYear() + 543);
+    const currentYear = String(now.getFullYear());
 
     const daySelect = document.getElementById("reportFilterDay");
     const monthSelect = document.getElementById("reportFilterMonth");
@@ -1575,7 +1521,7 @@ function applyTodayFilter(shouldRender = true){
 
     if([...daySelect.options].some(o => o.value === currentDay)) daySelect.value = currentDay;
     if([...monthSelect.options].some(o => o.value === currentMonth)) monthSelect.value = currentMonth;
-    if([...yearSelect.options].some(o => o.value === currentYear)) yearSelect.value = currentYear;
+    if(yearSelect && [...yearSelect.options].some(o => o.value === currentYear)) yearSelect.value = currentYear;
 
     const loggedInName = (typeof getEmployeeName === "function") ? getEmployeeName() : "";
     if(loggedInName && [...employeeSelect.options].some(o => o.value === loggedInName)){
@@ -1583,24 +1529,20 @@ function applyTodayFilter(shouldRender = true){
     }
 
     // แก้ไข: เดิมแค่ renderReportTable() (กรองฝั่ง client จากข้อมูลที่โหลดมาแล้วทั้งหมด)
-    // ตอนนี้ตัวกรองวันที่/พนักงานเปลี่ยน ต้อง subscribe ใหม่ด้วย query ที่กรองฝั่ง Firestore ด้วย
+    // ตอนนี้ตัวกรองพนักงานอาจเปลี่ยน ต้อง subscribe ใหม่ด้วย query ที่กรองฝั่ง Firestore ด้วย
     if(shouldRender) subscribeToPaymentRecords();
 }
 
 /* ปุ่ม "🔄 ดูทั้งหมด" ถูกเอาออกแล้วตามคำขอ พนักงานสามารถเปลี่ยนตัวกรองแต่ละช่อง
-   (วัน/เดือน/ปี/บริษัท/พนักงาน/วิธีชำระ/สถานะ) เป็น "ทั้งหมด" เองได้ตามปกติจาก dropdown ด้านบน */
+   (วัน/เดือน/พนักงาน) เป็น "ทั้งหมด" เองได้ตามปกติจาก dropdown ด้านบน */
 document.getElementById("btnFilterToday").addEventListener("click", () => applyTodayFilter(true));
 
 function getFilteredReportRows(){
 
     const day = document.getElementById("reportFilterDay").value;
     const month = document.getElementById("reportFilterMonth").value;
-    const year = document.getElementById("reportFilterYear").value;
-    const company = document.getElementById("reportFilterCompany").value;
+    const year = document.getElementById("reportFilterYear")?.value || "all";
     const employee = document.getElementById("reportFilterEmployee")?.value || "all";
-    const method = document.getElementById("reportFilterMethod").value;
-    const status = document.getElementById("reportFilterStatus").value;
-    const term = (document.getElementById("reportSearch").value || "").trim().toLowerCase();
 
     return paymentRecords.filter(row => {
 
@@ -1612,15 +1554,11 @@ function getFilteredReportRows(){
         const dayOK = day === "all" || rowDay === day;
         const monthOK = month === "all" || rowMonth === month;
         const yearOK = year === "all" || rowYear === year;
-        const companyOK = company === "all" || row.company === company;
         const employeeOK = employee === "all" || row.recordedBy === employee;
-        const methodOK = method === "all" || row.method === method;
-        const statusOK = status === "all" || (status === "checked" ? !!row.checked : !row.checked);
-        const searchOK = !term ||
-            (row.customer || "").toLowerCase().includes(term) ||
-            (row.plate || "").toLowerCase().includes(term);
+        // แสดงเฉพาะรายการที่ "ยังไม่เช็ค" เท่านั้นในแท็บรายงานการเงิน (เช็คแล้วจะหายจากตารางนี้ไปอยู่ใน "ประวัติการชำระ" แทน)
+        const statusOK = !row.checked;
 
-        return dayOK && monthOK && yearOK && companyOK && employeeOK && methodOK && statusOK && searchOK;
+        return dayOK && monthOK && yearOK && employeeOK && statusOK;
 
     }).sort((a,b) => ((b.date||"")+(b.time||"")).localeCompare((a.date||"")+(a.time||"")));
 }
@@ -1655,7 +1593,7 @@ function renderReportTable(){
             <td class="p-3 font-medium text-gray-900">${safe(row.customer)}</td>
             <td class="p-3">${safe(row.company)}</td>
             <td class="p-3">${safe(row.plate)}</td>
-            <td class="p-3 whitespace-nowrap">${safe(row.start)}</td>
+            <td class="p-3 whitespace-nowrap">${toThaiDateDisplay(row.start)}</td>
             <td class="p-3 text-center font-semibold text-blue-700 whitespace-nowrap">${row.installmentNumber ? "งวดที่ " + row.installmentNumber : "-"}</td>
             <td class="p-3">${row.methodLabel || METHOD_LABELS[row.method] || "-"}</td>
             <td class="p-3 text-blue-700 font-semibold whitespace-nowrap">${fmt(row.amount)} ฿</td>
@@ -1679,17 +1617,17 @@ function renderReportTable(){
     document.getElementById("reportTotal").innerText = `💰 ยอดรวม: ${fmt(total)} บาท (${rows.length} รายการ)`;
 }
 
-/* แก้ไข: วันที่/บริษัท/พนักงาน/วิธีชำระ ตอนนี้กรองที่ระดับ Firestore query (ดู finBuildPaymentQuery)
-   จึงต้อง subscribe ใหม่เมื่อเปลี่ยนค่า ส่วน "สถานะตรวจสอบ" และ "คำค้นหา" ยังกรองฝั่ง client เหมือนเดิม
-   (ไม่ต้อง query ใหม่ แค่ render ตารางใหม่จากข้อมูลที่โหลดมาแล้วพอ) */
-["reportFilterDay","reportFilterMonth","reportFilterYear","reportFilterCompany","reportFilterEmployee","reportFilterMethod"].forEach(id=>{
-    document.getElementById(id).addEventListener("change", subscribeToPaymentRecords);
+/* แก้ไข: วัน/เดือน/ปี/พนักงาน ตามที่ขอ (เอาบริษัท/วิธีชำระ/ค้นหา ออก)
+   วัน/เดือน/ปี กรองฝั่ง client เท่านั้น (ไม่ต้อง query Firestore ใหม่ แค่ render ตารางใหม่พอ)
+   พนักงาน กรองที่ระดับ Firestore query ด้วย (ดู finBuildPaymentQuery) จึงต้อง subscribe ใหม่ */
+["reportFilterDay","reportFilterMonth","reportFilterYear"].forEach(id=>{
+    document.getElementById(id).addEventListener("change", renderReportTable);
 });
-document.getElementById("reportFilterStatus").addEventListener("change", renderReportTable);
-document.getElementById("reportSearch").addEventListener("input", renderReportTable);
+document.getElementById("reportFilterEmployee").addEventListener("change", subscribeToPaymentRecords);
 
 /* ปุ่มสถานะ: สลับ "รอตรวจสอบ" <-> "เช็คแล้ว" — ให้ผู้จัดการกดยืนยันเมื่อตรวจสอบเสร็จ
-   เช็คแล้วจะยังคงอยู่ในรายงานเสมอ (ไม่ลบ/ไม่ซ่อน) เพื่อเก็บเป็นประวัติ */
+   แก้ไข: แท็บ "รายงานการเงิน" ตอนนี้แสดงเฉพาะรายการที่ "ยังไม่เช็ค" เท่านั้น (ดู getFilteredReportRows)
+   ดังนั้นเมื่อกดยืนยัน "เช็คแล้ว" รายการนี้จะหายไปจากตารางรายงานทันที แต่ยังคงดูได้ในปุ่ม "ประวัติการชำระ" เสมอ */
 window.toggleChecked = async function(id, currentlyChecked){
 
     if(!isManagerUser()){
@@ -1717,6 +1655,7 @@ window.toggleChecked = async function(id, currentlyChecked){
 window.openHistoryModal = async function(customerId, customerName){
 
     document.getElementById("historyModalTitle").innerText = `🕒 ประวัติการชำระของ ${customerName}`;
+    document.getElementById("allHistoryFilters")?.classList.add("hidden");
     document.getElementById("historyModalBody").innerHTML = `<div class="text-center text-gray-400 py-8">⏳ กำลังโหลด...</div>`;
     document.getElementById("historyModalOverlay").classList.remove("hidden");
 
@@ -1760,18 +1699,71 @@ window.closeHistoryModal = function(){
    โมดัลประวัติการชำระ (ทั้งหมด): เปิดจากปุ่ม "🕒 ประวัติการชำระ" ที่อยู่ข้างแท็บ
    แสดงทุกรายการชำระของลูกค้าทุกคน เรียงล่าสุดก่อน
 ========================================================= */
-window.openAllHistoryModal = function(){
+/* แก้ไข: ปุ่ม "ประวัติการชำระ" ตอนนี้แสดง "ทั้งหมด" จริงๆ (ทั้งที่เช็คแล้วและยังไม่เช็ค)
+   ไม่ผูกกับตัวกรองของแท็บ "รายงานการเงิน" อีกต่อไป (เพราะแท็บนั้นตอนนี้แสดงเฉพาะรายการที่ยังไม่เช็ค)
+   จึง query ข้อมูลทั้ง collection "paymentRecords" แยกต่างหากเฉพาะตอนเปิดโมดัลนี้เท่านั้น
+   (ไม่กระทบ Reads ของหน้าหลัก เพราะโหลดเฉพาะตอนผู้ใช้กดดูจริงๆ)
+   ตัวกรองของโมดัลนี้เหลือแค่ วันที่ / เดือน / ปี / พนักงาน เท่านั้น (ตัดบริษัท/วิธีชำระ/สถานะออก) */
 
-    /* แก้ไข: เดิม paymentRecords ในตัวแปรนี้คือทั้ง collection เสมอ ตอนนี้ถูกกรองตามตัวกรองของ
-       แท็บ "รายงานการเงิน" อยู่แล้ว (เพื่อลด Reads) ปุ่มนี้จึงแสดงเฉพาะรายการที่ตรงกับตัวกรอง
-       ปัจจุบันเท่านั้น ไม่ใช่ "ทั้งหมดทุกยุคทุกสมัย" เหมือนเดิม — ถ้าจะดูช่วงอื่น ให้เปลี่ยนตัวกรอง
-       วันที่/บริษัท/พนักงานด้านบนก่อน แล้วค่อยกดปุ่มนี้ใหม่ */
-    const history = [...paymentRecords]
+let allHistoryFullData = [];
+
+function populateAllHistoryFilters(){
+
+    const daySel = document.getElementById("allHistoryFilterDay");
+    const monthSel = document.getElementById("allHistoryFilterMonth");
+    const empSel = document.getElementById("allHistoryFilterEmployee");
+
+    if(!daySel || !monthSel || !empSel) return;
+
+    if(!daySel.dataset.ready){
+        let dayOpts = `<option value="all">ทุกวัน</option>`;
+        for(let d = 1; d <= 31; d++){
+            const key = String(d).padStart(2,"0");
+            dayOpts += `<option value="${key}">${d}</option>`;
+        }
+        daySel.innerHTML = dayOpts;
+        daySel.dataset.ready = "true";
+    }
+
+    if(!monthSel.dataset.ready){
+        monthSel.innerHTML = `<option value="all">ทุกเดือน</option>` +
+            THAI_MONTHS.map((m,i)=>`<option value="${String(i+1).padStart(2,"0")}">${m}</option>`).join("");
+        monthSel.dataset.ready = "true";
+    }
+
+    const prevEmployee = empSel.value || "all";
+    const employeeList = loadFinKnownEmployees();
+    empSel.innerHTML = `<option value="all">ทุกพนักงาน</option>` +
+        employeeList.map(e=>`<option value="${e}">${e}</option>`).join("");
+    empSel.value = employeeList.includes(prevEmployee) ? prevEmployee : "all";
+}
+
+function getFilteredAllHistory(){
+
+    const day = document.getElementById("allHistoryFilterDay")?.value || "all";
+    const month = document.getElementById("allHistoryFilterMonth")?.value || "all";
+    const employee = document.getElementById("allHistoryFilterEmployee")?.value || "all";
+
+    return allHistoryFullData.filter(row=>{
+
+        const parts = (row.date || "").split("-");
+        const rowMonth = parts[1] || "";
+        const rowDay = parts[2] || "";
+
+        const dayOK = day === "all" || rowDay === day;
+        const monthOK = month === "all" || rowMonth === month;
+        const employeeOK = employee === "all" || row.recordedBy === employee;
+
+        return dayOK && monthOK && employeeOK;
+    });
+}
+
+function renderAllHistoryList(){
+
+    const history = [...getFilteredAllHistory()]
         .sort((a,b) => ((b.date||"")+(b.time||"")).localeCompare((a.date||"")+(a.time||"")));
 
-    document.getElementById("historyModalTitle").innerText = "🕒 ประวัติการชำระ (ตามตัวกรองปัจจุบัน)";
-
-    document.getElementById("historyModalBody").innerHTML = (history.map(r => `
+    document.getElementById("historyModalBody").innerHTML = history.map(r => `
         <div class="border border-gray-200 rounded-xl p-3 flex justify-between items-center gap-3">
             <div>
                 <div class="font-semibold text-gray-800">${safe(r.customer)} · ${r.dateDisplay || toThaiDateDisplay(r.date)} เวลา ${r.time || "-"} ${r.installmentNumber ? "· งวดที่ " + r.installmentNumber : ""}</div>
@@ -1787,10 +1779,43 @@ window.openAllHistoryModal = function(){
                 </span>
             </div>
         </div>
-    `).join("") || `<div class="text-center text-gray-400 py-8">ยังไม่มีประวัติการชำระ</div>`)
-        + `<div class="text-center text-[11px] text-gray-400 mt-3">* แสดงเฉพาะรายการที่ตรงกับตัวกรองวันที่/บริษัท/พนักงาน/วิธีชำระที่เลือกอยู่ในแท็บ "รายงานการเงิน" เท่านั้น</div>`;
+    `).join("") || `<div class="text-center text-gray-400 py-8">ยังไม่มีประวัติการชำระ</div>`;
+}
 
+async function loadAllHistoryData(){
+
+    document.getElementById("historyModalBody").innerHTML = `<div class="text-center text-gray-400 py-8">⏳ กำลังโหลด...</div>`;
+
+    try{
+        const snap = await getDocs(collection(db, "paymentRecords"));
+        allHistoryFullData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        addFinKnownEmployees(allHistoryFullData.map(r => r.recordedBy).filter(Boolean));
+        populateAllHistoryFilters();
+    }catch(err){
+        console.error("โหลดประวัติการชำระทั้งหมดไม่สำเร็จ:", err);
+        allHistoryFullData = [];
+    }
+
+    renderAllHistoryList();
+}
+
+window.openAllHistoryModal = async function(){
+
+    document.getElementById("historyModalTitle").innerText = "🕒 ประวัติการชำระ (ทั้งหมด)";
+    document.getElementById("allHistoryFilters")?.classList.remove("hidden");
     document.getElementById("historyModalOverlay").classList.remove("hidden");
+
+    populateAllHistoryFilters();
+
+    ["allHistoryFilterDay","allHistoryFilterMonth","allHistoryFilterEmployee"].forEach(id=>{
+        const el = document.getElementById(id);
+        if(el && !el.dataset.boundChange){
+            el.addEventListener("change", renderAllHistoryList);
+            el.dataset.boundChange = "true";
+        }
+    });
+
+    await loadAllHistoryData();
 };
 
 document.getElementById("btnAllHistory").addEventListener("click", openAllHistoryModal);
@@ -1830,42 +1855,6 @@ window.deleteReportRow = async function(id, customerId, installmentNumber){
         console.error("ลบข้อมูลไม่สำเร็จ:", err);
         alert("ลบข้อมูลไม่สำเร็จ: " + (err.message || "กรุณาลองใหม่อีกครั้ง"));
     }
-};
-
-/* =========================================================
-   Export Excel
-========================================================= */
-window.exportExcel = function(){
-
-    const rows = getFilteredReportRows();
-
-    if(rows.length === 0){
-        alert("ไม่มีข้อมูลสำหรับ Export");
-        return;
-    }
-
-    const excelData = rows.map(row => ({
-        "สถานะ": row.checked ? "เช็คแล้ว" : "รอตรวจสอบ",
-        "วันที่": row.dateDisplay || toThaiDateDisplay(row.date),
-        "เวลา": row.time,
-        "ชื่อ": row.customer,
-        "บริษัท": row.company,
-        "ทะเบียน": row.plate,
-        "วันเริ่ม": row.start,
-        "งวดที่ชำระ": row.installmentNumber ? "งวดที่ " + row.installmentNumber : "-",
-        "วิธีการชำระ": row.methodLabel || METHOD_LABELS[row.method] || "-",
-        "บัญชี/รายละเอียด": accountDisplay(row),
-        "ยอดเงินที่ชำระ": row.amount,
-        "ผู้บันทึก": row.recordedBy,
-        "หมายเหตุ": row.note || ""
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(excelData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "รายงานการเงิน");
-
-    const fileName = "รายงานการเงิน_" + new Date().toLocaleDateString("th-TH").replace(/\//g,"-") + ".xlsx";
-    XLSX.writeFile(wb, fileName);
 };
 
 /* =========================================================
