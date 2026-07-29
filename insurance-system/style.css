@@ -915,3 +915,34 @@ textarea:focus{
     margin:-20px auto 34px;
     line-height:1.6;
 }
+
+/* =========================
+   ปุ่ม "กลับ" มาตรฐานทั้งระบบ
+   ใช้ร่วมกันทุกหน้า (account_menu, documents, customer_debt, report, finance ฯลฯ)
+   เพื่อให้หน้าตาปุ่มกลับเหมือนกันทุกจุดในระบบ
+========================= */
+.nav-back-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+
+    background:var(--blue-light);
+    color:var(--blue-dark);
+
+    border:none;
+    padding:10px 20px;
+    border-radius:999px;
+
+    font-family:"Kanit",sans-serif;
+    font-weight:600;
+    font-size:14px;
+    white-space:nowrap;
+
+    text-decoration:none;
+    cursor:pointer;
+    transition:.2s;
+}
+
+.nav-back-btn:hover{
+    background:var(--blue-soft);
+}

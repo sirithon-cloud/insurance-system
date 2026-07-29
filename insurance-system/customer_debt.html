@@ -104,26 +104,6 @@ h1{
     margin-bottom:14px;
 }
 
-.back-btn-debt{
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-    background:var(--blue-light);
-    color:var(--blue-dark);
-    border:none;
-    padding:11px 20px;
-    border-radius:999px;
-    cursor:pointer;
-    font-family:"Kanit",sans-serif;
-    font-weight:600;
-    font-size:14px;
-    transition:.2s;
-    flex:0 0 auto;
-}
-.back-btn-debt:hover{
-    background:#DCE9FF;
-}
-
 .debt-total{
     font-size:15px;
     font-weight:700;
@@ -139,7 +119,7 @@ h1{
     .debt-top-row{
         justify-content:center;
     }
-    .back-btn-debt, .debt-total{
+    .nav-back-btn, .debt-total{
         flex:1 1 100%;
         text-align:center;
         justify-content:center;
@@ -479,7 +459,7 @@ thead th.col-actions{
 
 
 <div class="debt-top-row">
-    <button class="back-btn-debt" onclick="location.href='account_menu.html'">
+    <button class="nav-back-btn" onclick="location.href='account_menu.html'">
         ← กลับเมนูบัญชี
     </button>
 
@@ -660,6 +640,15 @@ function populateDebtFilters(data){
         if([...daySel.options].some(o=>o.value===curDay)) daySel.value = curDay;
         if([...monthSel.options].some(o=>o.value===curMonth)) monthSel.value = curMonth;
         if(years.includes(curYear)) yearSel.value = curYear;
+
+        /* เพิ่มใหม่: ค่าเริ่มต้นของตัวกรอง "พนักงาน" ให้เป็นชื่อผู้ที่ล็อกอินอยู่ก่อนเสมอ
+           (แสดงเฉพาะลูกหนี้ของตัวเองก่อน) พนักงานสามารถเปลี่ยนกลับเป็น "ทั้งหมด" เองได้ทีหลัง
+           ถ้าต้องการเห็นลูกหนี้ของทุกคน ไม่กระทบลูกค้าที่ "เกินกำหนด" เพราะแถวเกินกำหนดจะแสดง
+           เสมอไม่ว่าจะเลือกตัวกรองพนักงานเป็นใครก็ตาม (ดู renderDebt ด้านล่าง) */
+        const loggedInName = (typeof getEmployeeName === "function") ? getEmployeeName() : "";
+        if(loggedInName && employees.includes(loggedInName)){
+            empSel.value = loggedInName;
+        }
     }
 }
 
@@ -774,12 +763,16 @@ function renderDebt(data, maxInstallments){
         const monthOK = selMonth === "all" || parsed.month === selMonth;
         const yearOK = selYear === "all" || parsed.year === selYear;
 
-        const dateOK = (dayOK && monthOK && yearOK) || item.overdue > 0;
+        const dateOK = dayOK && monthOK && yearOK;
 
         const empName = item.employeeName || item.requestName || "";
         const employeeOK = selEmployee === "all" || empName === selEmployee;
 
-        return dateOK && employeeOK;
+        /* แก้ไข: เดิมลูกค้า "เกินกำหนด" ข้ามได้แค่ตัวกรองวันที่ (dateOK) เท่านั้น แต่ยังโดน
+           ตัวกรองพนักงาน (employeeOK) กรองออกอยู่ดี ทำให้ถ้าเลือกดูของพนักงานคนใดคนหนึ่ง
+           ลูกค้าเกินกำหนดของพนักงานคนอื่นจะหายไปจากตาราง ทั้งที่ควรเห็นเสมอไม่ว่าจะเลือกอะไรอยู่
+           แก้ให้ลูกค้าเกินกำหนด (overdue > 0) ข้ามทุกตัวกรองไปเลย แสดงทุกครั้งเสมอ */
+        return item.overdue > 0 || (dateOK && employeeOK);
     });
 
     debt.sort((a,b)=> b.overdue - a.overdue);
@@ -790,6 +783,11 @@ function renderDebt(data, maxInstallments){
         let instHeadHtml = "";
         for(let i = 1; i <= maxInstallments; i++){
             instHeadHtml += `<th>งวดที่ ${i}</th>`;
+            /* เพิ่มใหม่: คอลัมน์ "ผู้แจ้ง" แทรกไว้ต่อจากงวดที่ 4 เสมอ (ไม่ว่าจะมีงวดเกิน 4 หรือไม่ก็ตาม
+               getMaxInstallmentCount() รับประกันว่า maxInstallments >= 4 เสมอ จึงวิ่งถึง i===4 แน่นอน) */
+            if(i === 4){
+                instHeadHtml += `<th class="col-requester">ผู้แจ้ง</th>`;
+            }
         }
         headEl.innerHTML = `
             <th class="col-rank">ลำดับ</th>
@@ -808,7 +806,8 @@ function renderDebt(data, maxInstallments){
     const body = document.getElementById("debtTableBody");
 
     if(debt.length === 0){
-        const colCount = 9 + maxInstallments;
+        /* เพิ่มใหม่: +1 เพราะเพิ่มคอลัมน์ "ผู้แจ้ง" เข้ามาอีก 1 คอลัมน์ */
+        const colCount = 10 + maxInstallments;
         body.innerHTML = `<tr><td colspan="${colCount}"><div class="debt-empty">ไม่มีลูกค้าตรงกับเงื่อนไขที่เลือก</div></td></tr>`;
     } else {
 
@@ -847,6 +846,22 @@ function renderDebt(data, maxInstallments){
                             value="${safeVal(item["installment" + i])}"
                             disabled>
                     </td>`;
+
+                /* เพิ่มใหม่: คอลัมน์ "ผู้แจ้ง" แทรกไว้ต่อจากงวดที่ 4 เสมอ ให้ตรงกับหัวตาราง
+                   ใช้ field "employeeName" เดียวกับที่หน้าอื่นในระบบใช้อ่าน/เขียนชื่อผู้แจ้งงาน
+                   แก้ไข/บันทึกได้ผ่านปุ่ม ✏️/💾 เดียวกับคอลัมน์อื่นในแถว (data-row ตรงกัน) */
+                if(i === 4){
+                    const requesterName = item.employeeName || item.requestName || "";
+                    installmentCellsHtml += `
+                        <td class="col-requester">
+                            <input type="text"
+                                class="debt-input table-input"
+                                data-row="${item.id}"
+                                data-field="employeeName"
+                                value="${safeVal(requesterName)}"
+                                disabled>
+                        </td>`;
+                }
             }
 
             return `

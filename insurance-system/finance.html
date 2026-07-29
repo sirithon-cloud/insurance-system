@@ -276,7 +276,8 @@
         <div class="grid grid-cols-3 items-center mb-6 border-b pb-3">
             <div class="flex items-center gap-3 justify-self-start">
                 <button onclick="location.href='account_menu.html'"
-                    class="px-4 py-2 rounded-full bg-gray-100 text-gray-600 font-medium hover:bg-gray-200 transition text-sm">
+                    style="display:inline-flex;align-items:center;gap:6px;background:#EAF1FF;color:#1E4FC4;border:none;padding:10px 20px;border-radius:999px;font-family:'Kanit',sans-serif;font-weight:600;font-size:14px;white-space:nowrap;cursor:pointer;transition:.2s;"
+                    onmouseover="this.style.background='#DCE9FF'" onmouseout="this.style.background='#EAF1FF'">
                     ← กลับเมนูบัญชี
                 </button>
             </div>
@@ -342,13 +343,19 @@
 
             <!-- ขั้นที่ 1: รายการลูกค้าค้างชำระทั้งหมด -->
             <div class="mb-6" id="customerTableSection">
-                <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-3">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-3 gap-3">
                     <h3 class="text-lg font-semibold text-gray-800">
                         1️⃣ เลือกลูกค้าที่จะบันทึกการชำระเงิน
                         <span id="debtCount" class="text-sm font-normal text-gray-500 block md:inline"></span>
                     </h3>
                     <input type="text" id="debtSearch" placeholder="🔍 ค้นหาชื่อลูกค้า / ทะเบียนรถ..."
                         class="border border-gray-300 rounded-xl px-4 py-2 text-sm w-full md:w-72 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div class="flex justify-end items-center gap-2 mb-4">
+                    <label for="debtEmployeeFilter" class="text-xs font-semibold text-gray-600">👤 พนักงาน:</label>
+                    <select id="debtEmployeeFilter"
+                        class="border border-gray-300 rounded-lg px-3 py-1.5 text-xs font-semibold text-blue-800 bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-400"></select>
                 </div>
 
                 <div class="overflow-x-auto rounded-xl border border-gray-200">
@@ -378,6 +385,12 @@
         <div id="panelReport" class="fin-tab-panel">
 
             <div class="bg-gray-50 border border-gray-200 rounded-2xl p-4 mb-5">
+                <div class="flex flex-wrap gap-2 mb-3">
+                    <button type="button" id="btnFilterToday"
+                        class="px-3 py-1.5 rounded-lg bg-blue-100 text-blue-800 text-xs font-semibold hover:bg-blue-200 transition">
+                        📅 วันนี้ 
+                    </button>
+                </div>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
                     <div>
                         <label class="block text-xs font-semibold text-blue-900 mb-1">วันที่</label>
@@ -394,6 +407,11 @@
                     <div>
                         <label class="block text-xs font-semibold text-blue-900 mb-1">บริษัท</label>
                         <select id="reportFilterCompany" class="w-full border border-gray-300 rounded-lg px-2 py-2 text-sm"></select>
+                    </div>
+                    <!-- เพิ่มใหม่: ตัวกรอง "พนักงาน" (ผู้บันทึกการชำระ) เหมือนหน้าอื่นในระบบ -->
+                    <div>
+                        <label class="block text-xs font-semibold text-blue-900 mb-1">พนักงาน</label>
+                        <select id="reportFilterEmployee" class="w-full border border-gray-300 rounded-lg px-2 py-2 text-sm"></select>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-blue-900 mb-1">วิธีชำระ</label>
@@ -476,7 +494,10 @@ import {
     setDoc,
     deleteDoc,
     doc,
-    serverTimestamp
+    serverTimestamp,
+    query,
+    where,
+    getDocs
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
 /* ตั้งค่าเดียวกับทุกหน้าในระบบ เพื่ออ่าน/เขียน collection เดียวกัน */
@@ -509,6 +530,165 @@ const MANAGER_EMAILS = ["viriyah127551@gmail.com", "viriyah127552@gmail.com"];
 function isManagerUser(){
     const email = (typeof getEmployeeEmail === "function") ? getEmployeeEmail() : "";
     return MANAGER_EMAILS.includes(String(email || "").trim().toLowerCase());
+}
+
+/* =========================================================
+   เพิ่มใหม่: ลด Firestore Reads
+   เดิมหน้านี้เปิด onSnapshot อ่านทั้ง collection "insuranceData" และ "paymentRecords"
+   แบบไม่กรองเลยทุกครั้งที่เปิดหน้า (โดยเฉพาะ paymentRecords ที่สะสมไปเรื่อยๆ ไม่มีวันหมด)
+   เปลี่ยนมาใช้ Firestore Query (where) กรองตามตัวกรองที่เลือกอยู่ แล้ว subscribe ใหม่ทุกครั้งที่
+   เปลี่ยนตัวกรอง (แพทเทิร์นเดียวกับที่ report.html ใช้อยู่แล้ว)
+
+   ผลข้างเคียงที่ต้องแก้ตาม:
+   - dropdown "พนักงาน"/"บริษัท" เดิมสร้างจากข้อมูลที่โหลดมาทั้งหมด พอกรองแล้วจะเห็นแค่บางส่วน
+     จึงเปลี่ยนมาใช้ cache สะสมชื่อพนักงาน (เหมือน report.html) + รายชื่อบริษัทที่รู้จักไว้ล่วงหน้า
+     รวมกับบริษัทที่เจอใน insuranceData (ซึ่งโหลดอยู่แล้วสำหรับตาราง "เลือกลูกค้า")
+   - โมดัล "ประวัติการชำระ" ของลูกค้ารายคน (openHistoryModal) ต้องเห็นประวัติเต็มทุกงวดเสมอ
+     ไม่ใช่แค่ที่ตรงกับตัวกรองปัจจุบัน จึงเปลี่ยนไป query แยกเฉพาะ customerId นั้นตอนเปิดโมดัลจริงๆ
+     (อ่านเพิ่มเฉพาะตอนเปิดดู ไม่ใช่ทุกครั้งที่หน้าโหลด)
+========================================================= */
+const FIN_EMPLOYEE_CACHE_KEY = "finance_known_employees_v1";
+const FIN_KNOWN_COMPANIES = ["วิริยะ","เมืองไทย","AIG","AXA","KWI","กรุงเทพ"];
+
+function loadFinKnownEmployees(){
+    try{
+        const raw = localStorage.getItem(FIN_EMPLOYEE_CACHE_KEY);
+        return raw ? JSON.parse(raw) : [];
+    }catch(e){
+        return [];
+    }
+}
+
+function addFinKnownEmployees(names){
+    const set = new Set(loadFinKnownEmployees());
+    let changed = false;
+    (names || []).forEach(n=>{
+        if(n && !set.has(n)){
+            set.add(n);
+            changed = true;
+        }
+    });
+    const list = [...set];
+    if(changed){
+        try{ localStorage.setItem(FIN_EMPLOYEE_CACHE_KEY, JSON.stringify(list)); }catch(e){}
+    }
+    return list;
+}
+
+const finLoggedInEmployee = (typeof getEmployeeName === "function") ? getEmployeeName() : "";
+if(finLoggedInEmployee) addFinKnownEmployees([finLoggedInEmployee]);
+
+/* แปลงตัวกรอง วัน/เดือน/ปี (พ.ศ.) ของแท็บ "รายงานการเงิน" เป็นช่วงวันที่ ISO (ค.ศ.)
+   เพื่อกรองที่ระดับ Firestore query ตรงๆ (field "date" เก็บเป็น "YYYY-MM-DD" อยู่แล้ว
+   เทียบแบบ string ได้เลยเพราะเรียงตามลำดับตัวอักษร = เรียงตามวันที่จริงพอดี)
+   ถ้าไม่ได้เลือกปีไว้ (year === "all") จะคำนวณช่วงที่แน่นอนไม่ได้ จึงไม่กรองวันที่ในกรณีนั้น */
+function finBuildDateRange(day, month, year){
+
+    if(year === "all") return null;
+
+    const gYear = Number(year) - 543;
+    if(isNaN(gYear)) return null;
+
+    if(day !== "all" && month !== "all"){
+        const exact = `${gYear}-${month}-${day}`;
+        return { start: exact, end: exact };
+    }
+
+    if(month !== "all"){
+        const start = `${gYear}-${month}-01`;
+        const lastDay = new Date(gYear, Number(month), 0).getDate();
+        const end = `${gYear}-${month}-${String(lastDay).padStart(2,"0")}`;
+        return { start, end };
+    }
+
+    return { start: `${gYear}-01-01`, end: `${gYear}-12-31` };
+}
+
+/* สร้าง Firestore Query ของ paymentRecords ตามตัวกรองปัจจุบันในแท็บ "รายงานการเงิน"
+   (วันที่/บริษัท/พนักงาน/วิธีชำระ) — ตัวกรอง "สถานะตรวจสอบ" และ "คำค้นหา" ยังกรองที่ฝั่ง client
+   เหมือนเดิม เพราะต้องอ่านครบทุกฟิลด์มาเทียบอยู่ดี ไม่คุ้มที่จะแยก query */
+function finBuildPaymentQuery(){
+
+    const day = document.getElementById("reportFilterDay")?.value || "all";
+    const month = document.getElementById("reportFilterMonth")?.value || "all";
+    const year = document.getElementById("reportFilterYear")?.value || "all";
+    const company = document.getElementById("reportFilterCompany")?.value || "all";
+    const employee = document.getElementById("reportFilterEmployee")?.value || "all";
+    const method = document.getElementById("reportFilterMethod")?.value || "all";
+
+    const base = collection(db, "paymentRecords");
+    const constraints = [];
+
+    const range = finBuildDateRange(day, month, year);
+    if(range){
+        constraints.push(where("date", ">=", range.start));
+        constraints.push(where("date", "<=", range.end));
+    }
+
+    if(company !== "all") constraints.push(where("company", "==", company));
+    if(employee !== "all") constraints.push(where("recordedBy", "==", employee));
+    if(method !== "all") constraints.push(where("method", "==", method));
+
+    return constraints.length ? query(base, ...constraints) : base;
+}
+
+let unsubscribePaymentRecords = null;
+
+function subscribeToPaymentRecords(){
+
+    if(unsubscribePaymentRecords){
+        unsubscribePaymentRecords();
+        unsubscribePaymentRecords = null;
+    }
+
+    const q = finBuildPaymentQuery();
+
+    unsubscribePaymentRecords = onSnapshot(q, (snapshot) => {
+        paymentRecords = snapshot.docs.map(d => ({ id:d.id, ...d.data() }));
+        addFinKnownEmployees(paymentRecords.map(r => r.recordedBy).filter(Boolean));
+        populateReportFilters();
+        renderReportTable();
+    });
+}
+
+let unsubscribeDebtData = null;
+
+/* กรองที่ระดับ Firestore query เมื่อเปิดปุ่ม "👤 เฉพาะลูกค้าของฉัน" แทนที่จะโหลดลูกค้าทุกคน
+   มาแล้วค่อยกรองทิ้งด้วย JS ฝั่ง client เหมือนเดิม ลด Reads ได้มากเมื่อเปิดใช้ตัวกรองนี้
+   หมายเหตุ: กรองจากฟิลด์ "employeeName" เท่านั้น (ข้อมูลเก่าก่อนมีฟิลด์นี้ที่มีแค่ requestName
+   จะไม่ถูกนับรวมตอนเปิดตัวกรองนี้ — พฤติกรรมเดียวกับตัวกรองพนักงานในหน้ารายงาน) */
+function subscribeToInsuranceData(){
+
+    if(unsubscribeDebtData){
+        unsubscribeDebtData();
+        unsubscribeDebtData = null;
+    }
+
+    const base = collection(db, "insuranceData");
+    const q = (selectedDebtEmployee !== "all")
+        ? query(base, where("employeeName", "==", selectedDebtEmployee))
+        : base;
+
+    unsubscribeDebtData = onSnapshot(q, (snapshot) => {
+        insuranceData = snapshot.docs.map(d => ({ id:d.id, ...d.data() }));
+        addFinKnownEmployees(insuranceData.map(item => item.employeeName || item.requestName).filter(Boolean));
+        populateDebtEmployeeFilter();
+        rebuildDebtList();
+    });
+}
+
+/* เพิ่มใหม่: สร้างตัวเลือกพนักงานสำหรับตาราง 1️⃣ เลือกลูกค้า (แทนปุ่ม toggle เดิม)
+   ใช้ cache รายชื่อพนักงานเดียวกับตัวกรอง "พนักงาน" ของแท็บรายงานการเงิน */
+function populateDebtEmployeeFilter(){
+    const sel = document.getElementById("debtEmployeeFilter");
+    if(!sel) return;
+
+    const employees = loadFinKnownEmployees();
+
+    sel.innerHTML = `<option value="all">ทั้งหมด</option>` +
+        employees.map(e=>`<option value="${e}">${e}</option>`).join("");
+
+    sel.value = employees.includes(selectedDebtEmployee) ? selectedDebtEmployee : "all";
 }
 
 function fmt(n){ return Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2}); }
@@ -571,6 +751,13 @@ let hiddenIds = new Set();     // ลูกค้าที่เพิ่งบ�
 let selectedIds = new Set();   // ลูกค้าที่ถูกเลือกอยู่ (รอบันทึกการชำระ)
 let currentMethod = null;
 let paymentRecords = [];
+// แก้ไข: เปลี่ยนจากปุ่ม toggle "เฉพาะลูกค้าของฉัน" มาเป็นตัวเลือกพนักงานแบบ dropdown
+// ค่าเริ่มต้น = ชื่อพนักงานที่ล็อกอินอยู่ (แสดงเฉพาะลูกค้าของตัวเองก่อนเสมอ) เปลี่ยนเป็น "all" เพื่อดูทุกคนได้
+let selectedDebtEmployee = finLoggedInEmployee || "all";
+
+/* เพิ่มใหม่: ใช้ตั้งค่าเริ่มต้นของตัวกรอง "รายงานการเงิน" (เดือน/ปีปัจจุบัน + พนักงานที่ล็อกอินอยู่)
+   ให้ทำแค่ครั้งเดียวตอนเปิดหน้า ไม่ทับค่าที่พนักงานเลือกเองภายหลัง */
+let reportFiltersInitialized = false;
 
 /* เพิ่มใหม่: ข้อมูลลูกค้าที่ส่งมาจากปุ่ม "ชำระงวด" ของหน้า customer_debt.html
    ถ้ามีค่านี้ ระบบจะเลือกลูกค้ารายนี้ให้อัตโนมัติทันทีที่ข้อมูลลูกหนี้โหลดเสร็จ
@@ -635,10 +822,7 @@ function computeNextInstallment(item){
 /* =========================================================
    โหลดข้อมูลลูกค้าค้างชำระแบบ realtime
 ========================================================= */
-onSnapshot(collection(db, "insuranceData"), (snapshot) => {
-    insuranceData = snapshot.docs.map(d => ({ id:d.id, ...d.data() }));
-    rebuildDebtList();
-});
+subscribeToInsuranceData();
 
 function rebuildDebtList(){
     debtList = insuranceData
@@ -671,8 +855,14 @@ function rebuildDebtList(){
 ========================================================= */
 function getFilteredDebtList(){
     const term = (document.getElementById("debtSearch").value || "").trim().toLowerCase();
-    if(!term) return debtList;
-    return debtList.filter(item =>
+
+    let list = debtList;
+
+    // แก้ไข: การกรองตามพนักงานเปลี่ยนไปทำที่ระดับ Firestore query แล้ว (ดู subscribeToInsuranceData)
+    // ที่นี่เหลือแค่กรองคำค้นหาต่อจากรายการที่ query มาแล้วเท่านั้น
+
+    if(!term) return list;
+    return list.filter(item =>
         (item.customer || "").toLowerCase().includes(term) ||
         (item.plate || "").toLowerCase().includes(term)
     );
@@ -732,6 +922,14 @@ window.clearSelection = function(){
 };
 
 document.getElementById("debtSearch").addEventListener("input", renderDebtTable);
+
+/* แก้ไข: เปลี่ยนจากปุ่ม toggle "เฉพาะลูกค้าของฉัน" เป็นตัวเลือกพนักงานแบบ dropdown
+   เลือกพนักงานคนไหน ก็จะ re-subscribe ด้วย Firestore query ที่กรองเฉพาะลูกค้าของคนนั้น
+   ค่าเริ่มต้นตอนเปิดหน้าคือชื่อพนักงานที่ล็อกอินอยู่ (ดู selectedDebtEmployee ด้านบน) */
+document.getElementById("debtEmployeeFilter").addEventListener("change", (e) => {
+    selectedDebtEmployee = e.target.value;
+    subscribeToInsuranceData();
+});
 
 /* =========================================================
    ขั้นที่ 2: แสดงลูกค้าที่เลือก + ปุ่มวิธีชำระ (โผล่มาก็ต่อเมื่อเลือกลูกค้าแล้ว)
@@ -1287,12 +1485,6 @@ window.savePayment = async function(){
 /* =========================================================
    รายงานการเงิน (อ่านจาก paymentRecords แบบ realtime)
 ========================================================= */
-onSnapshot(collection(db, "paymentRecords"), (snapshot) => {
-    paymentRecords = snapshot.docs.map(d => ({ id:d.id, ...d.data() }));
-    populateReportFilters();
-    renderReportTable();
-});
-
 function populateReportFilters(){
 
     const daySelect = document.getElementById("reportFilterDay");
@@ -1317,22 +1509,87 @@ function populateReportFilters(){
         monthSelect.dataset.ready = "true";
     }
 
-    const prevYear = yearSelect.value || "all";
-    const years = new Set();
-    paymentRecords.forEach(r => { if(r.date){ years.add(r.date.split("-")[0]); } });
-    const yearList = [...years].sort();
-    yearSelect.innerHTML = `<option value="all">ทั้งหมด</option>` +
-        yearList.map(y=>`<option value="${y}">${Number(y)+543}</option>`).join("");
-    yearSelect.value = yearList.includes(prevYear) ? prevYear : "all";
+    /* แก้ไข: เดิมสร้างรายการปีจากปีที่เจอใน paymentRecords ที่โหลดมาแล้วทั้ง collection
+       (ต้องโหลดทั้งหมดก่อนถึงจะรู้ว่ามีปีไหนบ้าง) เปลี่ยนเป็นสร้างช่วงปีตายตัวล่วงหน้า
+       (ปีปัจจุบัน ±3/2 ปี) เหมือนกับ filterYear ของ report.html ทำให้เลือกปีอื่นที่ยังไม่เคย
+       โหลดข้อมูลมาก่อนได้ตั้งแต่แรก โดยไม่ต้องพึ่งข้อมูลที่โหลดมาแล้ว */
+    if(!yearSelect.dataset.ready){
+        const prevYear = yearSelect.value || "all";
+        const nowBE = new Date().getFullYear() + 543;
+        let years = [];
+        for(let y = nowBE - 3; y <= nowBE + 2; y++) years.push(String(y));
+        yearSelect.innerHTML = `<option value="all">ทั้งหมด</option>` +
+            years.map(y=>`<option value="${y}">${y}</option>`).join("");
+        yearSelect.value = years.includes(prevYear) ? prevYear : "all";
+        yearSelect.dataset.ready = "true";
+    }
 
+    /* แก้ไข: เดิมสร้างรายการบริษัทจาก paymentRecords ที่โหลดมาแล้ว เปลี่ยนเป็นใช้รายชื่อบริษัท
+       ที่รู้จักไว้ล่วงหน้า (คงที่) รวมกับบริษัทที่เจอใน insuranceData (โหลดอยู่แล้วสำหรับตาราง
+       "เลือกลูกค้า" ในแท็บ 1️⃣) ไม่ต้องพึ่งข้อมูล paymentRecords ทั้ง collection อีกต่อไป */
     const prevCompany = companySelect.value || "all";
-    const companies = new Set();
-    paymentRecords.forEach(r => { if(r.company) companies.add(r.company); });
-    const companyList = [...companies];
+    const companiesFromDebt = [...new Set((insuranceData || []).map(i => i.company).filter(Boolean))];
+    const companyList = [...new Set([...FIN_KNOWN_COMPANIES, ...companiesFromDebt])];
     companySelect.innerHTML = `<option value="all">ทั้งหมด</option>` +
         companyList.map(c=>`<option value="${c}">${c}</option>`).join("");
     companySelect.value = companyList.includes(prevCompany) ? prevCompany : "all";
+
+    /* แก้ไข: เดิมสร้างรายการพนักงานจาก recordedBy ที่เจอใน paymentRecords ที่โหลดมาแล้วเท่านั้น
+       เปลี่ยนเป็นใช้ cache สะสมชื่อพนักงานที่เคยเจอไว้ใน localStorage + ชื่อพนักงานที่ล็อกอินอยู่
+       ตอนนี้เสมอ (ดู addFinKnownEmployees ด้านบน) เพื่อไม่ต้องโหลด paymentRecords ทั้งหมดมาก่อน
+       ถึงจะรู้จักชื่อพนักงานครบ */
+    const employeeSelect = document.getElementById("reportFilterEmployee");
+    const prevEmployee = employeeSelect.value || "all";
+    const employeeList = addFinKnownEmployees(paymentRecords.map(r => r.recordedBy).filter(Boolean));
+    employeeSelect.innerHTML = `<option value="all">ทั้งหมด</option>` +
+        employeeList.map(e=>`<option value="${e}">${e}</option>`).join("");
+    employeeSelect.value = employeeList.includes(prevEmployee) ? prevEmployee : "all";
+
+    /* เพิ่มใหม่: ค่าเริ่มต้นตอนเปิดหน้าครั้งแรกเท่านั้น (ไม่ทับค่าที่พนักงานเลือกเองภายหลัง)
+       ตั้งเดือน/ปีปัจจุบันให้อัตโนมัติ (แสดงเฉพาะเดือนล่าสุดก่อน) และตั้งพนักงานเป็นคนที่ล็อกอินอยู่
+       (เห็นเฉพาะรายการที่ตัวเองบันทึกก่อน) พนักงานเปลี่ยนกลับเป็น "ทั้งหมด" เองได้เสมอถ้าต้องการเห็นทุกคน */
+    if(!reportFiltersInitialized){
+        reportFiltersInitialized = true;
+        // ตั้งค่าเริ่มต้น "วันนี้ + พนักงานที่ล็อกอินอยู่" เฉยๆ ไม่ subscribe/render ที่นี่
+        // (โค้ดที่เรียก populateReportFilters() ครั้งแรกจะเป็นคน subscribeToPaymentRecords() เอง
+        // ต่อจากนี้ทันที โดยใช้ค่าตัวกรองที่เพิ่งตั้งไว้)
+        applyTodayFilter(false);
+    }
 }
+
+/* เพิ่มใหม่: ตั้งตัวกรองให้เหลือเฉพาะ "วันนี้ + พนักงานที่ล็อกอินอยู่" ในคลิกเดียว
+   ใช้ทั้งตอนเปิดหน้าครั้งแรก (auto) และตอนกดปุ่ม "📅 วันนี้ (ของฉัน)" เอง (manual) */
+function applyTodayFilter(shouldRender = true){
+
+    const now = new Date();
+    const currentDay = String(now.getDate()).padStart(2, "0");
+    const currentMonth = String(now.getMonth() + 1).padStart(2, "0");
+    // แก้ไข: ต้องแปลงเป็นปี พ.ศ. (+543) ให้ตรงกับ dropdown ปีที่สร้างจาก nowBE (พ.ศ.)
+    // เดิมใช้ปี ค.ศ. ตรงๆ ทำให้หาปีใน options ไม่เจอ ปีจึงไม่ถูกเลือกให้อัตโนมัติตอนกด "วันนี้"
+    const currentYear = String(now.getFullYear() + 543);
+
+    const daySelect = document.getElementById("reportFilterDay");
+    const monthSelect = document.getElementById("reportFilterMonth");
+    const yearSelect = document.getElementById("reportFilterYear");
+    const employeeSelect = document.getElementById("reportFilterEmployee");
+
+    if([...daySelect.options].some(o => o.value === currentDay)) daySelect.value = currentDay;
+    if([...monthSelect.options].some(o => o.value === currentMonth)) monthSelect.value = currentMonth;
+    if([...yearSelect.options].some(o => o.value === currentYear)) yearSelect.value = currentYear;
+
+    const loggedInName = (typeof getEmployeeName === "function") ? getEmployeeName() : "";
+    if(loggedInName && [...employeeSelect.options].some(o => o.value === loggedInName)){
+        employeeSelect.value = loggedInName;
+    }
+
+    // แก้ไข: เดิมแค่ renderReportTable() (กรองฝั่ง client จากข้อมูลที่โหลดมาแล้วทั้งหมด)
+    // ตอนนี้ตัวกรองวันที่/พนักงานเปลี่ยน ต้อง subscribe ใหม่ด้วย query ที่กรองฝั่ง Firestore ด้วย
+    if(shouldRender) subscribeToPaymentRecords();
+}
+
+/* ปุ่ม "🔄 ดูทั้งหมด" ถูกเอาออกแล้วตามคำขอ พนักงานสามารถเปลี่ยนตัวกรองแต่ละช่อง
+   (วัน/เดือน/ปี/บริษัท/พนักงาน/วิธีชำระ/สถานะ) เป็น "ทั้งหมด" เองได้ตามปกติจาก dropdown ด้านบน */
+document.getElementById("btnFilterToday").addEventListener("click", () => applyTodayFilter(true));
 
 function getFilteredReportRows(){
 
@@ -1340,6 +1597,7 @@ function getFilteredReportRows(){
     const month = document.getElementById("reportFilterMonth").value;
     const year = document.getElementById("reportFilterYear").value;
     const company = document.getElementById("reportFilterCompany").value;
+    const employee = document.getElementById("reportFilterEmployee")?.value || "all";
     const method = document.getElementById("reportFilterMethod").value;
     const status = document.getElementById("reportFilterStatus").value;
     const term = (document.getElementById("reportSearch").value || "").trim().toLowerCase();
@@ -1355,13 +1613,14 @@ function getFilteredReportRows(){
         const monthOK = month === "all" || rowMonth === month;
         const yearOK = year === "all" || rowYear === year;
         const companyOK = company === "all" || row.company === company;
+        const employeeOK = employee === "all" || row.recordedBy === employee;
         const methodOK = method === "all" || row.method === method;
         const statusOK = status === "all" || (status === "checked" ? !!row.checked : !row.checked);
         const searchOK = !term ||
             (row.customer || "").toLowerCase().includes(term) ||
             (row.plate || "").toLowerCase().includes(term);
 
-        return dayOK && monthOK && yearOK && companyOK && methodOK && statusOK && searchOK;
+        return dayOK && monthOK && yearOK && companyOK && employeeOK && methodOK && statusOK && searchOK;
 
     }).sort((a,b) => ((b.date||"")+(b.time||"")).localeCompare((a.date||"")+(a.time||"")));
 }
@@ -1420,9 +1679,13 @@ function renderReportTable(){
     document.getElementById("reportTotal").innerText = `💰 ยอดรวม: ${fmt(total)} บาท (${rows.length} รายการ)`;
 }
 
-["reportFilterDay","reportFilterMonth","reportFilterYear","reportFilterCompany","reportFilterMethod","reportFilterStatus"].forEach(id=>{
-    document.getElementById(id).addEventListener("change", renderReportTable);
+/* แก้ไข: วันที่/บริษัท/พนักงาน/วิธีชำระ ตอนนี้กรองที่ระดับ Firestore query (ดู finBuildPaymentQuery)
+   จึงต้อง subscribe ใหม่เมื่อเปลี่ยนค่า ส่วน "สถานะตรวจสอบ" และ "คำค้นหา" ยังกรองฝั่ง client เหมือนเดิม
+   (ไม่ต้อง query ใหม่ แค่ render ตารางใหม่จากข้อมูลที่โหลดมาแล้วพอ) */
+["reportFilterDay","reportFilterMonth","reportFilterYear","reportFilterCompany","reportFilterEmployee","reportFilterMethod"].forEach(id=>{
+    document.getElementById(id).addEventListener("change", subscribeToPaymentRecords);
 });
+document.getElementById("reportFilterStatus").addEventListener("change", renderReportTable);
 document.getElementById("reportSearch").addEventListener("input", renderReportTable);
 
 /* ปุ่มสถานะ: สลับ "รอตรวจสอบ" <-> "เช็คแล้ว" — ให้ผู้จัดการกดยืนยันเมื่อตรวจสอบเสร็จ
@@ -1451,13 +1714,24 @@ window.toggleChecked = async function(id, currentlyChecked){
 /* =========================================================
    โมดัลประวัติการชำระ: แสดงทุกรายการชำระของลูกค้ารายนั้น (เรียงล่าสุดก่อน)
 ========================================================= */
-window.openHistoryModal = function(customerId, customerName){
-
-    const history = paymentRecords
-        .filter(r => r.customerId === customerId)
-        .sort((a,b) => ((b.date||"")+(b.time||"")).localeCompare((a.date||"")+(a.time||"")));
+window.openHistoryModal = async function(customerId, customerName){
 
     document.getElementById("historyModalTitle").innerText = `🕒 ประวัติการชำระของ ${customerName}`;
+    document.getElementById("historyModalBody").innerHTML = `<div class="text-center text-gray-400 py-8">⏳ กำลังโหลด...</div>`;
+    document.getElementById("historyModalOverlay").classList.remove("hidden");
+
+    /* เพิ่มใหม่: paymentRecords ที่โหลดไว้ในหน้าหลักตอนนี้ถูกกรองตามตัวกรองของแท็บ "รายงานการเงิน"
+       อยู่แล้ว (เพื่อลด Reads) ทำให้ประวัติของลูกค้าอาจแสดงไม่ครบถ้าอ่านจากตัวแปรนั้นตรงๆ
+       จึง query แยกเฉพาะ customerId นี้ตอนเปิดโมดัลจริงๆ เท่านั้น (อ่านเพิ่มเฉพาะตอนเปิดดู
+       ไม่ใช่ทุกครั้งที่หน้าโหลด) เพื่อให้เห็นประวัติเต็มทุกงวดเสมอ */
+    let history = [];
+    try{
+        const snap = await getDocs(query(collection(db, "paymentRecords"), where("customerId", "==", customerId)));
+        history = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+            .sort((a,b) => ((b.date||"")+(b.time||"")).localeCompare((a.date||"")+(a.time||"")));
+    }catch(err){
+        console.error("โหลดประวัติการชำระไม่สำเร็จ:", err);
+    }
 
     document.getElementById("historyModalBody").innerHTML = history.map(r => `
         <div class="border border-gray-200 rounded-xl p-3 flex justify-between items-center gap-3">
@@ -1476,8 +1750,6 @@ window.openHistoryModal = function(customerId, customerName){
             </div>
         </div>
     `).join("") || `<div class="text-center text-gray-400 py-8">ยังไม่มีประวัติการชำระ</div>`;
-
-    document.getElementById("historyModalOverlay").classList.remove("hidden");
 };
 
 window.closeHistoryModal = function(){
@@ -1490,12 +1762,16 @@ window.closeHistoryModal = function(){
 ========================================================= */
 window.openAllHistoryModal = function(){
 
+    /* แก้ไข: เดิม paymentRecords ในตัวแปรนี้คือทั้ง collection เสมอ ตอนนี้ถูกกรองตามตัวกรองของ
+       แท็บ "รายงานการเงิน" อยู่แล้ว (เพื่อลด Reads) ปุ่มนี้จึงแสดงเฉพาะรายการที่ตรงกับตัวกรอง
+       ปัจจุบันเท่านั้น ไม่ใช่ "ทั้งหมดทุกยุคทุกสมัย" เหมือนเดิม — ถ้าจะดูช่วงอื่น ให้เปลี่ยนตัวกรอง
+       วันที่/บริษัท/พนักงานด้านบนก่อน แล้วค่อยกดปุ่มนี้ใหม่ */
     const history = [...paymentRecords]
         .sort((a,b) => ((b.date||"")+(b.time||"")).localeCompare((a.date||"")+(a.time||"")));
 
-    document.getElementById("historyModalTitle").innerText = "🕒 ประวัติการชำระทั้งหมด";
+    document.getElementById("historyModalTitle").innerText = "🕒 ประวัติการชำระ (ตามตัวกรองปัจจุบัน)";
 
-    document.getElementById("historyModalBody").innerHTML = history.map(r => `
+    document.getElementById("historyModalBody").innerHTML = (history.map(r => `
         <div class="border border-gray-200 rounded-xl p-3 flex justify-between items-center gap-3">
             <div>
                 <div class="font-semibold text-gray-800">${safe(r.customer)} · ${r.dateDisplay || toThaiDateDisplay(r.date)} เวลา ${r.time || "-"} ${r.installmentNumber ? "· งวดที่ " + r.installmentNumber : ""}</div>
@@ -1511,7 +1787,8 @@ window.openAllHistoryModal = function(){
                 </span>
             </div>
         </div>
-    `).join("") || `<div class="text-center text-gray-400 py-8">ยังไม่มีประวัติการชำระ</div>`;
+    `).join("") || `<div class="text-center text-gray-400 py-8">ยังไม่มีประวัติการชำระ</div>`)
+        + `<div class="text-center text-[11px] text-gray-400 mt-3">* แสดงเฉพาะรายการที่ตรงกับตัวกรองวันที่/บริษัท/พนักงาน/วิธีชำระที่เลือกอยู่ในแท็บ "รายงานการเงิน" เท่านั้น</div>`;
 
     document.getElementById("historyModalOverlay").classList.remove("hidden");
 };
@@ -1604,6 +1881,18 @@ window.switchTab = function(tab){
 
 document.getElementById("tabBtnPay").addEventListener("click", ()=>switchTab("pay"));
 document.getElementById("tabBtnReport").addEventListener("click", ()=>switchTab("report"));
+
+/* =========================================================
+   เริ่มทำงาน: paymentRecords
+   [แก้ไข] เดิม onSnapshot(collection(db,"paymentRecords"),...) อ่านทั้ง collection ทันทีที่หน้าโหลด
+   เปลี่ยนเป็น 2 ขั้นตอนแบบเดียวกับ report.html:
+   1) เรียก populateReportFilters() ก่อน เพื่อตั้งค่าตัวกรองเริ่มต้น (วันนี้ + พนักงานที่ล็อกอินอยู่)
+      บนตัว <select> ให้เรียบร้อยก่อน (ไม่ query อะไรตอนนี้)
+   2) เรียก subscribeToPaymentRecords() เพื่อ query Firestore เฉพาะข้อมูลที่ตรงกับตัวกรองเริ่มต้นนั้น
+      (ดู finBuildPaymentQuery ด้านบน) แทนที่จะโหลดทั้ง collection มาก่อนเสมอ
+========================================================= */
+populateReportFilters();
+subscribeToPaymentRecords();
 
 </script>
 

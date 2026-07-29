@@ -3,188 +3,468 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ฟอร์มประกันรถยนต์</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ฟอร์มประกันรถยนต์ - ข้อมูลลูกค้าและกรมธรรม์อย่างละเอียด</title>
 
     <link rel="stylesheet" href="style.css">
-
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- เพิ่มใหม่: บังคับให้ต้อง login ก่อนเข้าใช้งานหน้านี้ (เดิมเข้าตรงผ่าน URL ได้โดยไม่ต้อง login) -->
+    <!-- บังคับให้ต้อง login ก่อนเข้าใช้งานหน้านี้ -->
     <script src="auth.js"></script>
     <script>
         requireLogin();
     </script>
+
+    <style>
+        /* สไตล์เพิ่มเติมสำหรับการแบ่งหน้าขั้นตอนบนมือถือ (คงรูปแบบ Topbar เดิมไว้) */
+        .form-step {
+            display: none;
+        }
+        .form-step.active-step {
+            display: block;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .wizard-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            overflow-x: auto;
+        }
+        .step-tab {
+            font-size: 13px;
+            font-weight: 500;
+            color: #666;
+            padding: 6px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            white-space: nowrap;
+            background: #f1f2f6;
+            transition: all 0.3s;
+        }
+        .step-tab.active {
+            background: #2575fc;
+            color: white;
+        }
+        .cpa-box {
+            background: #fff8f8;
+            border: 1px solid #ffd1d1;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .bottom-action-bar {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+        .btn-action {
+            flex: 1;
+            padding: 12px;
+            font-size: 16px;
+            font-family: 'Kanit', sans-serif;
+            font-weight: 600;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .btn-prev {
+            background: #e0e0e0;
+            color: #333;
+        }
+        .btn-next, .save-btn {
+            background: #2575fc;
+            color: white;
+        }
+    </style>
 </head>
 
 <body class="form-page">
 
+    <!-- คงรูปแบบ Topbar เดิมตามต้นฉบับ -->
     <div class="topbar">
         <button id="menuBtn">☰</button>
-        <span class="apptitle">บันทึกข้อมูลประกันรถยนต์</span>
+        <span class="apptitle">บันทึกข้อมูลประกันรถยนต์ (แบบละเอียด)</span>
     </div>
 
     <main class="form-card">
 
-        <h1 class="form-title">🚗 ประกันรถยนต์</h1>
+        <h1 class="form-title">🚗 ฟอร์มประกันรถยนต์ (ข้อมูลลูกค้าอย่างละเอียด)</h1>
+
+        <!-- แถบนำทางขั้นตอน (Wizard Steps) -->
+        <div class="wizard-steps">
+            <div class="step-tab active" onclick="switchStep(1)">1. บริษัท & ลูกค้า</div>
+            <div class="step-tab" onclick="switchStep(2)">2. ข้อมูลรถยนต์</div>
+            <div class="step-tab" onclick="switchStep(3)">3. ความคุ้มครอง & CPA</div>
+            <div class="step-tab" onclick="switchStep(4)">4. ชำระเงิน</div>
+        </div>
 
         <form id="carForm">
 
-            <div class="section-title">🏢 ข้อมูลบริษัท</div>
+            <!-- ================= STEP 1 ================= -->
+            <div class="form-step active-step" id="step-1">
+                <div class="section-title">🏢 ข้อมูลบริษัทประกันภัย & ประเภทกรมธรรม์</div>
 
-            <label>บริษัทประกันภัย</label>
-            <select id="company" required>
-                <option value="">-- เลือกบริษัท --</option>
-                <option value="วิริยะ">วิริยะ</option>
-                <option value="เมืองไทย">เมืองไทย</option>
-                <option value="AIG">AIG</option>
-                <option value="AXA">AXA</option>
-                <option value="KWI">KWI</option>
-                <option value="กรุงเทพ">กรุงเทพ</option>
-            </select>
+                <div class="row">
+                    <div>
+                        <label>บริษัทประกันภัย <span style="color:red;">*</span></label>
+                        <select id="company" required>
+                            <option value="">-- เลือกบริษัท --</option>
+                            <option value="วิริยะประกันภัย">วิริยะประกันภัย</option>
+                            <option value="เมืองไทยประกันภัย">เมืองไทยประกันภัย</option>
+                            <option value="กรุงเทพประกันภัย">กรุงเทพประกันภัย</option>
+                            <option value="คุ้มภัยโตเกียวมารีน">คุ้มภัยโตเกียวมารีน</option>
+                            <option value="สินมั่นคงประกันภัย">สินมั่นคงประกันภัย</option>
+                            <option value="ทิพยประกันภัย">ทิพยประกันภัย</option>
+                            <option value="AIG">AIG</option>
+                            <option value="AXA">AXA</option>
+                            <option value="KWI">KWI</option>
+                            <option value="อื่นๆ">อื่นๆ</option>
+                        </select>
+                    </div>
 
-            <div class="section-title">👤 ข้อมูลผู้เอาประกัน</div>
-
-            <label>ชื่อผู้แจ้ง</label>
-            <input type="text" id="requestName" required>
-
-            <label>ชื่อผู้เอาประกัน</label>
-            <input type="text" id="name" required>
-
-            <label>ที่อยู่</label>
-            <textarea id="address"></textarea>
-
-            <div class="section-title">🚗 ข้อมูลรถ</div>
-
-            <label>ยี่ห้อ</label>
-            <input type="text" id="brand">
-
-            <label>ทะเบียน</label>
-            <input type="text" id="plate">
-
-            <label>เลขตัวถัง</label>
-            <input type="text" id="chassis">
-
-            <div class="section-title">📅 ระยะเวลาคุ้มครอง</div>
-
-            <div class="row">
-                <div>
-                    <label>วันเริ่ม</label>
-                    <input type="date" id="start">
+                    <div>
+                        <label>ประเภทประกันภัย <span style="color:red;">*</span></label>
+                        <select id="policyType" required>
+                            <option value="">-- เลือกประเภทประกัน --</option>
+                            <option value="ชั้น 1">ประกันชั้น 1</option>
+                            <option value="ชั้น 2+">ประกันชั้น 2+</option>
+                            <option value="ชั้น 3+">ประกันชั้น 3+</option>
+                            <option value="ชั้น 2">ประกันชั้น 2</option>
+                            <option value="ชั้น 3">ประกันชั้น 3</option>
+                            <option value="พ.ร.บ.">พ.ร.บ. อย่างเดียว</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div>
-                    <label>วันสิ้นสุด</label>
-                    <input type="date" id="end">
+                <div class="row" style="margin-top:15px;">
+                    <div>
+                        <label>เลขที่กรมธรรม์เดิม (ถ้ามี)</label>
+                        <input type="text" id="prevPolicyNo" placeholder="ระบุเลขกรมธรรม์เดิมเพื่อประวัติส่วนลด">
+                    </div>
+                    <div>
+                        <label>ผู้แจ้งงาน/พนักงานรับเรื่อง <span style="color:red;">*</span></label>
+                        <input type="text" id="requestName" required placeholder="ชื่อผู้แจ้งเรื่อง/ตัวแทน">
+                    </div>
+                </div>
+
+                <div class="section-title">👤 ข้อมูลส่วนตัวผู้เอาประกันภัย (ลูกค้า)</div>
+
+                <div class="row">
+                    <div>
+                        <label>คำนำหน้า <span style="color:red;">*</span></label>
+                        <select id="titleName" required>
+                            <option value="">-- เลือก --</option>
+                            <option value="นาย">นาย</option>
+                            <option value="นาง">นาง</option>
+                            <option value="นางสาว">นางสาว</option>
+                            <option value="ยศ/อื่นๆ">ยศ/อื่นๆ</option>
+                            <option value="บจก.">บจก.</option>
+                            <option value="หจก.">หจก.</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>ชื่อ-นามสกุล / ชื่อผู้เอาประกัน <span style="color:red;">*</span></label>
+                        <input type="text" id="name" required placeholder="นายสมชาย ใจดี / บริษัท ตัวอย่าง จำกัด">
+                    </div>
+                </div>
+
+                <div class="row" style="margin-top:15px;">
+                    <div>
+                        <label>เลขบัตรประชาชน / เลขผู้เสียภาษี <span style="color:red;">*</span></label>
+                        <input type="text" id="idCard" maxlength="13" required placeholder="เลข 13 หลัก">
+                    </div>
+                    <div>
+                        <label>เบอร์โทรศัพท์ติดต่อ <span style="color:red;">*</span></label>
+                        <input type="tel" id="phone" required placeholder="08X-XXX-XXXX">
+                    </div>
+                </div>
+
+                <div style="margin-top:15px;">
+                    <label>ที่อยู่ตามบัตรประชาชน / ตามทะเบียนบ้าน <span style="color:red;">*</span></label>
+                    <textarea id="address" rows="2" required placeholder="บ้านเลขที่, หมู่, ซอย, ถนน, ตําบล/แขวง, อําเภอ/เขต, จังหวัด, รหัสไปรษณีย์"></textarea>
                 </div>
             </div>
 
-            <div class="section-title">💰 ข้อมูลการเงิน</div>
+            <!-- ================= STEP 2 ================= -->
+            <div class="form-step" id="step-2">
+                <div class="section-title">🚘 ข้อมูลรายละเอียดรถยนต์</div>
 
-            <div class="row">
-                <div>
-                    <label>ทุนประกัน</label>
-                    <input type="number" id="sumInsured">
+                <div class="row">
+                    <div>
+                        <label>ยี่ห้อรถ <span style="color:red;">*</span></label>
+                        <input type="text" id="brand" required placeholder="เช่น Toyota, Honda, Isuzu">
+                    </div>
+                    <div>
+                        <label>รุ่นรถ / รุ่นย่อย <span style="color:red;">*</span></label>
+                        <input type="text" id="model" required placeholder="เช่น Civic 1.5 TURBO">
+                    </div>
                 </div>
 
-                <div>
-                    <label>รวม</label>
-                    <input type="number" id="total">
+                <div class="row" style="margin-top:15px;">
+                    <div>
+                        <label>ปีที่ผลิต (ค.ศ./พ.ศ.) <span style="color:red;">*</span></label>
+                        <input type="text" id="carYear" required placeholder="เช่น 2022 หรือ 2565">
+                    </div>
+                    <div>
+                        <label>สีรถ</label>
+                        <input type="text" id="carColor" placeholder="เช่น ขาว, ดำ, บรอนซ์เงิน">
+                    </div>
+                </div>
+
+                <div class="row" style="margin-top:15px;">
+                    <div>
+                        <label>เลขทะเบียนรถ <span style="color:red;">*</span></label>
+                        <input type="text" id="plate" required placeholder="เช่น กข 1234 กรุงเทพฯ">
+                    </div>
+                    <div>
+                        <label>เลขตัวถัง (Chassis No.) <span style="color:red;">*</span></label>
+                        <input type="text" id="chassis" required placeholder="ระบุเลขตัวถัง 17 หลัก">
+                    </div>
+                </div>
+
+                <div class="row" style="margin-top:15px;">
+                    <div>
+                        <label>ลักษณะการใช้งาน <span style="color:red;">*</span></label>
+                        <select id="carUsage" required>
+                            <option value="ส่วนบุคคล">ส่วนบุคคล (ไม่ใช้รับจ้างหรือให้เช่า)</option>
+                            <option value="เพื่อการพาณิชย์">เพื่อการพาณิชย์ / ขนส่งสินค้า</option>
+                            <option value="รับจ้าง/ให้เช่า">รับจ้าง / ให้เช่า / Grab</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>กล้องติดรถยนต์</label>
+                        <select id="hasCamera">
+                            <option value="มี">มีกล้องติดรถยนต์ (รับส่วนลดเพิ่ม)</option>
+                            <option value="ไม่มี">ไม่มีกล้องติดรถยนต์</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
-            <label>กลุ่มสินค้า</label>
-            <input type="text" id="group">
+            <!-- ================= STEP 3 ================= -->
+            <div class="form-step" id="step-3">
+                <div class="section-title">📅 ระยะเวลาคุ้มครอง & ทุนประกันภัย</div>
 
-            <div class="section-title">💳 งวดชำระ</div>
+                <div class="row">
+                    <div>
+                        <label>วันเริ่มคุ้มครอง <span style="color:red;">*</span></label>
+                        <input type="date" id="start" required>
+                    </div>
+                    <div>
+                        <label>วันสิ้นสุดคุ้มครอง <span style="color:red;">*</span></label>
+                        <input type="date" id="end" required>
+                    </div>
+                </div>
 
-            <div class="row">
-                <input type="number" id="installment1" placeholder="งวดที่ 1">
-                <input type="number" id="installment2" placeholder="งวดที่ 2">
+                <div class="row" style="margin-top:15px;">
+                    <div>
+                        <label>ทุนประกันภัย (บาท) <span style="color:red;">*</span></label>
+                        <input type="number" id="sumInsured" required placeholder="เช่น 450000">
+                    </div>
+                    <div>
+                        <label>เบี้ยประกันภัยสุทธิรวมภาษี/อากร (บาท) <span style="color:red;">*</span></label>
+                        <input type="number" id="total" step="0.01" required placeholder="ยอดรวมสุทธิ">
+                    </div>
+                </div>
+
+                <!-- ช่องติ๊ก CPA 300 บาท -->
+                <div class="cpa-box">
+                    <label style="font-weight: 600; cursor: pointer; display: flex; align-items: center; color: #c0392b;">
+                        <input type="checkbox" id="cpaFee" value="300" style="width: 20px; height: 20px; margin-right: 10px;"> 
+                        <span>เพิ่มค่า CPA (300 บาท)</span>
+                    </label>
+                </div>
+
+                <div style="margin-top:15px;">
+                    <label>กลุ่มสินค้า / โครงการ</label>
+                    <input type="text" id="group" placeholder="เช่น งานต่ออายุ, งานใหม่, งานดีลเลอร์">
+                </div>
             </div>
 
-            <!-- เพิ่มใหม่: margin-top กันแถวงวดที่ 3-4 ชิดกับแถวงวดที่ 1-2 มากเกินไป
-                 (เดิม .row แต่ละแถวไม่มีระยะห่างแนวตั้งระหว่างกันเลย ใช้แค่ gap คอลัมน์ในแถวเดียวกัน) -->
-            <div class="row" style="margin-top:20px;">
-                <input type="number" id="installment3" placeholder="งวดที่ 3">
-                <input type="number" id="installment4" placeholder="งวดที่ 4">
+            <!-- ================= STEP 4 ================= -->
+            <div class="form-step" id="step-4">
+                <div class="section-title">💳 เงื่อนไขการชำระเงิน / ผ่อนชำระ</div>
+
+                <div class="row">
+                    <div>
+                        <label>รูปแบบการชำระ <span style="color:red;">*</span></label>
+                        <select id="paymentType" required>
+                            <option value="ชำระเต็มจำนวน">ชำระเต็มจำนวน</option>
+                            <option value="ผ่อนชำระสด">ผ่อนชำระเงินสด</option>
+                            <option value="ผ่อนบัตรเครดิต">ผ่อนบัตรเครดิต 0%</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>จำนวนงวดผ่อน</label>
+                        <select id="installmentCount">
+                            <option value="1">1 งวด (จ่ายเต็ม)</option>
+                            <option value="2">2 งวด</option>
+                            <option value="3">3 งวด</option>
+                            <option value="4">4 งวด</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-top:15px; background: #f9f9f9; padding: 12px; border-radius: 6px;">
+                    <label style="font-weight:600; color:#444;">กำหนดการชำระแต่ละงวด (บาท)</label>
+                    <div class="row" style="margin-top:8px;">
+                        <input type="number" id="installment1" placeholder="งวดที่ 1">
+                        <input type="number" id="installment2" placeholder="งวดที่ 2">
+                    </div>
+                    <div class="row" style="margin-top:10px;">
+                        <input type="number" id="installment3" placeholder="งวดที่ 3">
+                        <input type="number" id="installment4" placeholder="งวดที่ 4">
+                    </div>
+                </div>
+
+                <div style="margin-top:15px;">
+                    <label>หมายเหตุเพิ่มเติม</label>
+                    <textarea id="remark" rows="3" placeholder="ระบุรายละเอียดเพิ่มเติม เช่น ของแถม หรือคำร้องขอพิเศษ"></textarea>
+                </div>
             </div>
 
-            <div class="button-group">
+            <!-- ปุ่มเปลี่ยนขั้นตอน และ บันทึก -->
+            <div class="bottom-action-bar">
+                <button type="button" class="btn-action btn-prev" id="prevBtn" onclick="changeStep(-1)" style="display:none;">⬅ ก่อนหน้า</button>
+                <button type="button" class="btn-action btn-next" id="nextBtn" onclick="changeStep(1)">ถัดไป ➡</button>
+                <button type="submit" class="btn-action save-btn" id="submitBtn" style="display:none;">💾 บันทึกข้อมูล</button>
+            </div>
 
-                <button type="button" class="back-btn" onclick="location.href='index.html'">
+            <!-- ปุ่มกลับหน้าหลัก -->
+            <div style="margin-top: 15px; text-align: center;">
+                <button type="button" class="back-btn" onclick="location.href='index.html'" style="background: none; border: none; color: #666; cursor: pointer; font-size: 14px;">
                     ⬅ กลับหน้าหลัก
                 </button>
-
-                <button type="submit" class="save-btn">
-                    💾 บันทึกข้อมูล
-                </button>
-
-                <button type="button" class="pdf-btn" onclick="openPDF('car')">
-                    📄 ดู PDF
-                </button>
-
             </div>
 
         </form>
 
     </main>
 
-    <!-- แก้ไข: เดิมโหลดด้วย <script src="script.js"> (ไม่ใส่ type="module")
-         แต่ script.js มีคำสั่ง import ข้างใน ทำให้เบราว์เซอร์ throw SyntaxError
-         และทั้งไฟล์ใช้งานไม่ได้เลย (ปุ่มเมนู / การเชื่อม Firebase ใช้ไม่ได้)
-         แก้เป็น type="module" ให้ตรงกับ form_product.html และ report.html
-         เพื่อให้บันทึกข้อมูลลง Firestore แหล่งเดียวกับทุกหน้า -->
     <script type="module" src="script.js"></script>
-
-    <!-- เพิ่มใหม่: โหลด auth.js เพื่อใช้ getEmployeeName() ตอนบันทึกข้อมูล -->
     <script src="auth.js"></script>
 
     <script>
-    function collectFormData(type) {
-        return {
-            type: type,
-            createDate: new Date().toLocaleDateString("th-TH"),
-            company: document.getElementById("company")?.value,
-            requestName: document.getElementById("requestName")?.value,
-            customer: document.getElementById("name")?.value,
-            address: document.getElementById("address")?.value,
+        let currentStep = 1;
+        const totalSteps = 4;
 
-            brand: document.getElementById("brand")?.value,
-            plate: document.getElementById("plate")?.value,
-            chassis: document.getElementById("chassis")?.value,
+        function showStep(step) {
+            document.querySelectorAll('.form-step').forEach(el => el.classList.remove('active-step'));
+            document.querySelectorAll('.step-tab').forEach(el => el.classList.remove('active'));
 
-            start: document.getElementById("start")?.value,
-            end: document.getElementById("end")?.value,
+            document.getElementById('step-' + step).classList.add('active-step');
+            document.querySelectorAll('.step-tab')[step - 1].classList.add('active');
 
-            sumInsured: document.getElementById("sumInsured")?.value,
-            total: document.getElementById("total")?.value,
-            group: document.getElementById("group")?.value,
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const submitBtn = document.getElementById('submitBtn');
 
-            installment1: document.getElementById("installment1")?.value,
-            installment2: document.getElementById("installment2")?.value,
-            installment3: document.getElementById("installment3")?.value,
-            installment4: document.getElementById("installment4")?.value,
+            if (step === 1) {
+                prevBtn.style.display = 'none';
+            } else {
+                prevBtn.style.display = 'flex';
+            }
 
-            // เพิ่มใหม่: ชื่อพนักงานผู้แจ้งงานที่ล็อกอินอยู่ (จากระบบ login แบบง่าย auth.js)
-            // ข้อมูลเก่าที่ไม่มี field นี้จะยังใช้งานได้ตามปกติ
-            employeeName: (typeof getEmployeeName === "function") ? getEmployeeName() : ""
-        };
-    }
+            if (step === totalSteps) {
+                nextBtn.style.display = 'none';
+                submitBtn.style.display = 'flex';
+            } else {
+                nextBtn.style.display = 'flex';
+                submitBtn.style.display = 'none';
+            }
 
-    /* แก้ไข (สำคัญ): ฟอร์มประกันรถยนต์หน้านี้ยังไม่เปิดให้ใช้งานจริง
-       ห้ามบันทึกข้อมูลลง Firestore และห้ามเชื่อม/ส่งต่อข้อมูลไปหน้าอื่นเด็ดขาด
-       (เดิมเรียก window.saveRecord(record) บันทึกจริง — ตัดออกทั้งหมด)
-       เหลือไว้แค่แจ้งเตือนผู้ใช้ว่ายังใช้งานไม่ได้ ปุ่ม "⬅ กลับหน้าหลัก" ยังกดออกได้ตามปกติ */
-    document.getElementById("carForm").addEventListener("submit", function (e) {
-        e.preventDefault();
-        alert("ขณะนี้ฟอร์มประกันรถยนต์ยังไม่เปิดให้บันทึกข้อมูล กรุณาติดต่อผู้ดูแลระบบ");
-    });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
 
-    // แก้ไข: ปิดการดู PDF ของฟอร์มนี้ไว้ก่อนเช่นกัน (ยังไม่มีข้อมูลจริงให้เชื่อมโยง)
-    function openPDF(type) {
-        alert("ขณะนี้ฟอร์มประกันรถยนต์ยังไม่เปิดให้ใช้งานส่วนนี้ กรุณาติดต่อผู้ดูแลระบบ");
-    }
+        function switchStep(step) {
+            currentStep = step;
+            showStep(currentStep);
+        }
+
+        function changeStep(direction) {
+            if (direction === 1) {
+                const currentEl = document.getElementById('step-' + currentStep);
+                const requiredInputs = currentEl.querySelectorAll('[required]');
+                let isValid = true;
+                requiredInputs.forEach(input => {
+                    if (!input.value.trim()) {
+                        isValid = false;
+                        input.style.borderColor = '#e74c3c';
+                    } else {
+                        input.style.borderColor = '#ccc';
+                    }
+                });
+
+                if (!isValid) {
+                    alert('กรุณากรอกข้อมูลในช่องที่มีเครื่องหมาย * ให้ครบถ้วน');
+                    return;
+                }
+            }
+
+            currentStep += direction;
+            if (currentStep < 1) currentStep = 1;
+            if (currentStep > totalSteps) currentStep = totalSteps;
+            showStep(currentStep);
+        }
+
+        function collectFormData(type) {
+            const hasCpa = document.getElementById("cpaFee")?.checked || false;
+            return {
+                type: type || 'car',
+                createDate: new Date().toLocaleDateString("th-TH"),
+                company: document.getElementById("company")?.value,
+                policyType: document.getElementById("policyType")?.value,
+                prevPolicyNo: document.getElementById("prevPolicyNo")?.value,
+                requestName: document.getElementById("requestName")?.value,
+                titleName: document.getElementById("titleName")?.value,
+                customer: document.getElementById("name")?.value,
+                idCard: document.getElementById("idCard")?.value,
+                phone: document.getElementById("phone")?.value,
+                address: document.getElementById("address")?.value,
+
+                brand: document.getElementById("brand")?.value,
+                model: document.getElementById("model")?.value,
+                carYear: document.getElementById("carYear")?.value,
+                carColor: document.getElementById("carColor")?.value,
+                plate: document.getElementById("plate")?.value,
+                chassis: document.getElementById("chassis")?.value,
+                carUsage: document.getElementById("carUsage")?.value,
+                hasCamera: document.getElementById("hasCamera")?.value,
+
+                start: document.getElementById("start")?.value,
+                end: document.getElementById("end")?.value,
+                sumInsured: document.getElementById("sumInsured")?.value,
+                total: document.getElementById("total")?.value,
+                cpaSelected: hasCpa,
+                cpaFeeAmount: hasCpa ? 300 : 0,
+                group: document.getElementById("group")?.value,
+
+                paymentType: document.getElementById("paymentType")?.value,
+                installmentCount: document.getElementById("installmentCount")?.value,
+                installment1: document.getElementById("installment1")?.value,
+                installment2: document.getElementById("installment2")?.value,
+                installment3: document.getElementById("installment3")?.value,
+                installment4: document.getElementById("installment4")?.value,
+                remark: document.getElementById("remark")?.value,
+
+                employeeName: (typeof getEmployeeName === "function") ? getEmployeeName() : ""
+            };
+        }
+
+        document.getElementById("carForm").addEventListener("submit", function (e) {
+            e.preventDefault();
+            alert("ขณะนี้ฟอร์มประกันรถยนต์ยังไม่เปิดให้บันทึกข้อมูล กรุณาติดต่อผู้ดูแลระบบ");
+        });
     </script>
 
 </body>

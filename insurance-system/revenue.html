@@ -172,7 +172,9 @@
         import {
             getFirestore,
             collection,
-            onSnapshot
+            onSnapshot,
+            query,
+            where
         } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
         /* ตั้งค่าเดียวกับทุกหน้าในระบบ เพื่ออ่าน collection เดียวกัน */
@@ -218,8 +220,9 @@
             "สุนิษา ยางไธสงค์": "photos/po7.png",
             "ศิริธร สอนสอาด": "photos/po9.png",
             "อรุณลักษณ์ มหาจตุพัฒน์": "photos/po10.png",
-            "ณุพล วิยาขาว": "photos/po11.png",
+            "ณุพล วิทยาขาว": "photos/po11.png",
             "น้ำทิพย์ ใบลี": "photos/po8.png",
+            "ณุพล วิยาขาว": "photos/po11.png",
             
 
         };
@@ -231,6 +234,7 @@
         let allData = [];
         let filtersInitialized = false;
         let revenueChartInstance = null; // เพิ่มใหม่: เก็บ instance ของ Chart.js เพื่อทำลายทิ้งก่อนวาดใหม่ทุกครั้ง
+        let unsubscribeRevenueData = null; // เพิ่มใหม่: เก็บ handle ของ listener ปัจจุบัน เพื่อปิดก่อนเปิดใหม่ทุกครั้งที่เปลี่ยนตัวกรองบริษัท (ลด Firestore reads)
 
         /* =========================
            แปลงวันที่แจ้งงาน (createDate) เช่น "16/07/2569" — เหลือไว้เผื่อใช้งานจุดอื่นในอนาคต
@@ -671,19 +675,51 @@
 
         /* =========================
            โหลดข้อมูลแบบ realtime
+           [แก้ไข] เดิม onSnapshot(collection(db,"insuranceData")) อ่านทั้ง collection แบบไม่กรองเลย
+           ทุกครั้งที่เปิดหน้านี้ และทุกครั้งที่มีใครก็ตามบันทึก/แก้ไขงานที่ไหนในระบบ จะนับเป็น 1 read
+           ต่อเอกสารต่อผู้ใช้ที่เปิดหน้านี้ค้างไว้ทันที ยิ่งข้อมูลสะสมเยอะขึ้นเรื่อยๆ ยิ่งกิน read เยอะขึ้นเรื่อยๆ
+           แก้โดยกรองที่ระดับ Firestore query ตาม "บริษัท" ที่เลือกอยู่ (ฟิลด์ company เป็นค่าคงที่ตายตัว
+           จาก dropdown เสมอ จึงกรองแม่นยำได้) ยังคง realtime เหมือนเดิมทุกประการ เปลี่ยนบริษัทเมื่อไหร่
+           ก็ปิด listener เดิมแล้วเปิดใหม่ทันที (ไม่มีทางเห็นข้อมูลค้าง)
+           หมายเหตุ: ตัวกรอง วัน/เดือน/ปี ยังกรองที่ฝั่ง client เหมือนเดิม เพราะฟิลด์ "start" ในข้อมูลเก่า
+           มีทั้งรูปแบบ DD/MM/YYYY และ YYYY-MM-DD ปนกัน ทำให้ Firestore range query ให้ผลไม่แม่นยำ
+           (ประเด็นเดียวกับที่ report.html เจอมาก่อน) ส่วนตัวกรอง "ทั้งหมด" (บริษัท) ยังต้องอ่านทั้ง
+           collection เหมือนเดิม เพราะหน้านี้คือ leaderboard เทียบยอดขายข้ามบริษัท
         ========================= */
-        onSnapshot(collection(db, "insuranceData"), (snapshot) => {
-            allData = snapshot.docs.map(d => ({ id:d.id, ...d.data() }));
-            populateFilters();
-            renderList();
-        });
+        function subscribeToRevenueData(){
+
+            if(unsubscribeRevenueData){
+                unsubscribeRevenueData();
+                unsubscribeRevenueData = null;
+            }
+
+            const selectedCompany = document.getElementById("filterCompany").value || "all";
+
+            const base = collection(db, "insuranceData");
+            const q = (selectedCompany !== "all")
+                ? query(base, where("company", "==", selectedCompany))
+                : base;
+
+            unsubscribeRevenueData = onSnapshot(q, (snapshot) => {
+                allData = snapshot.docs.map(d => ({ id:d.id, ...d.data() }));
+                populateFilters();
+                renderList();
+            });
+        }
+
+        // ตั้งค่าตัวกรองบริษัทเริ่มต้น ("ทั้งหมด") ให้พร้อมก่อนสร้าง query แรกเสมอ
+        populateFilters();
+        subscribeToRevenueData();
 
         /* =========================
            Event listeners ตัวกรอง / ค้นหา
+           [แก้ไข] แยก "เลือกบริษัท" ออกมาต่างหาก เพราะเปลี่ยนค่านี้ต้อง re-subscribe ด้วย query ใหม่
+           ส่วนวัน/เดือน/ปี/ค้นหา ยังกรองที่ฝั่ง client เหมือนเดิม แค่ render ตารางใหม่พอ ไม่ต้อง query ซ้ำ
         ========================= */
-        ["filterDay","filterMonth","filterYear","filterCompany"].forEach(id=>{
+        ["filterDay","filterMonth","filterYear"].forEach(id=>{
             document.getElementById(id).addEventListener("change", renderList);
         });
+        document.getElementById("filterCompany").addEventListener("change", subscribeToRevenueData);
         document.getElementById("employeeSearch").addEventListener("input", renderList);
 
     </script>
