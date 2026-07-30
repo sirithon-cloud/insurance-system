@@ -1164,7 +1164,9 @@ if(loggedInEmployee){
 
         <button 
         class="delete-btn"
-        onclick="deleteItem('${item.id}')">
+        onclick="${(item.employeeName || item.requestName || "") === loggedInEmployee ? `deleteItem('${item.id}')` : `showToast('❌ ลบได้เฉพาะผู้แจ้งงานรายการนี้เท่านั้น')`}"
+        title="${(item.employeeName || item.requestName || "") === loggedInEmployee ? "ลบ" : "ลบได้เฉพาะผู้แจ้งงานรายการนี้"}"
+        style="${(item.employeeName || item.requestName || "") === loggedInEmployee ? "" : "opacity:.35;cursor:not-allowed;"}">
         🗑️
         </button>
 
@@ -1387,8 +1389,9 @@ if(loggedInEmployee){
             populateDayOptions();
 
             /* [แก้ไข] ตั้งค่าตัวกรองเริ่มต้น "ครั้งแรกที่เปิดหน้า" เท่านั้น
-               ตามที่ต้องการ: แสดงเฉพาะ "ชื่อผู้แจ้ง" กับ "เดือน" ขึ้นมาก่อน
+               ตามที่ต้องการ: แสดงเฉพาะ "วันนี้" + "ชื่อผู้แจ้ง" กับ "เดือน" ขึ้นมาก่อน
                ส่วนบริษัทและปี ยังคงเป็น "ทั้งหมด" ตามค่าเริ่มต้นปกติ (ไม่ auto-select ปี)
+               - วันที่ = วันนี้ (เพิ่มใหม่)
                - เดือน = เดือนปัจจุบัน
                - ผู้แจ้งงาน = ผู้ใช้ที่ล็อกอินอยู่ (ถ้าระบบ login มีค่านี้)
                ใช้ flag filtersInitialized กันไม่ให้ค่าที่ผู้ใช้เลือกเองภายหลังถูก reset ทับ */
@@ -1399,6 +1402,13 @@ if(loggedInEmployee){
                 const currentMonth = getCurrentMonthKey();
                 if([...monthSelect.options].some(o=>o.value === currentMonth)){
                     monthSelect.value = currentMonth;
+                }
+
+                // เพิ่มใหม่: ตั้งค่าเริ่มต้นของ "วันที่" ให้เป็นวันนี้เสมอตอนเปิดหน้าครั้งแรก
+                const daySelectEl = document.getElementById("filterDay");
+                const currentDay = String(new Date().getDate()).padStart(2, "0");
+                if(daySelectEl && [...daySelectEl.options].some(o=>o.value === currentDay)){
+                    daySelectEl.value = currentDay;
                 }
 
                 if(
@@ -2025,6 +2035,21 @@ async function savePolicyNumber(id){
  
  
 async function deleteItem(id){
+
+    const item = allData.find(x => x.id === id);
+
+    if(!item){
+        alert("ไม่พบข้อมูล");
+        return;
+    }
+
+    // เพิ่มใหม่: อนุญาตให้ลบได้เฉพาะพนักงานที่เป็น "ผู้แจ้งงาน" ของรายการนี้เท่านั้น
+    // (เช็คซ้ำอีกชั้นในฟังก์ชันนี้ นอกเหนือจากการซ่อน/ปิดปุ่มในตาราง เผื่อมีการเรียกฟังก์ชันนี้ตรงๆ)
+    const itemOwner = item.employeeName || item.requestName || "";
+    if(itemOwner !== loggedInEmployee){
+        showToast("❌ ลบได้เฉพาะผู้แจ้งงานรายการนี้เท่านั้น (" + (itemOwner || "ไม่ระบุ") + ")");
+        return;
+    }
  
     if(!confirm("ลบข้อมูล?"))
         return;
