@@ -746,12 +746,14 @@ function applyCustomerStartDay(date, startDay) {
 }
 
 function getInstallmentDueDate(contractDate, installmentIndex, startDay) {
-    const due = new Date(contractDate);
-    /* แก้ไข: เดิมบวก 30*(installmentIndex+1) ทำให้งวดที่ 1 ถูกเลื่อนไปเดือนถัดไปเสมอ
-       (เช่น เริ่ม 26/07 -> งวดที่ 1 กลายเป็น 26/08) ทั้งที่งวดแรกควรอยู่เดือนเดียวกับวันที่เริ่ม
-       แก้เป็นบวก 30*installmentIndex แทน (งวดที่ 1 = index 0 -> บวก 0 วัน = เดือนเริ่ม,
-       งวดที่ 2 = index 1 -> บวก 30 วัน = เดือนถัดไป, ไล่ไปเรื่อยๆ ตามลำดับ) */
-    due.setDate(due.getDate() + 30 * installmentIndex);
+    /* แก้ไข (สำคัญ): เดิมบวก "30 วัน" ต่องวด ซึ่งไม่เท่ากับเลื่อนไป 1 เดือนเสมอไป
+       (เช่น เริ่ม 1 ส.ค. บวก 30 วัน = 31 ส.ค. ยังอยู่เดือนเดิม) พอมาปัด "วัน" ให้ตรงกับ
+       วันเริ่มของลูกค้าอีกที (applyCustomerStartDay) เดือนที่ควรขยับไปเลยถูกดึงกลับมาที่เดิม
+       ทำให้งวดที่ 1 และงวดที่ 2 กลายเป็นวันเดียวกัน
+       แก้เป็นบวก "จำนวนเดือน" ตรงๆ แทน (งวดที่ 1 = index 0 -> เดือนเริ่ม,
+       งวดที่ 2 = index 1 -> เดือนถัดไป, ไล่ไปเรื่อยๆ ตามลำดับ) แล้วค่อยปรับ "วัน" ให้ตรงกับ
+       วันเริ่มของลูกค้าเสมอ (คลิ้ปกับวันสุดท้ายของเดือนนั้นถ้าเดือนนั้นมีวันน้อยกว่า) */
+    const due = new Date(contractDate.getFullYear(), contractDate.getMonth() + installmentIndex, 1);
     return applyCustomerStartDay(due, startDay);
 }
 
