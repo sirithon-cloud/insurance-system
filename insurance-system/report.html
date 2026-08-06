@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
  
-            <title>รายงานข้อมูลประกัน</title>
+            <title>รายงานข้อมูลประกันสินค้า</title>
  
             <link rel="stylesheet" href="style.css">
  
@@ -640,7 +640,7 @@
             </button>
 
             <h1>
-            📊 รายงานข้อมูลประกันทั้งหมด
+            📊 รายงานข้อมูลประกันสินค้า
             </h1>
         </div>
  
@@ -692,20 +692,6 @@
                             👤 เลือกพนักงาน
                         </label>
                         <select id="filterEmployee"></select>
-
-                    </span>
-
-                    <!-- ตัวกรอง "ประเภทประกัน" ตัวเลือกเสริม ค่าเริ่มต้น = "ทั้งหมด" -->
-                    <span>
-
-                        <label for="filterType">
-                            🧾 ประเภทประกัน
-                        </label>
-                        <select id="filterType">
-                            <option value="all">ทั้งหมด</option>
-                            <option value="car">🚗 ประกันรถยนต์</option>
-                            <option value="product">📦 ประกันสินค้า</option>
-                        </select>
 
                     </span>
 
@@ -1451,10 +1437,6 @@ employeeSelect.onchange = function(){
     subscribeToData();
 };
 
-document.getElementById("filterType").onchange = function(){
-    subscribeToData();
-};
-
 /* เพิ่มใหม่: ช่องค้นหา ไม่ต้อง query Firestore ใหม่ (ค้นหาจาก allData ที่โหลดมาแล้วพอ)
    จึงแค่ render ตาราง/สรุปยอดใหม่ทุกครั้งที่พิมพ์ ไม่เรียก subscribeToData() */
 const searchInputEl = document.getElementById("filterSearch");
@@ -1670,9 +1652,6 @@ function getFilteredData(){
     const selectedEmployee =
     document.getElementById("filterEmployee").value;
 
-    const selectedType =
-    document.getElementById("filterType").value;
-
     /* เพิ่มใหม่: คำค้นหาจากช่องค้นหาด้านขวา ค้นได้ทั้งชื่อผู้เอาประกันและทะเบียนรถ
        (กรองที่ฝั่ง client จาก allData ที่โหลดมาแล้วเท่านั้น ไม่ต้อง query Firestore ใหม่) */
     const searchTerm =
@@ -1720,11 +1699,6 @@ function getFilteredData(){
         ||
         item.requestName === selectedEmployee;
 
-        const typeOK =
-        selectedType === "all"
-        ||
-        item.type === selectedType;
-
         /* เพิ่มใหม่: ค้นหาแบบไม่สนตัวพิมพ์เล็ก-ใหญ่ ตรงส่วนใดส่วนหนึ่งของชื่อผู้เอาประกันหรือทะเบียนรถก็เจอ */
         const searchOK =
         !searchTerm
@@ -1735,7 +1709,7 @@ function getFilteredData(){
  
  
  
-        return companyOK && yearOK && monthOK && dayOK && employeeOK && typeOK && searchOK;
+        return companyOK && yearOK && monthOK && dayOK && employeeOK && searchOK;
  
  
     });
@@ -1788,12 +1762,6 @@ function getFilteredData(){
                     "filterEmployee"
                 ).value;
 
-            const selectedType =
-
-                document.getElementById(
-                    "filterType"
-                ).value;
- 
  
  
  
@@ -1871,24 +1839,12 @@ function getFilteredData(){
 
             selectedEmployee;
 
-            const typeLabel =
-
-            selectedType === "all"
-
-            ? "ทุกประเภท"
-
-            : selectedType === "car"
-
-            ? "ประกันรถยนต์"
-
-            : "ประกันสินค้า";
- 
  
             document.getElementById(
                 "summaryTotal"
             ).innerText =
  
-            `💰 ยอดรวม (${dayLabel} · ${monthLabel} · ${yearLabel} · ${companyLabel} · ${employeeLabel} · ${typeLabel}): ${total.toLocaleString()} บาท (${filtered.length} รายการ)`;
+            `💰 ยอดรวม (${dayLabel} · ${monthLabel} · ${yearLabel} · ${companyLabel} · ${employeeLabel}): ${total.toLocaleString()} บาท (${filtered.length} รายการ)`;
  
         }
  
@@ -1911,7 +1867,6 @@ function buildFirestoreQuery(){
 
     const selectedCompany = document.getElementById("filterCompany").value || "all";
     const selectedEmployee = document.getElementById("filterEmployee").value || "all";
-    const selectedType = document.getElementById("filterType").value || "all";
 
     const base = collection(db, "insuranceData");
     const constraints = [];
@@ -1927,9 +1882,8 @@ function buildFirestoreQuery(){
         constraints.push(where("requestName", "==", selectedEmployee));
     }
 
-    if(selectedType !== "all"){
-        constraints.push(where("type", "==", selectedType));
-    }
+    /* หน้านี้ใช้แสดงเฉพาะข้อมูลประกันสินค้า (type === "product") เท่านั้น ไม่มีตัวกรองให้ผู้ใช้เลือกอีก */
+    constraints.push(where("type", "==", "product"));
 
     return constraints.length ? query(base, ...constraints) : base;
 
@@ -2079,10 +2033,38 @@ function editItem(id){
         return;
     }
  
+    /* แก้ไข (ป้องกันข้อมูลหาย): เดิมส่ง item (reference จาก allData) ตรงๆ ผ่าน JSON.stringify
+       ซึ่งโดยทั่วไปก็ปลอดภัยอยู่แล้วเพราะ stringify คัดลอกค่าออกมาทันที แต่เพื่อความชัดเจนและกันปัญหา
+       ในอนาคต (เช่น ถ้ามีโค้ดจุดอื่นมาแก้ไข allData ระหว่างที่ browser ยังทำงาน JSON.stringify ไม่เสร็จ)
+       จึงเปลี่ยนมาใช้ deep clone แยกก้อนหน่วยความจำออกจาก allData อย่างชัดเจนก่อนส่ง
+
+       *** สำคัญ: ต้องแนบ document id (fullSnapshot.id) ไปด้วยเสมอ เพื่อให้ฟอร์มฝั่งปลายทาง
+       (form_product.html / form_car.html) รู้ว่าต้อง "อัปเดตทับเอกสารเดิม" ด้วย Firestore document id นี้
+       ไม่ใช่สร้างเอกสารใหม่ (ถ้าฟอร์มปลายทางไม่รู้ id เดิม แล้วไปสร้างเอกสารใหม่แทนการอัปเดต จะทำให้
+       ข้อมูลเดิมของลูกค้ารายนั้น "หาย" ไปจากหน้ารายงานทันที เพราะกลายเป็นคนละเอกสารกัน)
+
+       ข้อควรทราบ: ฟอร์มฝั่งที่รับข้อมูลนี้ไปบันทึก (form_product.html / form_car.html) ไม่ได้อยู่ในโปรเจกต์นี้
+       จึงไม่สามารถแก้ไขได้จากที่นี่ แต่ "ต้อง" ทำตามหลักการต่อไปนี้ที่ฝั่งฟอร์มด้วย มิฉะนั้นบั๊กข้อมูลหาย
+       จะไม่ถูกแก้ไขอย่างสมบูรณ์:
+         1) โหลดข้อมูลเดิมทั้งหมดจาก localStorage.getItem("editData") มาเติมในฟอร์มก่อนเสมอ
+         2) ตอนกดบันทึก ให้สร้าง payload เฉพาะฟิลด์ที่ผู้ใช้แก้ไขจริง (หรือ merge ค่าฟอร์มทับบนสำเนาข้อมูลเดิม
+            ที่โหลดมาในข้อ 1 ก่อน) แล้วกรองค่าที่เป็น undefined/null/"" ออกก่อนส่งไป Firestore เสมอ
+            ตัวอย่าง:
+                const original = JSON.parse(localStorage.getItem("editData")) || {};
+                const merged = { ...original, ...formValues }; // ค่าฟอร์มทับเฉพาะฟิลด์ที่กรอกใหม่
+                Object.keys(merged).forEach(k => {
+                    if (merged[k] === undefined || merged[k] === null || merged[k] === "") delete merged[k];
+                });
+                await setDoc(doc(db, "insuranceData", original.id), merged, { merge: true });
+         3) ห้ามใช้ setDoc(..., payload) แบบไม่ใส่ { merge: true } กับฟิลด์ที่ไม่ได้กรอกในฟอร์ม
+            (เช่น installment1-6, policyNumber, sumInsured ฯลฯ) เพราะจะเขียนทับข้อมูลเดิมด้วยค่าว่าง */
+    const fullSnapshot = JSON.parse(JSON.stringify(item));
+    fullSnapshot.id = item.id;
+
     // ส่งข้อมูลชั่วคราวไปให้หน้าฟอร์มเติมค่าในช่องกรอก (id ที่แนบไปคือ Firestore document id)
     localStorage.setItem(
         "editData",
-        JSON.stringify(item)
+        JSON.stringify(fullSnapshot)
     );
  
     if(item.type === "product"){
@@ -2128,8 +2110,20 @@ function openDoc(id){
         JSON.stringify(item)
     );
  
-    location.href =
-        "contract_print.html";
+    // แก้ไข: เดิมไปหน้า contract_print.html (เอกสารประกันสินค้า) เสมอไม่ว่า type ใด
+    // ทำให้รายการประกันรถยนต์ (type === "car") เปิดเอกสารผิดหน้า
+    // เปลี่ยนให้เช็ค type ก่อน ถ้าเป็นรถยนต์ให้ไปหน้า contract_print_car.html แทน
+    if(item.type === "car"){
+
+        location.href =
+            "contract_print_car.html";
+
+    } else {
+
+        location.href =
+            "contract_print.html";
+
+    }
  
 }
 
@@ -2154,8 +2148,20 @@ function openReceipt(id){
         JSON.stringify(item)
     );
 
-    location.href =
-        "receipt_print.html";
+    // แก้ไข: เดิมไปหน้า receipt_print.html (ใบเสร็จประกันสินค้า) เสมอไม่ว่า type ใด
+    // ทำให้รายการประกันรถยนต์ (type === "car") ออกใบเสร็จผิดหน้า
+    // เปลี่ยนให้เช็ค type ก่อน ถ้าเป็นรถยนต์ให้ไปหน้า receipt_print_car.html แทน
+    if(item.type === "car"){
+
+        location.href =
+            "receipt_print_car.html";
+
+    } else {
+
+        location.href =
+            "receipt_print.html";
+
+    }
 
 }
  
