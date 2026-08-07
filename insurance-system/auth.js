@@ -179,6 +179,151 @@ async function firebaseSignOut() {
     }
 }
 
+/* =========================================================
+   เพิ่มใหม่: ระบบแสดงสถานะ "กำลังใช้งานอยู่" (Presence)
+   =========================================================
+   หลักการ: ทุกหน้าที่เรียก requireLogin() สำเร็จ จะเริ่มส่ง "heartbeat"
+   (บันทึกเวลาล่าสุดที่ยังเปิดหน้าอยู่) ไปที่ Firestore collection "activeUsers"
+   ทุกๆ 25 วินาที โดยใช้อีเมลของผู้ใช้เป็น document id (คนเดียวกันจะมีเอกสารเดียว
+   ไม่ว่าจะเปิดกี่แท็บ/กี่หน้าก็ตาม อัปเดตทับกันไปเรื่อยๆ)
+
+   หน้า online_users.html จะอ่าน collection นี้แบบ realtime แล้วถือว่าใคร
+   "ออนไลน์" อยู่ถ้าเวลาล่าสุด (lastActive) ไม่เกิน ~90 วินาทีที่ผ่านมา
+   (ไม่มีกลไก "ออนไลน์/ออฟไลน์" แบบ Realtime Database ตรงๆ ใน Firestore
+   จึงใช้วิธีนี้แทน ซึ่งเพียงพอสำหรับใช้งานจริง)
+
+   เมื่อกด "ออกจากระบบ" จะลบเอกสารสถานะของตัวเองออกทันที (removePresence) */
+
+const PRESENCE_COLLECTION = "activeUsers";
+const PRESENCE_HEARTBEAT_MS = 25000; /* ส่งสถานะทุก 25 วินาที */
+
+/* ชื่อหน้าภาษาไทย ใช้แสดงในหน้า "ผู้ใช้งานออนไลน์" ว่าใครอยู่หน้าไหน
+   (ถ้าไม่มีชื่ออยู่ในตารางนี้ จะ fallback ไปใช้ชื่อไฟล์ตรงๆ แทน) */
+const PRESENCE_PAGE_LABELS = {
+    "index.html": "หน้าหลัก",
+    "documents.html": "เมนูประกันสินค้า",
+    "documents_v2.html": "เมนูประกันรถยนต์",
+    "form_product.html": "ฟอร์มประกันสินค้า",
+    "form_car.html": "ฟอร์มประกันรถยนต์",
+    "account_menu.html": "บัญชี (สินค้า)",
+    "account_menu_car.html": "บัญชี (รถยนต์)",
+    "report.html": "รายงานประกันสินค้า",
+    "report_v2.html": "รายงานประกันรถยนต์",
+    "customer_debt.html": "ลูกหนี้",
+    "customer_debt_product.html": "ลูกหนี้ประกันสินค้า",
+    "customer_debt_car.html": "ลูกหนี้ประกันรถยนต์",
+    "finance.html": "บันทึกการเงิน (สินค้า)",
+    "finance_car.html": "บันทึกการเงิน (รถยนต์)",
+    "revenue.html": "ผลงานพนักงาน / กราฟ",
+    "contract_print.html": "พิมพ์เอกสาร (สินค้า)",
+    "contract_print_car.html": "พิมพ์เอกสาร (รถยนต์)",
+    "receipt_print.html": "ใบรับเงิน (สินค้า)",
+    "receipt_print_car.html": "ใบรับเงิน (รถยนต์)",
+    "product_account.html": "เลือกบริษัท (สินค้า)",
+    "product_files.html": "เลือกบริษัท (สินค้า)",
+    "form_car.html": "ฟอร์มประกันรถยนต์",
+    "online_users.html": "ผู้ใช้งานออนไลน์"
+};
+
+function getPresencePageLabel() {
+    const path = window.location.pathname;
+    const file = path.substring(path.lastIndexOf("/") + 1) || "index.html";
+    return PRESENCE_PAGE_LABELS[file] || file;
+}
+
+/* ใช้ Firestore ร่วม app instance เดียวกับ "authApp" (ผูก service เพิ่มเข้าไปใน
+   app เดิมได้ ไม่ต้องสร้าง Firebase app ใหม่ซ้อน) */
+async function getPresenceDb() {
+    const { initializeApp, getApps, getApp } =
+        await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js");
+    const { getFirestore } =
+        await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js");
+
+    const app = getApps().some(a => a.name === "authApp")
+        ? getApp("authApp")
+        : initializeApp(firebaseConfig, "authApp");
+
+    return getFirestore(app);
+}
+
+/* ส่งสถานะ "กำลังใช้งานอยู่" ของตัวเอง 1 ครั้ง (เรียกซ้ำเรื่อยๆ ผ่าน setInterval) */
+async function updatePresence() {
+
+    if (!isLoggedIn()) return;
+
+    const email = getEmployeeEmail();
+    const name = getEmployeeName();
+
+    if (!email) return;
+
+    try {
+        const { doc, setDoc, serverTimestamp } =
+            await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js");
+        const db = await getPresenceDb();
+
+        await setDoc(
+            doc(db, PRESENCE_COLLECTION, normalizeEmail(email)),
+            {
+                name: name || email,
+                email: normalizeEmail(email),
+                page: getPresencePageLabel(),
+                online: true,
+                lastActive: serverTimestamp()
+            },
+            { merge: true }
+        );
+    } catch (err) {
+        console.error("อัปเดตสถานะออนไลน์ไม่สำเร็จ:", err);
+    }
+}
+
+let presenceHeartbeatStarted = false;
+
+/* เริ่มส่ง heartbeat (เรียกจาก requireLogin() หลังยืนยันว่าล็อกอินอยู่แล้วเท่านั้น)
+   ทำแค่ครั้งเดียวต่อการเปิดหน้า กันไม่ให้เกิด setInterval ซ้อนกันหลายตัว */
+function startPresenceHeartbeat() {
+
+    if (presenceHeartbeatStarted) return;
+    presenceHeartbeatStarted = true;
+
+    updatePresence();
+
+    setInterval(updatePresence, PRESENCE_HEARTBEAT_MS);
+
+    /* กลับมาเปิดแท็บอีกครั้งหลังสลับไปแท็บอื่น -> อัปเดตสถานะทันที ไม่ต้องรอครบรอบ */
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+            updatePresence();
+        }
+    });
+}
+
+/* ลบสถานะออนไลน์ของตัวเองออกทันที (เรียกตอนกดออกจากระบบ) */
+async function removePresence() {
+
+    const email = getEmployeeEmail();
+    if (!email) return;
+
+    try {
+        const { doc, setDoc, serverTimestamp } =
+            await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js");
+        const db = await getPresenceDb();
+
+        /* merge:true -> ไม่ลบเอกสารทิ้ง แค่ปิดสถานะออนไลน์ + ปั๊มเวลาล็อกเอาท์ไว้เป็น lastActive
+           ล่าสุด (ไว้ให้หน้า online_users.html เอาไปโชว์เป็น "ออฟไลน์ • ล่าสุด X ที่แล้ว" ได้) */
+        await setDoc(
+            doc(db, PRESENCE_COLLECTION, normalizeEmail(email)),
+            {
+                online: false,
+                lastActive: serverTimestamp()
+            },
+            { merge: true }
+        );
+    } catch (err) {
+        console.error("อัปเดตสถานะออฟไลน์ไม่สำเร็จ:", err);
+    }
+}
+
 /* ตรวจสอบว่าล็อกอินอยู่หรือไม่ */
 function isLoggedIn() {
     return localStorage.getItem(LOGIN_KEY) === "true";
@@ -420,6 +565,10 @@ function logoutEmployee() {
     localStorage.removeItem(LEGACY_KEY);
     sessionStorage.removeItem(LEGACY_KEY);
 
+    /* เพิ่มใหม่: ลบสถานะ "กำลังใช้งานอยู่" ของตัวเองออกทันที ไม่ให้ค้างเป็นออนไลน์
+       ในหน้า online_users.html หลังจากออกจากระบบไปแล้ว (ไม่รอผลลัพธ์ ปล่อยให้ทำงานเบื้องหลัง) */
+    removePresence();
+
     /* เพิ่มใหม่: สั่ง Firebase signOut() จริง เพื่อเคลียร์ session ที่ Firebase persist ไว้เองด้วย
        (ไม่รอผลลัพธ์ ปล่อยให้ทำงานเบื้องหลัง เพื่อไม่ให้การออกจากระบบดูช้าลง) */
     firebaseSignOut();
@@ -442,6 +591,10 @@ function requireLogin() {
         window.location.href = "login.html";
         return false;
     }
+
+    /* เพิ่มใหม่: เริ่มส่งสถานะ "กำลังใช้งานอยู่" ให้หน้า online_users.html เห็น
+       ทำหลังยืนยันว่าล็อกอินจริงแล้วเท่านั้น */
+    startPresenceHeartbeat();
 
     return true;
 }
