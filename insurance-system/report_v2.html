@@ -109,6 +109,66 @@ tr:hover{
 .status-unpaid{ background:#f1f1f1; color:#888; }
 
 /* =========================
+   เลขกรมธรรม์ (แก้ไข/บันทึกแบบ inline) — ยกมาจาก report.html
+========================= */
+.policy-cell{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:4px;
+    width:100%;
+}
+
+.policy-input{
+    flex:1 1 auto;
+    min-width:0;
+    width:100%;
+    box-sizing:border-box;
+    padding:5px 10px;
+    border-radius:999px;
+    border:1.5px solid #cfd6e2;
+    font-family:"Kanit",sans-serif;
+    font-size:12px;
+    text-align:center;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
+.policy-input:disabled{
+    background:#f2f2f2;
+    color:#555;
+}
+
+.policy-input:focus{
+    outline:none;
+    border-color:#2F6FED;
+}
+
+.policy-btn{
+    flex:0 0 auto;
+    width:26px;
+    height:26px;
+    border:none;
+    border-radius:6px;
+    font-size:12px;
+    cursor:pointer;
+}
+
+.policy-edit-btn{
+    background:#ffc000;
+    color:#002d72;
+}
+
+.policy-save-btn{
+    background:#198754;
+    color:#fff;
+}
+
+.policy-btn:hover{
+    transform:scale(1.1);
+}
+
+/* =========================
    ปุ่มจัดการ (แก้ไข / เอกสาร / ใบเสร็จ / ลบ)
    ยกมาจาก report.html เพื่อให้หน้าตา/การทำงานเหมือนกัน
 ========================= */
@@ -142,6 +202,16 @@ tr:hover{
     width:150px;
     min-width:150px;
     max-width:150px;
+}
+
+/* ล็อกความกว้างคอลัมน์ "เลขกรมธรรม์" (คอลัมน์ที่ 6: จัดการ/ลำดับ/ชื่อผู้เอาประกัน/ทะเบียนรถ/เบอร์โทร/เลขกรมธรรม์)
+   ให้คงที่ทุกขนาดจอ เหมือนกับคอลัมน์ "จัดการ" ด้านบน กันไม่ให้ช่องกรอก + ปุ่มแก้ไข/บันทึกถูกบีบเล็กจนอ่านยาก */
+#table th:nth-child(6),
+#table td:nth-child(6){
+    width:190px;
+    min-width:190px;
+    max-width:190px;
+    white-space:normal;
 }
 
 @media(max-width:768px){
@@ -473,6 +543,7 @@ import {
     collection,
     onSnapshot,
     deleteDoc,
+    setDoc,
     doc
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
@@ -597,16 +668,17 @@ function typeLabel(item){
 const COLUMNS = [
     { key:"__actions",      label:"จัดการ",            get:item=> buildActionButtons(item), raw:true },
     { key:"__index",        label:"ลำดับ",            get:(item,i)=> i+1, align:"center" },
+    { key:"customer",       label:"ชื่อผู้เอาประกัน",   get:item=> safe(item.customer), align:"left" },
+    { key:"plate",          label:"ทะเบียนรถ",         get:item=> safe(item.plate) },
+    { key:"phone",          label:"เบอร์โทร",          get:item=> safe(item.phone) },
+    { key:"policyNumber",   label:"เลขกรมธรรม์",       get:item=> buildPolicyCell(item), raw:true },
+    { key:"createDate",     label:"วันที่แจ้งงาน",      get:item=> safe(item.createDate) },
     { key:"invoiceNo",      label:"เลขที่แจ้งหนี้",     get:item=> safe(item.invoiceNo) },
     { key:"agentCode",      label:"รหัส",              get:item=> safe(item.agentCode) },
-    { key:"policyNumber",   label:"เลขกรมธรรม์",       get:item=> safe(item.policyNumber) },
-    { key:"customer",       label:"ชื่อผู้เอาประกัน",   get:item=> safe(item.customer), align:"left" },
-    { key:"phone",          label:"เบอร์โทร",          get:item=> safe(item.phone) },
     { key:"address",        label:"ที่อยู่ปัจจุบัน",     get:item=> safe(item.address), align:"left" },
     { key:"type",           label:"ประเภทประกัน",       get:item=> typeLabel(item) },
     { key:"modelCode",      label:"รหัสรถ",            get:item=> safe(item.modelCode) },
     { key:"brand",          label:"ยี่ห้อ / รุ่น",       get:item=> safe(item.brand) },
-    { key:"plate",          label:"ทะเบียนรถ",         get:item=> safe(item.plate) },
     { key:"chassis",        label:"เลขตัวถัง",         get:item=> safe(item.chassis) },
     { key:"carYear",        label:"ปีรถ",              get:item=> safe(item.carYear) },
     { key:"start",          label:"วันเริ่มคุ้มครอง",   get:item=> toDMYBuddhist(item.start) },
@@ -628,10 +700,10 @@ const COLUMNS = [
     { key:"installment4",   label:"งวดที่ 4",           get:item=> item.installment4 !== undefined && item.installment4 !== "" ? fmtNum(item.installment4) : "-" },
     { key:"installment5",   label:"งวดที่ 5",           get:item=> item.installment5 !== undefined && item.installment5 !== "" ? fmtNum(item.installment5) : "-" },
     { key:"installment6",   label:"งวดที่ 6",           get:item=> item.installment6 !== undefined && item.installment6 !== "" ? fmtNum(item.installment6) : "-" },
-    { key:"__status1",      label:"สถานะชำระงวด 1",     get:item=> statusBadge(item.installment1), raw:true },
-    { key:"__status2",      label:"สถานะชำระงวด 2",     get:item=> statusBadge(item.installment2), raw:true },
-    { key:"__status3",      label:"สถานะชำระงวด 3",     get:item=> statusBadge(item.installment3), raw:true },
-    { key:"__status4",      label:"สถานะชำระงวด 4",     get:item=> statusBadge(item.installment4), raw:true },
+    { key:"__status1",      label:"สถานะชำระงวด 1",     get:item=> statusBadge(item.installment1, 1, item), raw:true },
+    { key:"__status2",      label:"สถานะชำระงวด 2",     get:item=> statusBadge(item.installment2, 2, item), raw:true },
+    { key:"__status3",      label:"สถานะชำระงวด 3",     get:item=> statusBadge(item.installment3, 3, item), raw:true },
+    { key:"__status4",      label:"สถานะชำระงวด 4",     get:item=> statusBadge(item.installment4, 4, item), raw:true },
     { key:"__debt",         label:"ยอดค้างชำระ",        get:item=> fmtNum(Math.max(Number(item.total||0) - calcPaidTotal(item), 0)) }
 ];
 
@@ -639,7 +711,7 @@ const COLUMNS = [
    ข้อมูลในหน้านี้เป็นประกันรถยนต์ (type === "car") ทั้งหมด
    จึงพาไปหน้า form_car.html / contract_print_car.html / receipt_print_car.html เสมอ */
 function buildActionButtons(item){
-    const owner = item.employeeName || item.requestName || "";
+    const owner = item.reporterName || item.employeeName || item.requestName || "";
     const canDelete = owner === loggedInEmployee;
 
     return `
@@ -657,7 +729,58 @@ function buildActionButtons(item){
     `;
 }
 
-function statusBadge(v){
+/* สร้างเซลล์ "เลขกรมธรรม์" แบบแก้ไข/บันทึก inline ได้ในตาราง (ยกมาจาก report.html)
+   ค่าจะถูกบันทึกทับเฉพาะฟิลด์ policyNumber ของเอกสารเดิมด้วย setDoc({merge:true})
+   จึงไม่กระทบฟิลด์อื่นของรายการนั้นเลย */
+function buildPolicyCell(item){
+    return `
+        <div class="policy-cell">
+            <input type="text"
+                class="policy-input"
+                id="policy_${item.id}"
+                value="${item.policyNumber || ""}"
+                placeholder="เลขกรมธรรม์"
+                disabled>
+            <button class="policy-btn policy-edit-btn" onclick="togglePolicyEdit('${item.id}')" title="แก้ไข">✏️</button>
+            <button class="policy-btn policy-save-btn" onclick="savePolicyNumber('${item.id}')" title="บันทึก">💾</button>
+        </div>
+    `;
+}
+
+function togglePolicyEdit(id){
+    const input = document.getElementById("policy_" + id);
+    if(!input) return;
+    input.disabled = false;
+    input.focus();
+}
+
+async function savePolicyNumber(id){
+    const input = document.getElementById("policy_" + id);
+    if(!input) return;
+
+    const value = input.value.trim();
+
+    await setDoc(
+        doc(db, "insuranceData", id),
+        { policyNumber: value },
+        { merge: true }
+    );
+
+    input.disabled = true;
+
+    showToast("✅ บันทึกเลขกรมธรรม์เรียบร้อย");
+}
+
+/* แสดงสถานะชำระของ "งวดที่ n" เฉพาะเมื่องวดนั้นอยู่ในแผนผ่อนจริง (n <= installmentCount) เท่านั้น
+   ถ้าลูกค้าเลือกผ่อนแค่ 1 งวด (installmentCount = "1") คอลัมน์สถานะงวด 2/3/4 จะไม่ขึ้น "ยังไม่ชำระ"
+   ให้เปล่าๆ อีกต่อไป (เดิมเข้าใจผิดว่ายังค้างชำระ ทั้งที่ไม่มีงวดนั้นอยู่ในแผนเลย)
+   ถ้าไม่ทราบ installmentCount (ไม่มีค่า/ข้อมูลเก่า) จะคงพฤติกรรมเดิมไว้ (แสดงสถานะตามปกติ) */
+function statusBadge(v, n, item){
+    const count = Number((item && item.installmentCount) || 0);
+    if(n && count && n > count){
+        return `<span class="status-badge" style="background:#f5f5f5;color:#bbb;">-</span>`;
+    }
+
     const paid = v !== undefined && v !== null && String(v).trim() !== "" && Number(v) > 0;
     return paid
         ? `<span class="status-badge status-paid">✅ ชำระแล้ว</span>`
@@ -704,7 +827,7 @@ function populateFilters(){
         companies.map(c=>`<option value="${c}">${c}</option>`).join("");
     companySelect.value = companies.includes(prevCompany) ? prevCompany : "all";
 
-    const employees = [...new Set(allData.map(item=>item.employeeName || item.requestName).filter(e=>e))];
+    const employees = [...new Set(allData.map(item=>item.reporterName || item.employeeName || item.requestName).filter(e=>e))];
     employeeSelect.innerHTML = `<option value="all">ทั้งหมด</option>` +
         employees.map(e=>`<option value="${e}">${e}</option>`).join("");
     employeeSelect.value = employees.includes(prevEmployee) ? prevEmployee : "all";
@@ -741,6 +864,14 @@ function populateFilters(){
         filtersInitialized = true;
         const currentMonth = String(new Date().getMonth()+1).padStart(2,"0");
         if([...monthSelect.options].some(o=>o.value===currentMonth)) monthSelect.value = currentMonth;
+
+        /* เพิ่มใหม่: ตั้งค่าเริ่มต้นตอนเปิดหน้าครั้งแรกให้แสดงเฉพาะ วันนี้ + เดือนนี้ + พนักงานคนนี้ (ผู้ล็อกอิน) */
+        const currentDay = String(new Date().getDate()).padStart(2,"0");
+        if([...dayEl.options].some(o=>o.value===currentDay)) dayEl.value = currentDay;
+
+        if(loggedInEmployee && [...employeeSelect.options].some(o=>o.value===loggedInEmployee)){
+            employeeSelect.value = loggedInEmployee;
+        }
     }
 
     [companySelect, yearSelect, monthSelect, dayEl, employeeSelect].forEach(el=>{
@@ -766,7 +897,7 @@ function getFilteredData(){
         const monthOK = selectedMonth === "all" || parsed.month === selectedMonth;
         const dayOK = selectedDay === "all" || parsed.day === selectedDay;
 
-        const empName = item.employeeName || item.requestName || "";
+        const empName = item.reporterName || item.employeeName || item.requestName || "";
         const employeeOK = selectedEmployee === "all" || empName === selectedEmployee;
 
         const searchOK = !searchTerm ||
@@ -973,7 +1104,7 @@ async function deleteItem(id){
         return;
     }
 
-    const owner = item.employeeName || item.requestName || "";
+    const owner = item.reporterName || item.employeeName || item.requestName || "";
     if(owner !== loggedInEmployee){
         showToast("❌ ลบได้เฉพาะผู้แจ้งงานรายการนี้เท่านั้น (" + (owner || "ไม่ระบุ") + ")");
         return;
@@ -1006,6 +1137,8 @@ window.openDoc = openDoc;
 window.openReceipt = openReceipt;
 window.deleteItem = deleteItem;
 window.showToast = showToast;
+window.togglePolicyEdit = togglePolicyEdit;
+window.savePolicyNumber = savePolicyNumber;
 
 /* =========================
    SIDEBAR MENU

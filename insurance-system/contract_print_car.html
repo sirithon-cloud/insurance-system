@@ -102,36 +102,37 @@ html, body{
    หน้า 1: คำขอเอาประกันภัยรถยนต์ภาคสมัครใจ (แบบวิริยะ)
 ========================================================== */
 .vform{
-    padding:20px 20px 120px;
+    padding:20px 12px 16px 24px;
     color:#000;
-    font-size:17.25px;
-    line-height:1.35;
+    font-size:11px;
+    line-height:1.28;
 }
 .vform .vf-top{
     display:flex;
     justify-content:space-between;
     align-items:flex-start;
-    margin-bottom:8px;
+    margin-bottom:3px;
 }
-.vform .vf-logo{ height:130px; }
-.vform .vf-topright{ font-size:18px; text-align:left; }
-.vform .vf-topright div{ display:flex; align-items:baseline; gap:8px; margin-bottom:4px; }
-.vform .vf-topright .lbl{ white-space:nowrap; display:inline-block; width:86px; flex:none; text-align:right; }
+.vform .vf-logo{ height:85px; }
+.vform .vf-topright{ font-size:11px; text-align:left; }
+.vform .vf-topright div{ display:flex; align-items:baseline; gap:5px; margin-bottom:2px; }
+.vform .vf-topright .lbl{ white-space:nowrap; display:inline-block; width:58px; flex:none; text-align:right; }
 .vform .vf-topright .val{
-    display:inline-block; width:130px; flex:none;
-    text-align:center; font-weight:600;
+    display:inline-block; width:66px; flex:none;
+    text-align:center; font-weight:400;
     border-bottom:1px solid #000;
 }
 
-.vform .vf-box{ border:1.3px solid #000; }
+.vform .vf-box{ border:1px solid #000; }
 .vform .vf-title{
-    text-align:center; font-weight:700; font-size:20.25px;
-    border-bottom:1.3px solid #000; padding:4px 0; background:#fff;
+    text-align:center; font-weight:700; font-size:14px;
+    border-bottom:1px solid #000; padding:2px 0; background:#f0f0f0;
 }
+.vform b{ font-weight:400; }
 
 .vf-row{
     display:flex; flex-wrap:wrap; align-items:baseline;
-    gap:2px 8px; border-bottom:1px solid #000; padding:2.5px 8px;
+    gap:1px 5px; border-bottom:1px solid #000; padding:1px 7px;
 }
 .vf-row.noborder{ border-bottom:none; }
 .vf-row:last-child{ border-bottom:none; }
@@ -140,150 +141,151 @@ html, body{
 .vf-lbl{ white-space:nowrap; }
 .vf-line{
     display:inline-block;
-    padding:0 3px; min-width:120px;
+    padding:0 2px; min-width:44px;
 }
-.vf-fieldcol{ display:flex; align-items:baseline; gap:4px; flex:1; }
-.vf-fieldcol .vf-lbl{ min-width:118px; }
-.vf-lbl-eq{ display:inline-block; min-width:96px; }
-.vf-fill{ flex:1; min-width:60px; padding:0 4px; font-weight:600; }
+.vf-fieldcol{ display:flex; align-items:baseline; gap:3px; flex:1; }
+.vf-fieldcol .vf-lbl{ min-width:72px; }
+.vf-lbl-eq{ display:inline-block; min-width:58px; }
+.vf-fill{ flex:1; min-width:26px; padding:0 3px; font-weight:400; }
 .vf-fieldcol-tight{ display:flex; align-items:baseline; gap:0; flex:1; }
 .vf-fieldcol-tight .vf-lbl-eq{ min-width:auto; margin-right:2px; }
-.vf-fill-dotted{ flex:1; min-width:40px; padding:0 4px 2px 0; font-weight:600; align-self:flex-end; background-image:linear-gradient(to right,#000 55%,rgba(255,255,255,0) 0%); background-position:bottom; background-size:4px 1px; background-repeat:repeat-x; }
-.vf-line-dotted{ display:inline-block; padding:0 3px 2px; min-width:120px; background-image:linear-gradient(to right,#000 55%,rgba(255,255,255,0) 0%); background-position:bottom; background-size:4px 1px; background-repeat:repeat-x; }
-.vf-line-dotted-tight{ flex:1; min-width:60px; padding:0 3px 2px 0; align-self:flex-end; background-image:linear-gradient(to right,#000 55%,rgba(255,255,255,0) 0%); background-position:bottom; background-size:4px 1px; background-repeat:repeat-x; }
+.vf-fill-dotted{ flex:1; min-width:18px; padding:0 3px 1px 0; font-weight:400; align-self:flex-end; background-image:linear-gradient(to right,#000 55%,rgba(255,255,255,0) 0%); background-position:bottom; background-size:4px 1px; background-repeat:repeat-x; }
+.vf-line-dotted{ display:inline-block; padding:0 2px 1px; min-width:44px; background-image:linear-gradient(to right,#000 55%,rgba(255,255,255,0) 0%); background-position:bottom; background-size:4px 1px; background-repeat:repeat-x; }
+.vf-line-dotted-tight{ flex:1; min-width:19px; padding:0 2px 1px 0; align-self:flex-end; background-image:linear-gradient(to right,#000 55%,rgba(255,255,255,0) 0%); background-position:bottom; background-size:4px 1px; background-repeat:repeat-x; }
 .vf-sqbox{
     display:inline-flex; align-items:center; justify-content:center;
-    width:11px; height:11px; border:1px solid #ff1900; vertical-align:middle;
-    cursor:pointer; user-select:none; font-size:10px; font-weight:900;
+    width:8px; height:8px; border:1px solid #ff1900; vertical-align:middle;
+    cursor:pointer; user-select:none; font-size:7px; font-weight:900;
     line-height:1; color:#ff1900;
 }
 .vf-sqbox.on::after{ content:"✓"; }
 .vf-o{
     display:inline-flex; align-items:center; justify-content:center;
-    width:11px; height:11px; border:1px solid #000; border-radius:50%;
-    vertical-align:middle; margin-right:4px; cursor:pointer; user-select:none;
+    width:8px; height:8px; border:1px solid #000; border-radius:50%;
+    vertical-align:middle; margin-right:3px; cursor:pointer; user-select:none;
 }
-.vf-o.on::after{ content:""; width:6px; height:6px; border-radius:50%; background:#000; }
-.vf-right-block{ margin-left:auto; display:flex; align-items:baseline; gap:6px; }
+.vf-o.on::after{ content:""; width:4.5px; height:4.5px; border-radius:50%; background:#000; }
+.vf-right-block{ margin-left:auto; display:flex; align-items:baseline; gap:4px; }
 
 table.vf-toptable{ width:100%; border-collapse:collapse; table-layout:fixed; }
-table.vf-toptable td{ border:none; padding:2.5px 8px; vertical-align:baseline; }
+table.vf-toptable td{ border:none; padding:1px 7px; vertical-align:baseline; }
 table.vf-toptable td.red{ color:#ff1900; }
 
-table.vf-table{ width:calc(100% + 2.6px); margin:-1px -1.3px 0; border-collapse:collapse; font-size:16.5px; }
-table.vf-table th, table.vf-table td{ border:1px solid #000; padding:3px 4px; text-align:center; }
+table.vf-table{ width:calc(100% + 2px); margin:-1px -1px 0; border-collapse:collapse; font-size:10px; }
+table.vf-table th, table.vf-table td{ border:1px solid #000; padding:1.5px 3px; text-align:center; }
 table.vf-table th{ background:#f2f2f2; font-weight:700; }
 
-.vf-noteline{ border-bottom:1px solid #000; padding:2.5px 8px; }
-.vf-noteline .u{ text-decoration:underline; font-weight:600; }
+.vf-noteline{ border-bottom:1px solid #000; padding:1px 7px; }
+.vf-noteline .u{ text-decoration:underline; font-weight:700; }
 
-table.vf-cover{ width:calc(100% + 2.6px); border-collapse:collapse; font-size:16.2px; table-layout:fixed; margin:-1px -1.3px -1.3px; border-spacing:0; }
-table.vf-cover td{ border:1px solid #000; padding:3px 6px; vertical-align:top; }
+table.vf-cover{ width:calc(100% + 2px); border-collapse:collapse; font-size:9.8px; table-layout:fixed; margin:-1px -1px -1px; border-spacing:0; }
+table.vf-cover td{ border:1px solid #000; padding:1.5px 5px; vertical-align:top; }
 table.vf-cover td.hd{ font-weight:700; text-align:center; background:#f2f2f2; }
-table.vf-cover .amtline{ display:flex; justify-content:flex-start; align-items:flex-end; gap:6px; margin:2px 0 6px; }
-table.vf-cover .fillnum{ min-width:90px; text-align:center; font-weight:600; padding-bottom:2px; background-image:linear-gradient(to right,#000 55%,rgba(255,255,255,0) 0%); background-position:bottom; background-size:4px 1px; background-repeat:repeat-x; }
-table.vf-cover .subline{ display:flex; align-items:flex-end; gap:6px; margin:6px 0 12px; }
-table.vf-cover .subfill{ flex:1; min-height:11px; background-image:linear-gradient(to right,#000 55%,rgba(255,255,255,0) 0%); background-position:bottom; background-size:4px 1px; background-repeat:repeat-x; }
+table.vf-cover .amtline{ display:flex; justify-content:flex-start; align-items:flex-end; gap:4px; margin:1px 0 2px; }
+table.vf-cover .fillnum{ min-width:40px; text-align:center; font-weight:400; padding-bottom:1px; background-image:linear-gradient(to right,#000 55%,rgba(255,255,255,0) 0%); background-position:bottom; background-size:4px 1px; background-repeat:repeat-x; }
+table.vf-cover .subline{ display:flex; align-items:flex-end; gap:4px; margin:2px 0 4px; }
+table.vf-cover .subfill{ flex:1; min-height:8px; background-image:linear-gradient(to right,#000 55%,rgba(255,255,255,0) 0%); background-position:bottom; background-size:4px 1px; background-repeat:repeat-x; }
 .vf-declare-block{ width:fit-content; max-width:100%; margin:0 auto; }
 
-.vf-declare{ text-align:center; padding:8px 6px 3px; font-size:16.95px; margin-top:6px; }
-.vf-declare2{ display:flex; justify-content:center; gap:26px; padding:2px 6px 6px; font-size:16.95px; }
-.vf-declare2 .val{ border-bottom:1px solid #000; min-width:120px; text-align:center; font-weight:600; display:inline-block; }
+.vf-declare{ text-align:center; padding:3px 4px 1px; font-size:11px; margin-top:2px; }
+.vf-declare2{ display:flex; justify-content:center; gap:12px; padding:1px 4px 2px; font-size:11px; }
+.vf-declare2 .val{ border-bottom:1px solid #000; min-width:52px; text-align:center; font-weight:400; display:inline-block; }
 
-.vf-signrow{ display:flex; justify-content:center; gap:60px; padding:6px 8px; font-size:16.95px; }
-.vf-signrow .sign-fill{ display:inline-block; min-width:220px; padding-bottom:2px; background-image:linear-gradient(to right,#000 55%,rgba(255,255,255,0) 0%); background-position:bottom; background-size:4px 1px; background-repeat:repeat-x; }
+.vf-signrow{ display:flex; justify-content:center; gap:24px; padding:2px 6px; font-size:11px; }
+.vf-signrow .sign-fill{ display:inline-block; min-width:88px; padding-bottom:1px; background-image:linear-gradient(to right,#000 55%,rgba(255,255,255,0) 0%); background-position:bottom; background-size:4px 1px; background-repeat:repeat-x; }
 
-.vf-warnrow{ display:flex; justify-content:center; gap:60px; padding:2px 8px 8px; font-size:16.2px; }
-.vf-warnrow .u{ color:#ff1900; text-decoration:underline; font-weight:600; }
-.vf-warnrow .val{ min-width:220px; text-align:center; font-weight:600; }
+.vf-warnrow{ display:flex; justify-content:center; gap:24px; padding:1px 6px 3px; font-size:10px; }
+.vf-warnrow .u{ color:#ff1900; text-decoration:underline; font-weight:700; }
+.vf-warnrow .val{ min-width:88px; text-align:center; font-weight:400; }
 
-table.vf-staff{ width:100%; border-collapse:collapse; font-size:16.5px; border:1px solid #000; }
-table.vf-staff td{ border:none; border-right:1px solid #000; padding:3px 6px; }
+table.vf-staff{ width:100%; border-collapse:collapse; font-size:10px; border:1px solid #000; }
+table.vf-staff td{ border:none; border-right:1px solid #000; padding:1.5px 5px; }
 table.vf-staff td:last-child{ border-right:none; }
 table.vf-staff td.hd{ font-weight:700; text-align:center; background:#f2f2f2; border-bottom:1px solid #000; }
-.vf-staff .fillnum{ min-width:60px; display:inline-block; text-align:center; padding-bottom:1px; background-image:linear-gradient(to right,#000 55%,rgba(255,255,255,0) 0%); background-position:bottom; background-size:4px 1px; background-repeat:repeat-x; }
+.vf-staff .fillnum{ min-width:26px; display:inline-block; text-align:center; padding-bottom:1px; background-image:linear-gradient(to right,#000 55%,rgba(255,255,255,0) 0%); background-position:bottom; background-size:4px 1px; background-repeat:repeat-x; }
 
 /* ==========================================================
    หน้า 2-3: ใบแจ้งยอดชำระ
 ========================================================== */
-.inv{ padding:0; font-size:11.5px; color:#000; }
+.inv{ padding:0; font-size:13px; color:#000; }
+.inv b{ font-weight:400; }
 .inv-banner{
-    background:#fff; height:78px; position:relative;margin-left:-10mm; margin-right:-10mm; width:calc(100% + 20mm);
-    display:flex; align-items:stretch;margin-top:25px;
+    background:#fff; height:82px; position:relative;margin-left:-10mm; margin-right:-10mm; width:calc(100% + 20mm);
+    display:flex; align-items:stretch;margin-top:14px;
 }
 .inv-banner .logo-area{
     display:flex; align-items:center; padding:0 26px  0 50px; background:#fff;
 }
-.inv-banner .logo-area img{ height:70px; display:block; }
+.inv-banner .logo-area img{ height:78px; display:block; }
 .inv-banner .blue-fill{ flex:1; background:#0b4fa2;margin-top:-30px; height:calc(100% + 20px); }
-.inv-head{ padding:10px 26px 4px; }
-.inv-head .co{ font-weight:700; font-size:11.5px; }
-.inv-head .addr{ font-weight:700; font-size:11.5px; margin-top:2px; }
+.inv-head{ padding:8px 34px 3px; }
+.inv-head .co{ font-weight:700; font-size:13px; }
+.inv-head .addr{ font-weight:400; font-size:13px; margin-top:2px; }
 .inv-title{
-    position:absolute; right:26px; top:20px; text-align:right;
-    font-size:19px; font-weight:700; color:#0b4fa2;
+    position:absolute; right:34px; top:20px; text-align:right;
+    font-size:21px; font-weight:700; color:#0b4fa2;
 }
-.inv-title-wrap{ position:relative; padding:0 26px; }
+.inv-title-wrap{ position:relative; padding:0 34px; }
 
-.inv-to{ padding:8px 26px 6px; }
+.inv-to{ padding:6px 34px 5px; }
 .inv-to-row{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:2px; }
 .inv-to-row .lft{ padding-left:64px; }
-.inv-to-row .no{ color:#ff1900; font-weight:700; }
+.inv-to-row .no{ color:#ff1900; font-weight:400; }
 
-table.inv-table{ width:calc(100% - 52px); margin:6px 26px 0; border-collapse:collapse; font-size:11px; }
-table.inv-table th{ border:1px solid #000; background:#f5f5f5; padding:4px 6px; font-weight:700; }
-table.inv-table td{ border:1px solid #000; padding:4px 6px; }
+table.inv-table{ width:calc(100% - 68px); margin:5px 34px 0; border-collapse:collapse; font-size:12.5px; }
+table.inv-table th{ border:1px solid #000; background:#f5f5f5; padding:3px 6px; font-weight:700; }
+table.inv-table td{ border:1px solid #000; padding:3px 6px; }
 table.inv-table td.num{ text-align:right; }
-table.inv-table tr.total td{ font-weight:700; text-align:right; }
-table.inv-table tr.grandrow td{ background:#ffc850; font-weight:700; color:#c0392b; text-align:right; font-size:13px; }
-table.inv-table td.thai-col{ color:#000; font-weight:700; text-align:center; vertical-align:middle; font-size:10.5px; padding:6px 8px; }
-table.inv-table-thai tr.total td, table.inv-table-thai tr.grandrow td{ background:#fff; color:#000; font-size:11px; }
+table.inv-table tr.total td{ font-weight:400; text-align:right; }
+table.inv-table tr.grandrow td{ background:#ffc850; font-weight:700; color:#c0392b; text-align:right; font-size:14.5px; }
+table.inv-table td.thai-col{ color:#000; font-weight:400; text-align:center; vertical-align:middle; font-size:11.5px; padding:5px 8px; }
+table.inv-table-thai tr.total td, table.inv-table-thai tr.grandrow td{ background:#fff; color:#000; font-size:12.5px; }
 /* แก้ไข: เดิม selector รวม tr.total (แถว "รวม") ไว้ด้วย ทำให้แถว "รวม" มีพื้นหลังสีเหลืองไปด้วย
    ตัดออกให้เหลือเฉพาะ tr.grandrow (แถว "ยอดชำระ") เท่านั้นที่ยังคงไฮไลท์สีเหลือง ตามที่ต้องการ */
-table.inv-table-thai tr.grandrow td.num{ background:#ffc850; color:#c0392b; font-weight:700; text-align:right; font-size:13px; }
+table.inv-table-thai tr.grandrow td.num{ background:#ffc850; color:#c0392b; font-weight:700; text-align:right; font-size:14.5px; }
 /* เพิ่มใหม่: ไฮไลท์สีเหลืองทั้งแถว "ยอดชำระ" ของหน้า 3 ให้เหมือนหน้า 2 (เดิมกฎด้านบนไฮไลท์แค่ช่อง .num
    ช่องเดียว เพราะกฎ tr.grandrow td ด้านบนตั้ง background:#fff ครอบทั้งแถวไว้ก่อน) ต้องอยู่หลังกฎนั้นเสมอ */
-table.inv-table-thai tr.grandrow td{ background:#ffc850; color:#c0392b; font-weight:700; text-align:right; font-size:13px; }
+table.inv-table-thai tr.grandrow td{ background:#ffc850; color:#c0392b; font-weight:700; text-align:right; font-size:14.5px; }
 
-.inv-words{ text-align:center; padding:8px 0; font-weight:600; }
+.inv-words{ text-align:center; padding:6px 0; font-weight:400; }
 
-.inv-bank-row{ display:flex; align-items:flex-start; gap:16px; margin:8px 26px 0; }
-.inv-bank{ margin:0; background:#f2f2f2; border-radius:6px; padding:12px 16px; flex:0 1 50%; }
-.inv-bank .u{ text-decoration:underline; font-weight:700; margin-bottom:6px; display:block; }
+.inv-bank-row{ display:flex; align-items:flex-start; gap:16px; margin:6px 34px 0; }
+.inv-bank{ margin:0; background:#f2f2f2; border-radius:6px; padding:10px 16px; flex:0 1 50%; }
+.inv-bank .u{ text-decoration:underline; font-weight:700; margin-bottom:5px; display:block; }
 .inv-bank .bankrow{ display:flex; gap:10px; align-items:center; }
-.inv-bank .bankrow img{ height:38px; }
+.inv-bank .bankrow img{ height:42px; }
 .inv-bank .bankinfo b{ display:block; }
 
 .inv-customer{ margin:0; padding:2px 4px; flex:1; }
 .inv-customer .kv{ display:flex; align-items:baseline; margin-bottom:3px; }
-.inv-customer .kv .k{ display:inline-block; min-width:160px; white-space:nowrap; }
+.inv-customer .kv .k{ display:inline-block; min-width:165px; white-space:nowrap; }
 
-.inv-installcount{ padding:6px 26px; }
+.inv-installcount{ padding:5px 34px; }
 .inv-installcount b{ color:#ff1900; text-decoration:underline; }
 
-table.inv-sched{ width:calc(100% - 52px); margin:0 26px 8px; border-collapse:collapse; font-size:11px; }
-table.inv-sched th{ background:#f5f5f5; border:1px solid #000; padding:5px 4px; font-weight:700; }
-table.inv-sched td{ border:1px solid #000; padding:5px 4px; text-align:center; }
+table.inv-sched{ width:calc(100% - 68px); margin:0 34px 6px; border-collapse:collapse; font-size:12.5px; }
+table.inv-sched th{ background:#f5f5f5; border:1px solid #000; padding:4px 4px; font-weight:700; }
+table.inv-sched td{ border:1px solid #000; padding:4px 4px; text-align:center; }
 table.inv-sched tr:nth-child(odd) td{ background:#f2f2f2; }
-table.inv-sched .lbl{ font-weight:700; text-decoration:underline; }
-table.inv-sched .amt{ color:#ff1900; font-weight:700; }
-table.inv-sched td.total-plain{ background:#fff; font-weight:700; }
+table.inv-sched .lbl{ font-weight:400; text-decoration:underline; }
+table.inv-sched .amt{ color:#ff1900; font-weight:400; }
+table.inv-sched td.total-plain{ background:#fff; font-weight:400; }
 /* แก้ไข: แถว "รวม" ของตารางผ่อนชำระ ไม่ใช่แถว "ยอดชำระ" หลัก จึงตัดพื้นหลังสีเหลืองออก
-   ให้เป็นพื้นขาวเหมือน total-plain แทน (ยังคง font-weight:700 ไว้เหมือนเดิม) */
-table.inv-sched td.total-hl{ background:#fff; font-weight:700; }
+   ให้เป็นพื้นขาวเหมือน total-plain แทน */
+table.inv-sched td.total-hl{ background:#fff; font-weight:400; }
 
-.inv-notes{ margin:6px 26px 10px; padding:8px 10px; font-size:10px; line-height:1.7; background:#f2f2f2; border-radius:6px; }
-.inv-notes b{ display:block; margin-bottom:2px; }
+.inv-notes{ margin:5px 34px 8px; padding:6px 10px; font-size:11px; line-height:1.55; background:#f2f2f2; border-radius:6px; }
+.inv-notes b{ display:block; margin-bottom:2px; font-weight:700; }
 
-table.inv-notes-table{ width:calc(100% - 52px); margin:6px 26px 10px; border-collapse:collapse; font-size:10px; line-height:1.7; }
-table.inv-notes-table td{ border:1px solid #000; padding:8px 10px; }
+table.inv-notes-table{ width:calc(100% - 68px); margin:5px 34px 8px; border-collapse:collapse; font-size:11px; line-height:1.55; }
+table.inv-notes-table td{ border:1px solid #000; padding:6px 10px; }
 table.inv-notes-table .u{ text-decoration:underline; display:block; margin-bottom:2px; }
 table.inv-notes-table .red{ color:#ff1900; display:block; }
 
-.inv-footer2{ display:flex; justify-content:space-between; gap:20px; margin:10px 26px; padding:10px 16px; font-size:10.5px; border:1px solid #000; }
-.inv-footer2 .kv{ display:flex; align-items:baseline; margin-bottom:6px; }
-.inv-footer2 .kv .k{ display:inline-block; min-width:100px; white-space:nowrap; }
-.inv-footer2 .line{ border-bottom:1px solid #000; display:inline-block; min-width:160px; }
+.inv-footer2{ display:flex; justify-content:space-between; gap:20px; margin:8px 34px; padding:8px 16px; font-size:11.5px; border:1px solid #000; }
+.inv-footer2 .kv{ display:flex; align-items:baseline; margin-bottom:5px; }
+.inv-footer2 .kv .k{ display:inline-block; min-width:95px; white-space:nowrap; }
+.inv-footer2 .line{ border-bottom:1px dashed #000; display:inline-block; min-width:190px; }
 </style>
 </head>
 <body>
@@ -294,7 +296,7 @@ table.inv-notes-table .red{ color:#ff1900; display:block; }
 </div>
 
 <div class="btn-bar">
-  <button onclick="window.location.href='report.html'" style="background:#666866; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer;">🏠 กลับหน้าหลัก</button>
+  <button onclick="window.location.href='report_v2.html'" style="background:#666866; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer;">🏠 กลับหน้าหลัก</button>
   <button class="btn-print" onclick="window.print()">🖨 พิมพ์ / บันทึก PDF</button>
   <button class="btn-pdf" onclick="downloadPDF()">📥 ดาวน์โหลด PDF</button>
   <button class="btn-jpg" onclick="saveJPG()">🖼 ดาวน์โหลด JPG</button>
@@ -310,7 +312,7 @@ table.inv-notes-table .red{ color:#ff1900; display:block; }
 const AGENT = {
     officeTitle: "สำนักงานตัวแทนประกันวินาศภัย",
     companyLine: "บริษัท วิริยะประกันภัย จำกัด (มหาชน)",
-    address: "166 หมู่ที่ 5 ตำบลโนนสะอาด อำเภอชุมแพ จังหวัดขอนแก่น",
+    address: "168 หมู่ที่ 5 ตำบลโนนสะอาด อำเภอชุมแพ จังหวัดขอนแก่น",
     branch: "ขอนแก่น",
     agentCodeDefault: "14904",
     bankName: "ธนาคารกรุงเทพ",
@@ -470,7 +472,7 @@ function renderVoluntaryForm() {
 
     return `
     <div class="app-box vform">
-        <div style="height:20px;"></div>
+        <div style="height:8px;"></div>
         <div class="vf-top">
             <img class="vf-logo" src="${AGENT.companyLogo}" alt="วิริยะประกันภัย" onerror="this.style.display='none'">
             <div class="vf-topright">
@@ -489,28 +491,28 @@ function renderVoluntaryForm() {
                         <span style="flex:1;">การประกันภัย</span>
                         <span style="flex:1;display:flex;gap:6px;align-items:baseline;">
                             <span>ประเภทกรมธรรม์</span>
-                            <b style="border-bottom:1px dotted #000; padding:0 6px 1px; min-width:280px; display:inline-block; text-align:center;">${safe(data.policyType) || "-"}</b>
+                            <b style="border-bottom:1px dotted #000; padding:0 6px 1px; min-width:140px; display:inline-block; text-align:center;">${safe(data.policyType) || "-"}</b>
                         </span>
                     </td>
                 </tr>
                 <tr>
                     <td class="red">
                         ประสงค์รับกรมธรรม์ประกันภัยแบบ
-                        <span class="vf-sqbox" onclick="toggleCheck(this)" style="margin-left:20px;"></span>
+                        <span class="vf-sqbox" onclick="toggleCheck(this)" style="margin-left:50px;"></span>
                         <span style="margin-left:6px;">กรมธรรม์อิเล็กทรอนิกส์(PDF File)</span>
-                        <span style="margin-left:20px;">โปรดระบุ E-mail : ...................................................................................................................</span>
+                        <span style="margin-left:50px;">โปรดระบุ E-mail : ....................................................................</span>
                     </td>
                 </tr>
                 <tr>
-                    <td>ผู้เอาประกันภัย : ชื่อ &nbsp;<b>${safe(data.customer)}</b> &nbsp;&nbsp;&nbsp; อาชีพ <span class="vf-line-dotted-tight" style="display:inline-block;min-width:250px;">&nbsp;</span></td>
+                    <td>ผู้เอาประกันภัย : ชื่อ &nbsp;<b>${safe(data.customer)}</b> &nbsp;&nbsp;&nbsp; อาชีพ <span class="vf-line-dotted-tight" style="display:inline-block;min-width:450px;">&nbsp;</span></td>
                 </tr>
                 <tr>
                     <td>
-                        เลขที่บัตรประชาชน / เลขประจำตัวผู้เสียภาษี <span class="vf-fill-dotted" style="display:inline-block;min-width:250px;">&nbsp;</span>
+                        เลขที่บัตรประชาชน / เลขประจำตัวผู้เสียภาษี <span class="vf-fill-dotted" style="display:inline-block;min-width:220px;">&nbsp;</span>
                         &nbsp;&nbsp;&nbsp;
                         <span class="vf-o" onclick="toggleRadio(this,'office-type')"></span> สำนักงานใหญ่
                         &nbsp;&nbsp;
-                        <span class="vf-o" onclick="toggleRadio(this,'office-type')"></span> สาขาที่ <span class="vf-line-dotted-tight" style="display:inline-block;min-width:190px;">&nbsp;</span>
+                        <span class="vf-o" onclick="toggleRadio(this,'office-type')"></span> สาขาที่ <span class="vf-line-dotted-tight" style="display:inline-block;min-width:135px;">&nbsp;</span>
                     </td>
                 </tr>
                 <tr>
@@ -533,7 +535,7 @@ function renderVoluntaryForm() {
             </div>
 
             <div class="vf-row noborder">
-                <span class="vf-fieldcol-tight"><span class="vf-lbl vf-lbl-eq">ใบขับขี่เลขที่</span><span class="vf-fill-dotted"></span></span>
+                <span class="vf-fieldcol-tight"><span class="vf-lbl vf-lbl-eq">ใบขับขี่เลขที่</span><span class="vf-line-dotted-tight">&nbsp;</span></span>
                 <span class="vf-fieldcol-tight"><span class="vf-lbl vf-lbl-eq">หมดอายุ</span><span class="vf-line-dotted-tight">&nbsp;</span></span>
                 <span class="vf-fieldcol-tight"><span class="vf-lbl vf-lbl-eq">ออกโดยขนส่งจังหวัด</span><span class="vf-line-dotted-tight">&nbsp;</span></span>
             </div>
@@ -545,18 +547,19 @@ function renderVoluntaryForm() {
 
             <div class="vf-row">
                 <span class="vf-lbl">การใช้รถยนต์</span>
-                <span class="vf-o" onclick="toggleRadio(this,'car-use')"></span><span>ส่วนบุคคล</span>
-                <span style="margin-left:16px;" class="vf-o" onclick="toggleRadio(this,'car-use')"></span><span>ใช้เพื่อการพาณิชย์</span>
-                <span style="margin-left:16px;" class="vf-o" onclick="toggleRadio(this,'car-use')"></span><span>ใช้เพื่อการพาณิชย์พิเศษ</span>
-                <span style="margin-left:auto;" class="vf-o" onclick="toggleRadio(this,'car-use')"></span><span>รับจ้างสาธารณะ</span>
+                <span style="margin-left:50px;" class="vf-o" onclick="toggleRadio(this,'car-use')"></span><span>ส่วนบุคคล</span>
+                <span style="margin-left:50px;" class="vf-o" onclick="toggleRadio(this,'car-use')"></span><span>ใช้เพื่อการพาณิชย์</span>
+                <span style="margin-left:50px;" class="vf-o" onclick="toggleRadio(this,'car-use')"></span><span>ใช้เพื่อการพาณิชย์พิเศษ</span>
+                <span style="margin-left:50px;" class="vf-o" onclick="toggleRadio(this,'car-use')"></span><span>รับจ้างสาธารณะ</span>
             </div>
 
             <div class="vf-row">
                 <span class="vf-lbl">ผู้รับผลประโยชน์</span>
-                <span class="vf-o" onclick="toggleRadio(this,'beneficiary')"></span><span>ไม่มี</span>
-                <span style="margin-left:16px;" class="vf-o" onclick="toggleRadio(this,'beneficiary')"></span><span>มี</span>
+                <span style="margin-left:35px;" class="vf-o" onclick="toggleRadio(this,'beneficiary')"></span><span>ไม่มี</span>
+                <span style="margin-left:78px;" class="vf-o" onclick="toggleRadio(this,'beneficiary')"></span><span>มี</span>
                 <span class="vf-fieldcol-tight"><span>ระบุ</span><span class="vf-fill-dotted"></span></span>
             </div>
+            
 
             <div class="vf-noteline">รายการรถยนต์ที่เอาประกันภัย</div>
 
@@ -572,7 +575,7 @@ function renderVoluntaryForm() {
                     <th style="width:10%;">ที่นั่ง/ขนาด/น้ำหนัก</th>
                     <th style="width:12%;">มูลค่าเต็มรวมตกแต่ง</th>
                 </tr>
-                <tr style="height:26px;">
+                <tr style="height:30px;">
                     <td>1</td>
                     <td>${safe(data.modelCode)}</td>
                     <td>${safe(data.brand)}</td>
@@ -584,9 +587,10 @@ function renderVoluntaryForm() {
                     <td>&nbsp;</td>
                 </tr>
             </table>
+            <div style="height:5px;"></div>
 
             <div class="vf-noteline" style="border-bottom:none;">รายการตกแต่งเปลี่ยนแปลงรถยนต์เพิ่มเติม : (โปรดระบุรายละเอียด)</div>
-            <div class="vf-noteline" style="text-decoration:underline;font-weight:600;">อุปกรณ์ตกแต่งเพิ่มเติม ยึดตามภาพถ่าย ณ ขณะทำประกันภัย</div>
+            <div class="vf-noteline" style="text-decoration:underline;font-weight:700;">อุปกรณ์ตกแต่งเพิ่มเติม ยึดตามภาพถ่าย ณ ขณะทำประกันภัย</div>
             <div class="vf-noteline">&nbsp;</div>
 
             <div class="vf-row" style="justify-content:center; gap:16px; text-align:center;">
@@ -595,7 +599,7 @@ function renderVoluntaryForm() {
                 <span class="vf-o" onclick="toggleCheck(this)"></span><span>อุปกรณ์ดั้มพ์</span>
                 <span class="vf-o" onclick="toggleCheck(this)"></span><span>เครื่องไฮดรอลิค</span>
                 <span class="vf-o" onclick="toggleCheck(this)"></span><span>เครื่องทำความเย็น</span>
-                <span class="vf-o" onclick="toggleCheck(this)"></span><span class="vf-fieldcol-tight" style="flex:0 0 auto;"><span>อื่นๆ</span><span class="vf-line-dotted-tight" style="min-width:60px; flex:0 0 auto;">&nbsp;</span></span>
+                <span class="vf-o" onclick="toggleCheck(this)"></span><span class="vf-fieldcol-tight" style="flex:0 0 auto;"><span>อื่นๆ</span><span class="vf-line-dotted-tight" style="min-width:10px; flex:0 0 auto;">&nbsp;</span></span>
             </div>
 
             <table class="vf-cover">
@@ -615,13 +619,13 @@ function renderVoluntaryForm() {
                         2.1 ความเสียหายส่วนแรก<br>
                         <div class="subline"><span class="subfill">ตามที่ระบุในตารางกรมธรรม์ประกันภัย</span><span style="white-space:nowrap;">บาท/ครั้ง</span></div>
                     </td>
-                    <td>
+                   <td>
                         1) ความเสียหายต่อรถยนต์<br>
-                        <div class="amtline"><span class="fillnum">${fmt(data.sumInsured)}</span><span>บาท/ครั้ง</span></div>
+                        <div class="amtline"><span class="fillnum" style="min-width:200px;">${fmt(data.sumInsured)}</span><span>บาท/ครั้ง</span></div>
                         1.1 ความเสียหายส่วนแรก<br>
-                        <div class="subline"><span class="subfill">&nbsp;</span><span style="white-space:nowrap;">บาท/ครั้ง</span></div>
+                        <div class="amtline"><span class="fillnum" style="min-width:200px;">&nbsp;</span><span>บาท/ครั้ง</span></div>
                         2) รถยนต์สูญหาย/ไฟไหม้<br>
-                        <div class="amtline"><span class="fillnum">${fmt0(data.sumInsured)}</span><span>บาท</span></div>
+                        <div class="amtline"><span class="fillnum" style="min-width:210px;">${fmt0(data.sumInsured)}</span><span>บาท</span></div>
                     </td>
                     <td>
                         1) อุบัติเหตุส่วนบุคคล<br>
@@ -635,7 +639,7 @@ function renderVoluntaryForm() {
                         <div class="subline"><span class="subfill">&nbsp;</span><span style="white-space:nowrap;">บาท/คน</span></div>
                         3) ค่าประกันตัวผู้ขับขี่<br>
                         <div class="subline"><span class="subfill">&nbsp;</span><span style="white-space:nowrap;">บาท/ครั้ง</span></div>
-                        4) <span class="vf-o" onclick="toggleCheck(this)"></span> <span style="color:#c0392b;font-weight:600;">คุ้มครองภัยก่อการร้าย (ร.ย.30)</span>
+                        4) <span class="vf-o" onclick="toggleCheck(this)"></span> <span style="color:#ff1900;font-weight:400;">คุ้มครองภัยก่อการร้าย (ร.ย.30)</span>
                     </td>
                 </tr>
                 <tr>
@@ -664,7 +668,7 @@ function renderVoluntaryForm() {
             </table>
         </div>
 
-        <div style="height:20px;"></div>
+        <div style="height:8px;"></div>
 
         <div class="vf-declare-block">
             <div class="vf-declare">ข้าพเจ้าขอรับรองว่า คำบอกกล่าวตามรายการข้างบนเป็นความจริง และให้ถือเป็นส่วนหนึ่งของสัญญาระหว่างข้าพเจ้ากับบริษัท โดยข้าพเจ้ามีความประสงค์ให้</div>
@@ -684,7 +688,7 @@ function renderVoluntaryForm() {
             </div>
         </div>
 
-        <div style="height:30px;"></div>
+        <div style="height:10px;"></div>
 
             <table class="vf-staff">
                 <tr>
@@ -692,26 +696,26 @@ function renderVoluntaryForm() {
                     <td class="hd" style="width:50%;">สำหรับตัวแทนตรวจสภาพรถ</td>
                 </tr>
                 <tr>
-                    <td>ส่วนลดกลุ่ม <span class="fillnum" style="min-width:50px;">&nbsp;</span> % <span class="fillnum" style="min-width:110px;">&nbsp;</span> บาท</td>
-                    <td rowspan="1">ผลการตรวจสภาพรถ &nbsp; <span class="vf-o" onclick="toggleRadio(this,'car-inspect')"></span> เรียบร้อย &nbsp;&nbsp; <span class="vf-o" onclick="toggleRadio(this,'car-inspect')"></span> ไม่เรียบร้อย</td>
+                    <td>ส่วนลดกลุ่ม <span class="fillnum" style="min-width:120px;">&nbsp;</span> % <span class="fillnum" style="min-width:160px;">&nbsp;</span> บาท</td>
+                    <td style="border-bottom:1px dashed #000; padding-bottom:19px;" rowspan="1">ผลการตรวจสภาพรถ &nbsp; <span class="vf-o" onclick="toggleRadio(this,'car-inspect')"></span> เรียบร้อย &nbsp;&nbsp; <span class="vf-o" onclick="toggleRadio(this,'car-inspect')"></span> ไม่เรียบร้อย</td>
                 </tr>
                 <tr>
-                    <td>ส่วนลดประวัติ <span class="fillnum" style="min-width:50px;">&nbsp;</span> % <span class="fillnum" style="min-width:110px;">&nbsp;</span> บาท</td>
+                    <td>ส่วนลดประวัติ <span class="fillnum" style="min-width:110px;">&nbsp;</span> % <span class="fillnum" style="min-width:160px;">&nbsp;</span> บาท</td>
+                    <td style="border-bottom:1px dashed #000; padding-top:6px; padding-bottom:8px;">&nbsp;</td>
+                </tr>
+                    <td>เบี้ยสุทธิ <span class="fillnum" style="min-width:100px;font-weight:400;">${fmt(data.net)}</span> บาท &nbsp; เบี้ยรวม <span class="fillnum" style="min-width:148px;font-weight:400;">${fmt(data.sumTotal)}</span> บาท</td>
                     <td>&nbsp;</td>
                 </tr>
                 <tr>
-                    <td>เบี้ยสุทธิ <span class="fillnum" style="min-width:70px;font-weight:700;">${fmt(data.net)}</span> บาท &nbsp; เบี้ยรวม <span class="fillnum" style="min-width:70px;font-weight:700;">${fmt(data.sumTotal)}</span> บาท</td>
-                    <td>&nbsp;</td>
+                    <td>ลงชื่อ <span class="fillnum" style="min-width:300px;">${safe(data.reporterName)}</span> ผู้รับแจ้ง</td>
+                    <td>ลงชื่อ <span class="fillnum" style="min-width:250px;">${safe(data.employeeName) || AGENT.staffName}</span> ตัวแทนตรวจสภาพรถ</td>
                 </tr>
-                <tr>
-                    <td>ลงชื่อ <span class="fillnum" style="min-width:170px;">${safe(data.reporterName)}</span> ผู้รับแจ้ง</td>
-                    <td>ลงชื่อ <span class="fillnum" style="min-width:170px;">${safe(data.employeeName) || AGENT.staffName}</span> ตัวแทนตรวจสภาพรถ</td>
-                </tr>
-                <tr>
                 
-                    <td style="border-top:1px solid #000;">ลงนาม <span class="fillnum" style="min-width:200px;">&nbsp;</span> ผู้ตรวจสอบ</td>
-                    <td style="border-top:1px solid #000;">ลงนาม <span class="fillnum" style="min-width:200px;">&nbsp;</span> ผู้อนุมัติ</td>
-                </tr>
+                <tr>
+    <td style="border-top:1px solid #000; padding-top:19px;">ลงนาม <span class="fillnum" style="min-width:280px;">&nbsp;</span> ผู้ตรวจสอบ</td>
+    <td style="border-top:1px solid #000; padding-top:19px;">ลงนาม <span class="fillnum" style="min-width:290px;">&nbsp;</span> ผู้อนุมัติ</td>
+</tr>
+                
             </table>
     </div>`;
 }
@@ -728,12 +732,15 @@ function renderInstallmentInvoice() {
         const due = getInstallmentDueDate(startDate, i);
         const dueStr = toThaiFullDate(due);
         const amt = plan.placeholder ? 0 : plan.perInstallment;
+        /* เพิ่มใหม่: ถ้าลูกค้าจ่ายครบทั้งหมดในรอบเดียว (จำนวนงวด = 1) ให้ขึ้นหมายเหตุ "จ่ายจบ"
+           อัตโนมัติที่งวดที่ 1 (ไม่ใช่กรณี placeholder ที่ยังไม่มีข้อมูลจำนวนงวดจริง) */
+        const noteText = (plan.count === 1 && !plan.placeholder) ? "จ่ายจบ" : "&nbsp;";
         rows += `
             <tr>
                 <td class="lbl">งวดที่ ${i + 1}</td>
                 <td>${dueStr}</td>
                 <td class="amt">${fmt(amt)}</td>
-                <td>&nbsp;</td>
+                <td>${noteText}</td>
             </tr>`;
     }
     const scheduleTotal = plan.placeholder ? 0 : (Number(data.total) || 0);
@@ -765,11 +772,11 @@ function renderInstallmentInvoice() {
                 <th>วันเริ่มคุ้มครอง</th><th>ประเภท</th><th>เบี้ยรวม</th>
             </tr>
             <tr>
-                <td rowspan="4" style="text-align:center;">1</td>
-                <td rowspan="4">${safe(data.customer)}</td>
-                <td rowspan="4">${safe(data.brand)}</td>
-                <td rowspan="4">${safe(data.plate)}</td>
-                <td rowspan="4">${toDMBEshort(data.start)}</td>
+                <td rowspan="4" style="text-align:center;vertical-align:top;">1</td>
+                <td rowspan="4" style="vertical-align:top;">${safe(data.customer)}</td>
+                <td rowspan="4" style="vertical-align:top;text-align:center;">${safe(data.brand)}</td>
+                <td rowspan="4" style="vertical-align:top;text-align:center;">${safe(data.plate)}</td>
+                <td rowspan="4" style="vertical-align:top;text-align:center;">${toDMBEshort(data.start)}</td>
                 <td>${safe(data.policyType) || "-"}</td>
                 <td class="num">${fmt(data.sumTotal)}</td>
             </tr>
@@ -780,15 +787,15 @@ function renderInstallmentInvoice() {
             <tr class="total"><td colspan="6">รวม</td><td class="num">${fmt(data.grandTotal)}</td></tr>
             <tr><td colspan="7">&nbsp;</td></tr>
             <tr class="grandrow"><td colspan="6">ยอดชำระ</td><td class="num">${fmt(data.total)}</td></tr>
-            <tr><td colspan="7" style="text-align:center;font-weight:600;">${numberToThaiText(data.total)}</td></tr>
+            <tr><td colspan="7" style="text-align:center;font-weight:400;">${numberToThaiText(data.total)}</td></tr>
         </table>
 
-       <div class="inv-bank-row" style="margin-top:40px;">
-        <div class="inv-bank" style="font-size:13px;">
+       <div class="inv-bank-row" style="margin-top:18px;">
+        <div class="inv-bank" style="font-size:14px;">
             <div>
                 <span class="u">กรณีชำระโดยการโอนเข้าบัญชี</span>
                 <div class="bankrow">
-                    <img src="${AGENT.bankLogo}" style="height:60px;" onerror="this.style.display='none'">
+                    <img src="${AGENT.bankLogo}" style="height:66px;" onerror="this.style.display='none'">
                     <div class="bankinfo">
                         <b>${AGENT.bankName}</b>
                         <span>เลขที่บัญชี ${AGENT.bankAccountNo}</span><br>
@@ -799,26 +806,26 @@ function renderInstallmentInvoice() {
         </div>
 
         <div class="inv-customer">
-            <div style="height:10px;"></div>
+            <div style="height:6px;"></div>
             <div class="kv"><span class="k">ชื่อผู้เอาประกัน / Name</span><span>: ${safe(data.customer)}</span></div>
             <div class="kv"><span class="k">ทะเบียนรถ / Car Registration</span><span>: ${safe(data.plate)}</span></div>
             <div class="kv"><span class="k">ยอดชำระ / Payment</span><span>: ${fmt0(data.total)}</span></div>
         </div>
         </div>
 
-        <div style="height:30px;"></div>
+        <div style="height:14px;"></div>
 
-        <div class="inv-installcount">จำนวนงวดที่ผ่อนชำระ <b style="border-bottom:2px solid #000; display:inline-block; min-width:90px; text-align:center;">${plan.placeholder ? 0 : plan.count}</b> งวด</div>
+        <div class="inv-installcount">จำนวนงวดที่ผ่อนชำระ <b style="border-bottom:2px solid #000; display:inline-block; min-width:70px; text-align:center;">${plan.placeholder ? 0 : plan.count}</b> งวด</div>
 
-        <div style="height:20px;"></div>
+        <div style="height:10px;"></div>
 
         <table class="inv-sched">
-            <tr><th style="width:15%;"></th><th style="width:28%;color:#666;">กำหนดวันที่ต้องชำระ</th><th style="width:22%;">จำนวนที่จ่าย</th><th>หมายเหตุ</th></tr>
+            <tr><th style="width:15%;"></th><th style="width:28%;color:#000;text-decoration:underline;">กำหนดวันที่ต้องชำระ</th><th style="width:22%;text-decoration:underline;">จำนวนที่จ่าย</th><th style="text-decoration:underline;">หมายเหตุ</th></tr>
             ${rows}
-            <tr><td class="total-plain">รวม</td><td class="total-hl">&nbsp;</td><td class="total-hl">${fmt(scheduleTotal)}</td><td>&nbsp;</td></tr>
+            <tr><td class="total-plain">&nbsp;</td><td class="total-hl" style="font-weight:700;">รวม</td><td class="total-hl">${fmt(scheduleTotal)}</td><td>&nbsp;</td></tr>
         </table>
 
-        <div style="height:20px;"></div>
+        <div style="height:10px;"></div>
 
         <div class="inv-notes">
             <b>หมายเหตุ :</b>
@@ -861,11 +868,11 @@ function renderPaymentInvoiceBilingual() {
                 <th>ประเภท<br>Category</th><th>ค่าเบี้ย<br>Payment</th>
             </tr>
             <tr>
-                <td rowspan="4" style="text-align:center;">1</td>
-                <td rowspan="4">${safe(data.customer)}</td>
-                <td rowspan="4">${safe(data.brand)}</td>
-                <td rowspan="4">${safe(data.plate)}</td>
-                <td rowspan="4">${toMDBE(data.start)}</td>
+                <td rowspan="4" style="text-align:center;vertical-align:top;">1</td>
+                <td rowspan="4" style="vertical-align:top;">${safe(data.customer)}</td>
+                <td rowspan="4" style="vertical-align:top;text-align:center;">${safe(data.brand)}</td>
+                <td rowspan="4" style="vertical-align:top;text-align:center;">${safe(data.plate)}</td>
+                <td rowspan="4" style="vertical-align:top;text-align:center;">${toMDBE(data.start)}</td>
                 <td>${safe(data.policyType) || "-"}</td>
                 <td class="num">${fmt(data.sumTotal)}</td>
             </tr>
@@ -878,21 +885,21 @@ function renderPaymentInvoiceBilingual() {
             <tr><td colspan="7" class="thai-col">${numberToThaiText(data.total)}</td></tr>
         </table>
 
-        <div style="height:20px;"></div>
+        <div style="height:10px;"></div>
 
         <table class="inv-notes-table"><tr><td>
-            <b class="u">หมายเหตุ :</b>
+            <b class="u" style="font-weight:700;">หมายเหตุ :</b>
             <span class="red">1. กรมธรรม์ของท่านจะได้รับความคุ้มครองต่อเมื่อได้ชำระเงินค่าเบี้ยประกันภัยครบถ้วนแล้วเท่านั้น</span>
             <span class="red">2. กรณีรถเกิดเหตุในขณะยังชำระค่าเบี้ยไม่ครบ จะต้องชำระยอดคงค้างให้ครบถ้วนก่อน รถของท่านจึงจะสามารถจัดซ่อมได้</span>
             <span class="red">3. หากมีข้อสงสัยเกี่ยวกับใบแจ้งยอดชำระนี้ กรุณาโทร.${AGENT.invoiceHelpPhone1} ,${AGENT.invoiceHelpPhone2}</span>
         </td></tr></table>
 
-        <div class="inv-bank-row" style="margin-top:40px;">
-        <div class="inv-bank" style="font-size:13px;">
+        <div class="inv-bank-row" style="margin-top:18px;">
+        <div class="inv-bank" style="font-size:14px;">
             <div>
                 <span class="u">กรณีชำระโดยการโอนเข้าบัญชี</span>
                 <div class="bankrow">
-                    <img src="${AGENT.bankLogo}" style="height:60px;" onerror="this.style.display='none'">
+                    <img src="${AGENT.bankLogo}" style="height:66px;" onerror="this.style.display='none'">
                     <div class="bankinfo">
                         <b>${AGENT.bankName}</b>
                         <span>เลขที่บัญชี ${AGENT.bankAccountNo}</span><br>
@@ -905,23 +912,23 @@ function renderPaymentInvoiceBilingual() {
         
 
         <div class="inv-customer">
-            <div style="height:10px;"></div>
+            <div style="height:6px;"></div>
             <div class="kv"><span class="k">ชื่อผู้เอาประกัน / Name</span><span>: ${safe(data.customer)}</span></div>
             <div class="kv"><span class="k">ทะเบียนรถ / Car Registration</span><span>: ${safe(data.plate)}</span></div>
             <div class="kv"><span class="k">ยอดชำระ / Payment</span><span>: ${fmt0(data.total)}</span></div>
         </div>
         </div>
 
-        <div style="height:20px;"></div>
+        <div style="height:10px;"></div>
 
         <div class="inv-footer2">
             <div>
-                <div style="height:60px;"></div>
+                <div style="height:36px;"></div>
                 <div class="kv"><span class="k">ผู้รับเอกสาร</span><span>: <span class="line">&nbsp;</span></span></div>
-                <div class="kv"><span class="k">วันที่</span><span>: ................/........................../...............</span></div>
+                <div class="kv"><span class="k">วันที่</span><span>: ................/.........................../....................</span></div>
             </div>
             <div style="margin-right:40px;">
-                <div style="height:60px;"></div>
+                <div style="height:36px;"></div>
                 <div class="kv"><span class="k">ผู้บันทึก/ผู้พิมพ์</span><span>: ${safe(data.employeeName) || AGENT.staffName}</span></div>
                 <div class="kv"><span class="k">วันที่พิมพ์</span><span>: ${todayShortSlash}</span></div>
             </div>
@@ -955,6 +962,17 @@ pagesToRender.forEach(p => {
 
 /* ==========================================================
    บังคับให้เนื้อหาแต่ละเอกสารพอดี 1 หน้า A4 เป๊ะ
+   (ปรับใหม่ให้เข้ากับ Layout ที่ขยายตัวอักษร/องค์ประกอบขึ้น ~10-15% และ
+   ลด margin/padding/เส้นประที่ไม่จำเป็นแล้ว)
+
+   หลักการ: ฟังก์ชันนี้ "วัดความสูงจริง" ของเนื้อหาแต่ละหน้าใหม่ทุกครั้งที่เรียก
+   (ไม่ใช่ค่าที่คำนวณตายตัวไว้ล่วงหน้า) แล้วเทียบกับความสูงหน้ากระดาษ A4 จริง
+   - ถ้าเนื้อหาพอดีหรือสั้นกว่าหน้ากระดาษ -> ไม่มีการย่อใดๆ (scale = 1) ตัวอักษรและ
+     องค์ประกอบจะแสดงผลใหญ่ขึ้นจริงตามที่ปรับ CSS ไว้ด้านบน
+   - ย่อ (scale ลง) เฉพาะกรณีเนื้อหาเกินหน้ากระดาษจริงเท่านั้น โดยคำนวณอัตราส่วนใหม่
+     จากความสูงเนื้อหาที่วัดได้หลังปรับ Layout แล้ว จึงย่อน้อยที่สุดเท่าที่จำเป็น
+     และไม่กระทบตำแหน่งหรือขนาดกระดาษ A4 ที่ใช้พิมพ์ (transform-origin: top left
+     รักษาให้จุดเริ่มต้นหน้ากระดาษอยู่ตำแหน่งเดิมเสมอ)
 ========================================================== */
 function fitPagesToA4() {
     document.querySelectorAll(".document-page").forEach(page => {
@@ -972,11 +990,11 @@ function fitPagesToA4() {
         const pageHeight = page.clientHeight;
         const contentHeight = inner.scrollHeight;
 
-        // เพิ่ม tolerance เล็กน้อย (1px) เพื่อกัน false-positive จาก sub-pixel rounding
+        // เพิ่ม tolerance เล็กน้อย (2px) เพื่อกัน false-positive จาก sub-pixel rounding
         // ที่ทำให้ระบบ scale ลงทั้งที่เนื้อหาจริง ๆ ไม่ได้ล้นหน้า A4
-        // -> ผลคือถ้าเพิ่ม font-size แล้วเนื้อหายังพอดีในหน้า จะไม่ถูกย่อกลับ ตัวอักษรจะใหญ่ขึ้นจริงตามที่ตั้งค่า
-        // ย่อ (scale ลง) เฉพาะกรณีเนื้อหาเกินหน้ากระดาษจริงเท่านั้น ไม่กระทบ layout การพิมพ์ A4 เดิม
-        if (contentHeight > pageHeight + 1) {
+        // -> ผลคือเมื่อ Layout ใหม่ (ตัวอักษรใหญ่ขึ้น + spacing แน่นขึ้น) ยังพอดีในหน้า
+        //    จะไม่ถูกย่อกลับ ตัวอักษรจะใหญ่ขึ้นจริงตามที่ตั้งค่า
+        if (contentHeight > pageHeight + 2) {
             const scale = pageHeight / contentHeight;
             inner.style.transform = `scale(${scale})`;
             inner.style.width = (100 / scale) + "%";
