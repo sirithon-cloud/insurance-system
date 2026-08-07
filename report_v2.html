@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+
+<title>รายงานข้อมูลประกัน V2</title>
+
+<link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- สำหรับปุ่ม "Export Excel" -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<!-- บังคับให้ต้อง login ก่อนเข้าใช้งานหน้านี้ เหมือน report.html -->
+<script src="auth.js"></script>
+<script>
+    requireLogin();
+</script>
+
+<style>
+/* ========================================================
+   ธีม/สี/ฟอนต์/ตาราง/ปุ่ม/การ์ด ใช้รูปแบบเดียวกับ report.html
+   (คัดลอกโครงสร้าง CSS หลักมาเพื่อให้หน้าตาเหมือนกันทุกประการ)
+======================================================== */
+.report-card{
+    width:100%;
+    min-height:100vh;
+    margin:0;
+    display:flex;
+    flex-direction:column;
+    background:#fff;
+    padding:20px;
+    padding-top:90px;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    position:relative;
+}
+
+.report-card h1{
+    width:100%;
+    text-align:center;
+    color:#002d72;
+    font-size:clamp(18px, 4vw, 28px);
+}
+
+.report-title-row{
+    display:flex;
+    align-items:center;
+    justify-content:flex-start;
+    gap:10px;
+    flex-wrap:wrap;
+}
+.report-title-row h1{ width:auto; }
+
+/* ========================
+   TABLE
+========================= */
+.table-scroll{
+    width:100%;
+    overflow:auto;
+    -webkit-overflow-scrolling:touch;
+    touch-action:pan-x pan-y pinch-zoom;
+    border-radius:10px;
+}
+
+table{
+    width:100%;
+    min-width:2400px;
+    border-collapse:collapse;
+    font-size:12px;
+}
+
+th{
+    background:#2c3e50;
+    color:#fff;
+    padding:8px;
+    white-space:nowrap;
+}
+
+td{
+    padding:6px 8px;
+    border-bottom:1px solid #eee;
+    white-space:nowrap;
+    text-align:center;
+    height:52px;
+    box-sizing:border-box;
+    vertical-align:middle;
+    overflow:hidden;
+    line-height:1.3;
+}
+
+td.col-left{ text-align:left; }
+
+tr:hover{
+    background:#f2f2f2;
+}
+
+.status-badge{
+    display:inline-block;
+    padding:3px 10px;
+    border-radius:999px;
+    font-size:11px;
+    font-weight:600;
+    white-space:nowrap;
+}
+.status-paid{ background:#dcfce7; color:#15803d; }
+.status-unpaid{ background:#f1f1f1; color:#888; }
+
+/* =========================
+   ปุ่มจัดการ (แก้ไข / เอกสาร / ใบเสร็จ / ลบ)
+   ยกมาจาก report.html เพื่อให้หน้าตา/การทำงานเหมือนกัน
+========================= */
+.action-buttons{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:4px;
+    width:100%;
+}
+.action-buttons button{
+    width:30px !important;
+    height:30px !important;
+    min-width:30px !important;
+    padding:0 !important;
+    border:none;
+    border-radius:6px;
+    font-size:13px;
+    cursor:pointer;
+    flex:0 0 auto;
+}
+.edit-btn{ background:#ffc000; color:#002d72; }
+.doc-btn{ background:#0d6efd; color:white; }
+.receipt-btn{ background:#2FBF9B; color:white; }
+.delete-btn{ background:#dc3545; color:white; }
+.action-buttons button:hover{ transform:scale(1.1); }
+
+/* ล็อกความกว้างคอลัมน์ "จัดการ" (คอลัมน์แรก) ให้คงที่ทุกขนาดจอ */
+#table th:nth-child(1),
+#table td:nth-child(1){
+    width:150px;
+    min-width:150px;
+    max-width:150px;
+}
+
+@media(max-width:768px){
+    table{ font-size:10px; }
+    .report-card{ padding:14px; padding-top:86px; }
+    .summary-panel{ padding:12px 14px; }
+    .summary-filters{
+        flex-wrap:nowrap;
+        overflow-x:auto;
+        -webkit-overflow-scrolling:touch;
+        gap:8px;
+        padding-bottom:4px;
+    }
+    .summary-filters > span{
+        display:inline-flex;
+        flex-direction:column;
+        align-items:flex-start;
+        flex:0 0 auto;
+    }
+    .summary-filters label{
+        font-size:11px;
+        margin-right:0;
+        margin-bottom:2px;
+        white-space:nowrap;
+    }
+    .summary-filters select{
+        padding:5px 8px;
+        font-size:12px;
+        white-space:nowrap;
+    }
+}
+
+@media(max-width:480px){
+    .report-card h1{ font-size:16px; }
+    .summary-filters{ gap:6px; }
+    .summary-filters label{ font-size:10px; }
+    .summary-filters select{ padding:4px 6px; font-size:11px; }
+}
+
+/* =========================
+   SUMMARY PANEL / FILTERS
+========================= */
+.summary-panel{
+    background:#f8f9fb;
+    border:1px solid #e3e6ec;
+    border-radius:12px;
+    padding:16px 18px;
+    margin-bottom:20px;
+    display:grid;
+    grid-template-columns:1fr 260px;
+    align-items:start;
+    gap:24px;
+}
+
+.summary-panel-left{ min-width:0; }
+.summary-panel-right{ min-width:0; }
+
+.summary-filters{
+    display:flex;
+    gap:15px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin-bottom:12px;
+}
+
+.summary-filters label{
+    font-size:13px;
+    color:#002d72;
+    font-weight:bold;
+    margin-right:6px;
+}
+
+.summary-filters select{
+    padding:6px 10px;
+    border-radius:8px;
+    border:1px solid #cfd6e2;
+    font-family:"Kanit",sans-serif;
+    font-size:13px;
+}
+
+.summary-total{
+    font-size:clamp(12px, 3.2vw, 17px);
+    font-weight:bold;
+    color:#002d72;
+}
+
+.search-label{
+    font-size:13px;
+    color:#002d72;
+    font-weight:bold;
+    margin-bottom:6px;
+}
+
+.search-box{ position:relative; }
+.search-box .search-icon{
+    position:absolute;
+    left:12px;
+    top:50%;
+    transform:translateY(-50%);
+    font-size:13px;
+    pointer-events:none;
+}
+.search-box input{
+    width:100%;
+    padding:9px 12px 9px 32px;
+    border-radius:999px;
+    border:1px solid #cfd6e2;
+    font-family:"Kanit",sans-serif;
+    font-size:13px;
+    box-sizing:border-box;
+}
+.search-box input:focus{
+    outline:none;
+    border-color:#2F6FED;
+}
+
+.export-excel-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    margin-top:8px;
+    padding:6px 12px;
+    border:none;
+    border-radius:999px;
+    background:#198754;
+    color:#fff;
+    font-family:"Kanit",sans-serif;
+    font-size:12px;
+    font-weight:600;
+    cursor:pointer;
+    transition:.2s;
+}
+.export-excel-btn:hover{ background:#157347; }
+
+@media(max-width:768px){
+    .summary-panel{
+        grid-template-columns:1fr;
+        gap:10px;
+        padding:10px 12px;
+    }
+    .summary-filters{
+        display:grid;
+        grid-template-columns:repeat(2, 1fr);
+        gap:8px 10px;
+        margin-bottom:8px;
+    }
+    .summary-filters > span{
+        display:flex;
+        flex-direction:column;
+        min-width:0;
+    }
+    .summary-filters label{
+        font-size:11px;
+        margin:0 0 3px;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+    }
+    .summary-filters select{
+        width:100%;
+        box-sizing:border-box;
+        padding:9px 8px;
+        font-size:12.5px;
+        min-height:40px;
+    }
+    .summary-total{ font-size:12.5px; line-height:1.45; }
+    .search-label{ font-size:12px; margin-bottom:4px; }
+    .search-box input{
+        padding:8px 10px 8px 30px;
+        font-size:12.5px;
+        min-height:40px;
+        box-sizing:border-box;
+    }
+}
+
+@media(max-width:420px){
+    .summary-filters{ gap:6px 8px; }
+    .summary-filters label{ font-size:10.5px; }
+    .summary-filters select{ font-size:12px; padding:8px 6px; min-height:38px; }
+    .summary-total{ font-size:12px; }
+}
+
+.app-toast{
+    position:fixed;
+    left:50%;
+    top:50%;
+    transform:translate(-50%, -50%) scale(.95);
+    background:#152A54;
+    color:#fff;
+    padding:16px 28px;
+    border-radius:16px;
+    font-family:"Kanit",sans-serif;
+    font-size:15px;
+    font-weight:600;
+    box-shadow:0 16px 40px rgba(21,42,84,.32);
+    opacity:0;
+    z-index:99999;
+    pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease;
+    white-space:nowrap;
+}
+.app-toast.show{
+    opacity:1;
+    transform:translate(-50%, -50%) scale(1);
+}
+@media(max-width:480px){
+    .app-toast{
+        white-space:normal;
+        max-width:80vw;
+        text-align:center;
+        font-size:14px;
+    }
+}
+</style>
+
+</head>
+
+
+<body>
+    <!-- TOPBAR -->
+    <div class="topbar">
+        <button id="menuBtn">☰</button>
+        <img src="logo.png" class="toplogo" alt="logo">
+        <span class="apptitle">
+            ระบบประกันรถยนต์กับคุณพลอย
+        </span>
+    </div>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+        <img src="logo.png" class="logo">
+        <ul class="menu">
+            <li><a href="index.html" class="menu-link">🏠 หน้าหลัก</a></li>
+            <li><a href="report.html" class="menu-link">📊 รายงาน (เดิม)</a></li>
+        </ul>
+    </aside>
+
+    <!-- OVERLAY -->
+    <div id="overlay"></div>
+
+    <div class="report-card">
+
+        <div class="report-title-row">
+            <button class="nav-back-btn" onclick="location.href='index.html'">
+                ← กลับหน้าหลัก
+            </button>
+
+            <h1>
+                📊 รายงานข้อมูลประกันรถยนต์ V2
+            </h1>
+        </div>
+
+        <!-- =========================
+             ตัวกรอง
+        ========================== -->
+        <div class="summary-panel">
+
+            <div class="summary-panel-left">
+
+                <div class="summary-filters">
+                    <span>
+                        <label for="filterDay">📆 เลือกวันที่</label>
+                        <select id="filterDay"></select>
+                    </span>
+
+                    <span>
+                        <label for="filterMonth">📅 เลือกเดือน</label>
+                        <select id="filterMonth"></select>
+                    </span>
+
+                    <span>
+                        <label for="filterYear">🗓️ เลือกปี</label>
+                        <select id="filterYear"></select>
+                    </span>
+
+                    <span>
+                        <label for="filterCompany">🏢 เลือกบริษัท</label>
+                        <select id="filterCompany"></select>
+                    </span>
+
+                    <span>
+                        <label for="filterEmployee">👤 เลือกพนักงาน</label>
+                        <select id="filterEmployee"></select>
+                    </span>
+
+                </div>
+
+                <div id="summaryTotal" class="summary-total"></div>
+
+            </div>
+
+            <div class="summary-panel-right">
+
+                <div class="search-label">🔍 ค้นหา (ชื่อ / เลขกรมธรรม์ / ทะเบียน / เบอร์โทร / ประเภทประกัน / บริษัท)</div>
+
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="filterSearch" placeholder="พิมพ์คำค้นหา...">
+                </div>
+
+                <button type="button" class="export-excel-btn" id="btnExportExcel">
+                    📥 Excel
+                </button>
+
+            </div>
+
+        </div>
+
+        <!-- =========================
+             ตารางข้อมูล
+        ========================== -->
+        <div class="table-scroll">
+        <table id="table">
+            <thead>
+                <tr id="tableHeadRow">
+                    <!-- สร้างด้วย JS จาก COLUMNS -->
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+        </div>
+    </div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+import {
+    getFirestore,
+    collection,
+    onSnapshot,
+    deleteDoc,
+    doc
+} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+/* =========================
+   FIREBASE (ตั้งค่าเดียวกับ report.html/script.js)
+========================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyCNpaYlwrkJhBA-8tAax022PWWFYMRz7Kw",
+  authDomain: "insurance-system-f26b0.firebaseapp.com",
+  projectId: "insurance-system-f26b0",
+  storageBucket: "insurance-system-f26b0.firebasestorage.app",
+  messagingSenderId: "438698153100",
+  appId: "1:438698153100:web:a553b97b59701883f057a9",
+  measurementId: "G-XXWCQEMT0B"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* =========================================================
+   ผู้ใช้ที่ล็อกอินอยู่ (ใช้ตรวจสิทธิ์ก่อนอนุญาตให้ลบข้อมูล)
+========================================================= */
+const LOGIN_NAME_STORAGE_KEY = "employeeName";
+function getLoggedInEmployeeName(){
+    try{
+        return localStorage.getItem(LOGIN_NAME_STORAGE_KEY) || "";
+    }catch(e){
+        return "";
+    }
+}
+const loggedInEmployee = getLoggedInEmployeeName();
+
+/* =========================================================
+   THAI MONTH / HELPERS
+========================================================= */
+const THAI_MONTHS = [
+    "มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน",
+    "กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"
+];
+
+function fmtNum(n){
+    return Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function safe(v){
+    return (v === undefined || v === null || v === "") ? "-" : v;
+}
+
+/* แปลงวันที่ (รองรับ DD/MM/YYYY ทั้ง ค.ศ./พ.ศ. และ YYYY-MM-DD) ให้เป็น dd/MM/yyyy แบบ พ.ศ. เสมอ */
+function toDMYBuddhist(dateStr){
+
+    if(!dateStr) return "-";
+
+    const s = String(dateStr).trim();
+
+    let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{3,4})$/);
+    if(m){
+        const dd = m[1].padStart(2,"0");
+        const mm = m[2].padStart(2,"0");
+        let yyyy = parseInt(m[3],10);
+        if(yyyy < 2400) yyyy += 543;
+        return `${dd}/${mm}/${yyyy}`;
+    }
+
+    m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if(m){
+        const dd = m[3].padStart(2,"0");
+        const mm = m[2].padStart(2,"0");
+        let yyyy = parseInt(m[1],10);
+        if(yyyy < 2400) yyyy += 543;
+        return `${dd}/${mm}/${yyyy}`;
+    }
+
+    return s;
+}
+
+/* แปลงวันที่แจ้งงาน (createDate เช่น "16/07/2569") เป็น {day, month, year} สำหรับกรอง */
+function parseCreateDate(createDate){
+    if(!createDate) return { day:null, month:null, year:null };
+    const parts = String(createDate).split("/");
+    if(parts.length !== 3) return { day:null, month:null, year:null };
+
+    const day = parseInt(parts[0],10);
+    const month = parseInt(parts[1],10);
+    const year = parts[2];
+
+    if(isNaN(month) || month < 1 || month > 12) return { day:null, month:null, year:null };
+    if(isNaN(day) || day < 1 || day > 31) return { day:null, month:String(month).padStart(2,"0"), year:year };
+
+    return { day:String(day).padStart(2,"0"), month:String(month).padStart(2,"0"), year:year };
+}
+
+/* คำนวณยอดที่ชำระไปแล้วทั้งหมด (รวมทุกฟิลด์ installmentN ไม่จำกัดแค่ 1-4) */
+function calcPaidTotal(item){
+    let paid = 0;
+    Object.keys(item || {}).forEach(key=>{
+        const m = key.match(/^installment(\d+)$/);
+        if(m) paid += Number(item[key] || 0);
+    });
+    return paid;
+}
+
+/* รองรับทั้งฟิลด์ "type" ของ car (product ใช้ "product" ประเภทประกันสินค้าหรือ "car" ประเภทรถยนต์)
+   คืนค่า label ประเภทประกัน */
+function typeLabel(item){
+    if(item.type === "car") return "🚗 ประกันรถยนต์";
+    if(item.type === "product") return "📦 ประกันสินค้า";
+    return "-";
+}
+
+/* =========================================================
+   COLUMN DEFINITIONS
+   key: ฟิลด์ในข้อมูล (accessor function รองรับกรณีต้องคำนวณ/แปลงค่า)
+
+   คอลัมน์ "รหัส" ดึงจากฟิลด์ agentCode เท่านั้น ซึ่งเป็นฟิลด์ที่ form_car.html บันทึกไว้จริง
+   (input id="agentCode" อยู่ในแถวเดียวกับ "เลขที่แจ้งหนี้" ภายใต้หัวข้อ "🏢 ข้อมูลงาน" ของ form_car.html)
+   ห้ามใช้ฟิลด์จาก form_product.html (ฟอร์มนั้นไม่มีฟิลด์ agentCode เลย)
+   ส่วนคอลัมน์ "รหัสรถ" (modelCode) ยังคงอยู่ตำแหน่งเดิม ไม่ถูกแตะต้อง
+
+   แก้ไข: ลบฟังก์ชันการเรียงข้อมูล (sort) ออกทั้งหมดตามคำขอ จึงตัด sortType ออกจากทุกคอลัมน์
+========================================================= */
+const COLUMNS = [
+    { key:"__actions",      label:"จัดการ",            get:item=> buildActionButtons(item), raw:true },
+    { key:"__index",        label:"ลำดับ",            get:(item,i)=> i+1, align:"center" },
+    { key:"invoiceNo",      label:"เลขที่แจ้งหนี้",     get:item=> safe(item.invoiceNo) },
+    { key:"agentCode",      label:"รหัส",              get:item=> safe(item.agentCode) },
+    { key:"policyNumber",   label:"เลขกรมธรรม์",       get:item=> safe(item.policyNumber) },
+    { key:"customer",       label:"ชื่อผู้เอาประกัน",   get:item=> safe(item.customer), align:"left" },
+    { key:"phone",          label:"เบอร์โทร",          get:item=> safe(item.phone) },
+    { key:"address",        label:"ที่อยู่ปัจจุบัน",     get:item=> safe(item.address), align:"left" },
+    { key:"type",           label:"ประเภทประกัน",       get:item=> typeLabel(item) },
+    { key:"modelCode",      label:"รหัสรถ",            get:item=> safe(item.modelCode) },
+    { key:"brand",          label:"ยี่ห้อ / รุ่น",       get:item=> safe(item.brand) },
+    { key:"plate",          label:"ทะเบียนรถ",         get:item=> safe(item.plate) },
+    { key:"chassis",        label:"เลขตัวถัง",         get:item=> safe(item.chassis) },
+    { key:"carYear",        label:"ปีรถ",              get:item=> safe(item.carYear) },
+    { key:"start",          label:"วันเริ่มคุ้มครอง",   get:item=> toDMYBuddhist(item.start) },
+    { key:"end",            label:"วันสิ้นสุดคุ้มครอง", get:item=> toDMYBuddhist(item.end) },
+    { key:"sumInsured",     label:"ทุนประกัน",          get:item=> fmtNum(item.sumInsured) },
+    { key:"net",            label:"เบี้ยประกันสุทธิ",   get:item=> fmtNum(item.net) },
+    { key:"stampDuty",      label:"อากรแสตมป์",         get:item=> fmtNum(item.stampDuty) },
+    { key:"sumTotal",       label:"รวมค่าเบี้ยประกัน",  get:item=> fmtNum(item.sumTotal) },
+    { key:"actFee",         label:"พ.ร.บ.",            get:item=> fmtNum(item.actFee) },
+    { key:"taxFee",         label:"ภาษี",              get:item=> fmtNum(item.taxFee) },
+    { key:"otherFee",       label:"อื่นๆ",              get:item=> fmtNum(item.otherFee) },
+    { key:"grandTotal",     label:"รวมเป็นเงินทั้งสิ้น", get:item=> fmtNum(item.grandTotal) },
+    { key:"discount",       label:"ส่วนลด",             get:item=> fmtNum(item.discount) },
+    { key:"total",          label:"ยอดเรียกเก็บสุทธิ",  get:item=> fmtNum(item.total) },
+    { key:"installmentCount", label:"จำนวนงวด",        get:item=> safe(item.installmentCount) },
+    { key:"installment1",   label:"งวดที่ 1",           get:item=> item.installment1 !== undefined && item.installment1 !== "" ? fmtNum(item.installment1) : "-" },
+    { key:"installment2",   label:"งวดที่ 2",           get:item=> item.installment2 !== undefined && item.installment2 !== "" ? fmtNum(item.installment2) : "-" },
+    { key:"installment3",   label:"งวดที่ 3",           get:item=> item.installment3 !== undefined && item.installment3 !== "" ? fmtNum(item.installment3) : "-" },
+    { key:"installment4",   label:"งวดที่ 4",           get:item=> item.installment4 !== undefined && item.installment4 !== "" ? fmtNum(item.installment4) : "-" },
+    { key:"installment5",   label:"งวดที่ 5",           get:item=> item.installment5 !== undefined && item.installment5 !== "" ? fmtNum(item.installment5) : "-" },
+    { key:"installment6",   label:"งวดที่ 6",           get:item=> item.installment6 !== undefined && item.installment6 !== "" ? fmtNum(item.installment6) : "-" },
+    { key:"__status1",      label:"สถานะชำระงวด 1",     get:item=> statusBadge(item.installment1), raw:true },
+    { key:"__status2",      label:"สถานะชำระงวด 2",     get:item=> statusBadge(item.installment2), raw:true },
+    { key:"__status3",      label:"สถานะชำระงวด 3",     get:item=> statusBadge(item.installment3), raw:true },
+    { key:"__status4",      label:"สถานะชำระงวด 4",     get:item=> statusBadge(item.installment4), raw:true },
+    { key:"__debt",         label:"ยอดค้างชำระ",        get:item=> fmtNum(Math.max(Number(item.total||0) - calcPaidTotal(item), 0)) }
+];
+
+/* สร้างปุ่มจัดการ (แก้ไข/เอกสาร/ใบเสร็จ/ลบ) ของแต่ละแถว
+   ข้อมูลในหน้านี้เป็นประกันรถยนต์ (type === "car") ทั้งหมด
+   จึงพาไปหน้า form_car.html / contract_print_car.html / receipt_print_car.html เสมอ */
+function buildActionButtons(item){
+    const owner = item.reporterName || item.employeeName || item.requestName || "";
+    const canDelete = owner === loggedInEmployee;
+
+    return `
+        <div class="action-buttons">
+            <button class="edit-btn" onclick="editItem('${item.id}')" title="แก้ไข">✏️</button>
+            <button class="doc-btn" onclick="openDoc('${item.id}')" title="ไฟล์เอกสาร">📄</button>
+            <button class="receipt-btn" onclick="openReceipt('${item.id}')" title="โหลดใบเสร็จ">🧾</button>
+            <button class="delete-btn"
+                onclick="${canDelete ? `deleteItem('${item.id}')` : `showToast('❌ ลบได้เฉพาะผู้แจ้งงานรายการนี้เท่านั้น')`}"
+                title="${canDelete ? "ลบ" : "ลบได้เฉพาะผู้แจ้งงานรายการนี้"}"
+                style="${canDelete ? "" : "opacity:.35;cursor:not-allowed;"}">
+                🗑️
+            </button>
+        </div>
+    `;
+}
+
+function statusBadge(v){
+    const paid = v !== undefined && v !== null && String(v).trim() !== "" && Number(v) > 0;
+    return paid
+        ? `<span class="status-badge status-paid">✅ ชำระแล้ว</span>`
+        : `<span class="status-badge status-unpaid">⏳ ยังไม่ชำระ</span>`;
+}
+
+/* =========================================================
+   STATE
+========================================================= */
+let allData = [];
+let filtersInitialized = false;
+
+/* =========================================================
+   สร้างหัวตารางจาก COLUMNS
+========================================================= */
+function buildTableHead(){
+    const row = document.getElementById("tableHeadRow");
+    row.innerHTML = COLUMNS.map(col => `
+        <th>${col.label}</th>
+    `).join("");
+}
+
+/* =========================================================
+   FILTERS (เหมือน report.html)
+========================================================= */
+const KNOWN_COMPANIES = ["วิริยะ","เมืองไทย","AIG"];
+
+function populateFilters(){
+
+    const companySelect = document.getElementById("filterCompany");
+    const yearSelect = document.getElementById("filterYear");
+    const monthSelect = document.getElementById("filterMonth");
+    const dayEl = document.getElementById("filterDay");
+    const employeeSelect = document.getElementById("filterEmployee");
+
+    const prevCompany = companySelect.value || "all";
+    const prevEmployee = employeeSelect.value || "all";
+
+    const companiesFromData = [...new Set(allData.map(item=>item.company).filter(c=>c))];
+    const extraCompanies = companiesFromData.filter(c => !KNOWN_COMPANIES.includes(c));
+    const companies = [...KNOWN_COMPANIES, ...extraCompanies];
+
+    companySelect.innerHTML = `<option value="all">ทั้งหมด</option>` +
+        companies.map(c=>`<option value="${c}">${c}</option>`).join("");
+    companySelect.value = companies.includes(prevCompany) ? prevCompany : "all";
+
+    const employees = [...new Set(allData.map(item=>item.reporterName || item.employeeName || item.requestName).filter(e=>e))];
+    employeeSelect.innerHTML = `<option value="all">ทั้งหมด</option>` +
+        employees.map(e=>`<option value="${e}">${e}</option>`).join("");
+    employeeSelect.value = employees.includes(prevEmployee) ? prevEmployee : "all";
+
+    /* วันที่ */
+    const prevDay = dayEl.value || "all";
+    let dayOpts = `<option value="all">ทั้งหมด</option>`;
+    for(let d=1; d<=31; d++){
+        const key = String(d).padStart(2,"0");
+        dayOpts += `<option value="${key}">${d}</option>`;
+    }
+    dayEl.innerHTML = dayOpts;
+    dayEl.value = prevDay;
+
+    /* เดือน */
+    const prevMonth = monthSelect.value || "all";
+    let monthOpts = `<option value="all">ทั้งหมด</option>`;
+    THAI_MONTHS.forEach((name,i)=>{
+        const key = String(i+1).padStart(2,"0");
+        monthOpts += `<option value="${key}">${name}</option>`;
+    });
+    monthSelect.innerHTML = monthOpts;
+    monthSelect.value = prevMonth;
+
+    /* ปี */
+    const prevYear = yearSelect.value || "all";
+    let years = [];
+    for(let y=2569; y<=2575; y++) years.push(String(y));
+    yearSelect.innerHTML = `<option value="all">ทั้งหมด</option>` +
+        years.map(y=>`<option value="${y}">${y}</option>`).join("");
+    yearSelect.value = years.includes(prevYear) ? prevYear : "all";
+
+    if(!filtersInitialized){
+        filtersInitialized = true;
+        const currentMonth = String(new Date().getMonth()+1).padStart(2,"0");
+        if([...monthSelect.options].some(o=>o.value===currentMonth)) monthSelect.value = currentMonth;
+
+        /* เพิ่มใหม่: ตั้งค่าเริ่มต้นตอนเปิดหน้าครั้งแรกให้แสดงเฉพาะ วันนี้ + เดือนนี้ + พนักงานคนนี้ (ผู้ล็อกอิน) */
+        const currentDay = String(new Date().getDate()).padStart(2,"0");
+        if([...dayEl.options].some(o=>o.value===currentDay)) dayEl.value = currentDay;
+
+        if(loggedInEmployee && [...employeeSelect.options].some(o=>o.value===loggedInEmployee)){
+            employeeSelect.value = loggedInEmployee;
+        }
+    }
+
+    [companySelect, yearSelect, monthSelect, dayEl, employeeSelect].forEach(el=>{
+        el.onchange = ()=>{ renderTable(); };
+    });
+}
+
+function getFilteredData(){
+
+    const selectedCompany = document.getElementById("filterCompany").value;
+    const selectedYear = document.getElementById("filterYear").value;
+    const selectedMonth = document.getElementById("filterMonth").value;
+    const selectedDay = document.getElementById("filterDay").value;
+    const selectedEmployee = document.getElementById("filterEmployee").value;
+    const searchTerm = (document.getElementById("filterSearch").value || "").trim().toLowerCase();
+
+    return allData.filter(item=>{
+
+        const companyOK = selectedCompany === "all" || item.company === selectedCompany;
+
+        const parsed = parseCreateDate(item.createDate);
+        const yearOK = selectedYear === "all" || parsed.year === selectedYear;
+        const monthOK = selectedMonth === "all" || parsed.month === selectedMonth;
+        const dayOK = selectedDay === "all" || parsed.day === selectedDay;
+
+        const empName = item.reporterName || item.employeeName || item.requestName || "";
+        const employeeOK = selectedEmployee === "all" || empName === selectedEmployee;
+
+        const searchOK = !searchTerm ||
+            (item.customer || "").toLowerCase().includes(searchTerm) ||
+            (item.policyNumber || "").toLowerCase().includes(searchTerm) ||
+            (item.plate || "").toLowerCase().includes(searchTerm) ||
+            (item.phone || "").toLowerCase().includes(searchTerm) ||
+            typeLabel(item).toLowerCase().includes(searchTerm) ||
+            (item.company || "").toLowerCase().includes(searchTerm);
+
+        return companyOK && yearOK && monthOK && dayOK && employeeOK && searchOK;
+    });
+}
+
+/* =========================================================
+   RENDER TABLE
+========================================================= */
+document.getElementById("filterSearch").addEventListener("input", ()=>{
+    renderTable();
+});
+
+function renderTable(){
+
+    const filtered = getFilteredData();
+
+    const tbody = document.getElementById("tableBody");
+
+    if(filtered.length === 0){
+        tbody.innerHTML = `<tr><td colspan="${COLUMNS.length}" style="padding:30px;color:#999;">ไม่มีข้อมูลตรงกับเงื่อนไขที่เลือก</td></tr>`;
+    } else {
+        tbody.innerHTML = filtered.map((item,i)=>{
+            return `<tr>${
+                COLUMNS.map(col=>{
+                    const val = col.get(item, i);
+                    const alignClass = col.align === "left" ? "col-left" : "";
+                    return `<td class="${alignClass}">${val}</td>`;
+                }).join("")
+            }</tr>`;
+        }).join("");
+    }
+
+    const total = filtered.reduce((sum,item)=> sum + Number(item.total || 0), 0);
+    document.getElementById("summaryTotal").innerText =
+        `💰 ยอดรวม (${filtered.length} รายการ): ${fmtNum(total)} บาท`;
+}
+
+/* =========================================================
+   EXPORT EXCEL (เหมือน report.html)
+========================================================= */
+function exportReportExcel(){
+
+    if(typeof XLSX === "undefined"){
+        alert("ไม่สามารถโหลดไลบรารี Excel ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต");
+        return;
+    }
+
+    const rows = getFilteredData();
+
+    if(rows.length === 0){
+        alert("ไม่มีข้อมูลสำหรับ Export ตามตัวกรองที่เลือกอยู่");
+        return;
+    }
+
+    const excelData = rows.map((item, i) => {
+        const debtAmount = Math.max(Number(item.total || 0) - calcPaidTotal(item), 0);
+        return {
+            "ลำดับ": i + 1,
+            "เลขที่แจ้งหนี้": safe(item.invoiceNo),
+            "รหัส": safe(item.agentCode),
+            "เลขกรมธรรม์": safe(item.policyNumber),
+            "ชื่อผู้เอาประกัน": safe(item.customer),
+            "เบอร์โทร": safe(item.phone),
+            "ที่อยู่ปัจจุบัน": safe(item.address),
+            "ประเภทประกัน": typeLabel(item),
+            "รหัสรถ": safe(item.modelCode),
+            "ยี่ห้อ / รุ่น": safe(item.brand),
+            "ทะเบียนรถ": safe(item.plate),
+            "เลขตัวถัง": safe(item.chassis),
+            "ปีรถ": safe(item.carYear),
+            "วันเริ่มคุ้มครอง": toDMYBuddhist(item.start),
+            "วันสิ้นสุดคุ้มครอง": toDMYBuddhist(item.end),
+            "ทุนประกัน": Number(item.sumInsured || 0),
+            "เบี้ยประกันสุทธิ": Number(item.net || 0),
+            "อากรแสตมป์": Number(item.stampDuty || 0),
+            "รวมค่าเบี้ยประกัน": Number(item.sumTotal || 0),
+            "พ.ร.บ.": Number(item.actFee || 0),
+            "ภาษี": Number(item.taxFee || 0),
+            "อื่นๆ": Number(item.otherFee || 0),
+            "รวมเป็นเงินทั้งสิ้น": Number(item.grandTotal || 0),
+            "ส่วนลด": Number(item.discount || 0),
+            "ยอดเรียกเก็บสุทธิ": Number(item.total || 0),
+            "จำนวนงวด": safe(item.installmentCount),
+            "งวดที่ 1": item.installment1 || "-",
+            "งวดที่ 2": item.installment2 || "-",
+            "งวดที่ 3": item.installment3 || "-",
+            "งวดที่ 4": item.installment4 || "-",
+            "งวดที่ 5": item.installment5 || "-",
+            "งวดที่ 6": item.installment6 || "-",
+            "สถานะชำระงวด 1": Number(item.installment1||0) > 0 ? "ชำระแล้ว" : "ยังไม่ชำระ",
+            "สถานะชำระงวด 2": Number(item.installment2||0) > 0 ? "ชำระแล้ว" : "ยังไม่ชำระ",
+            "สถานะชำระงวด 3": Number(item.installment3||0) > 0 ? "ชำระแล้ว" : "ยังไม่ชำระ",
+            "สถานะชำระงวด 4": Number(item.installment4||0) > 0 ? "ชำระแล้ว" : "ยังไม่ชำระ",
+            "ยอดค้างชำระ": debtAmount
+        };
+    });
+
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "รายงาน");
+
+    const selDay = document.getElementById("filterDay")?.value || "all";
+    const selMonth = document.getElementById("filterMonth")?.value || "all";
+    const selYear = document.getElementById("filterYear")?.value || "all";
+
+    const dayPart = selDay !== "all" ? selDay : "";
+    const monthPart = selMonth !== "all" ? selMonth : "";
+    const yearPart = selYear !== "all" ? selYear : "";
+
+    const datePart = (dayPart || monthPart || yearPart)
+        ? [dayPart, monthPart, yearPart].filter(Boolean).join("-")
+        : new Date().toLocaleDateString("th-TH").replace(/\//g, "-");
+
+    const fileName = `รายงานข้อมูลประกัน_V2_${datePart}.xlsx`;
+
+    XLSX.writeFile(wb, fileName);
+}
+
+document.getElementById("btnExportExcel").addEventListener("click", exportReportExcel);
+
+/* =========================================================
+   เริ่มทำงาน: โหลดข้อมูลแบบ realtime จาก Firestore
+   (อ่านทั้ง collection ครั้งเดียวแล้วกรอง/ค้นหาทั้งหมดที่ฝั่ง client
+   เพื่อให้ตัวกรองทุกตัวทำงานร่วมกันได้ทันทีโดยไม่ต้อง query ใหม่ทุกครั้ง)
+========================================================= */
+buildTableHead();
+
+onSnapshot(collection(db, "insuranceData"), (snapshot) => {
+    // แสดงเฉพาะข้อมูล "ประกันรถยนต์" (type === "car") เท่านั้น
+    allData = snapshot.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(item => item.type === "car");
+    populateFilters();
+    renderTable();
+});
+
+/* =========================================================
+   ปุ่มจัดการ: แก้ไข / เอกสาร / ใบเสร็จ / ลบ
+   (ข้อมูลหน้านี้เป็นประกันรถยนต์ทั้งหมด จึงพาไปหน้า _car เสมอ)
+========================================================= */
+function editItem(id){
+    const item = allData.find(x => x.id === id);
+    if(!item){
+        alert("ไม่พบข้อมูล");
+        return;
+    }
+
+    /* แก้ไข (ป้องกันข้อมูลหาย): เหมือนกับ report.html — deep clone ข้อมูลเดิมทั้งหมดแยกจาก allData
+       และแนบ document id (fullSnapshot.id) ไปด้วยเสมอ เพื่อให้ form_car.html รู้ว่าต้อง "อัปเดตทับ
+       เอกสารเดิม" ไม่ใช่สร้างเอกสารใหม่
+
+       *** สำคัญ: form_car.html ไม่ได้อยู่ในโปรเจกต์นี้ จึงแก้ไขให้ไม่ได้จากที่นี่ แต่ฝั่งฟอร์มต้อง:
+         1) โหลดข้อมูลเดิมทั้งหมดจาก localStorage.getItem("editData") มาเติมฟอร์มก่อนเสมอ
+         2) ตอนบันทึก ให้ merge ค่าฟอร์มทับบนสำเนาข้อมูลเดิมที่โหลดมา แล้วกรอง undefined/null/""
+            ออกก่อนส่งไป Firestore เช่น:
+                const original = JSON.parse(localStorage.getItem("editData")) || {};
+                const merged = { ...original, ...formValues };
+                Object.keys(merged).forEach(k => {
+                    if (merged[k] === undefined || merged[k] === null || merged[k] === "") delete merged[k];
+                });
+                await setDoc(doc(db, "insuranceData", original.id), merged, { merge: true });
+         3) ห้ามเขียนทับฟิลด์ที่ไม่ได้อยู่ในฟอร์ม (ทุนประกัน/เบี้ยประกัน/งวดชำระ/เลขกรมธรรม์/วันเริ่ม/
+            วันสิ้นสุด ฯลฯ) ด้วยค่าว่าง — ต้องคงค่าเดิมไว้เสมอถ้าฟอร์มไม่ได้แก้ไขฟิลด์นั้น */
+    const fullSnapshot = JSON.parse(JSON.stringify(item));
+    fullSnapshot.id = item.id;
+
+    localStorage.setItem("editData", JSON.stringify(fullSnapshot));
+    location.href = "form_car.html";
+}
+
+function openDoc(id){
+    const item = allData.find(x => x.id === id);
+    if(!item){
+        alert("ไม่พบข้อมูล");
+        return;
+    }
+    localStorage.setItem("pdfData", JSON.stringify(item));
+    location.href = "contract_print_car.html";
+}
+
+function openReceipt(id){
+    const item = allData.find(x => x.id === id);
+    if(!item){
+        alert("ไม่พบข้อมูล");
+        return;
+    }
+    localStorage.setItem("pdfData", JSON.stringify(item));
+    location.href = "receipt_print_car.html";
+}
+
+async function deleteItem(id){
+    const item = allData.find(x => x.id === id);
+    if(!item){
+        alert("ไม่พบข้อมูล");
+        return;
+    }
+
+    const owner = item.reporterName || item.employeeName || item.requestName || "";
+    if(owner !== loggedInEmployee){
+        showToast("❌ ลบได้เฉพาะผู้แจ้งงานรายการนี้เท่านั้น (" + (owner || "ไม่ระบุ") + ")");
+        return;
+    }
+
+    if(!confirm("ลบข้อมูล?")) return;
+
+    // ลบที่ Firestore โดยตรง — onSnapshot ด้านบนจะอัปเดตตารางให้อัตโนมัติทุกเครื่องที่เปิดหน้านี้อยู่
+    await deleteDoc(doc(db, "insuranceData", id));
+}
+
+function showToast(message){
+    let toast = document.createElement("div");
+    toast.className = "app-toast";
+    toast.innerText = message;
+    document.body.appendChild(toast);
+
+    requestAnimationFrame(() => toast.classList.add("show"));
+
+    setTimeout(() => {
+        toast.classList.remove("show");
+        setTimeout(() => toast.remove(), 300);
+    }, 2200);
+}
+
+/* เปิดให้ onclick="" ในตาราง (inline HTML) เรียกใช้ได้
+   จำเป็นเพราะ <script type="module"> ไม่ผูกฟังก์ชันเข้า window ให้อัตโนมัติ */
+window.editItem = editItem;
+window.openDoc = openDoc;
+window.openReceipt = openReceipt;
+window.deleteItem = deleteItem;
+window.showToast = showToast;
+
+/* =========================
+   SIDEBAR MENU
+========================= */
+const menuBtn = document.getElementById("menuBtn");
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("overlay");
+
+if(menuBtn && sidebar && overlay){
+    menuBtn.addEventListener("click", ()=>{
+        sidebar.classList.toggle("show");
+        overlay.classList.toggle("show");
+    });
+    overlay.addEventListener("click", ()=>{
+        sidebar.classList.remove("show");
+        overlay.classList.remove("show");
+    });
+}
+
+</script>
+
+</body>
+</html>
