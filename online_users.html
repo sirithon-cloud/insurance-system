@@ -46,6 +46,15 @@
             0%,100%{ opacity:1; }
             50%{ opacity:.5; }
         }
+
+        .offline-dot{
+            display:inline-block;
+            width:8px;
+            height:8px;
+            border-radius:999px;
+            background:#cbd5e1;
+            flex:0 0 auto;
+        }
     </style>
 </head>
 <body class="bg-gray-100 pb-12">
@@ -115,11 +124,47 @@ const firebaseConfig = {
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-/* ถือว่า "ออนไลน์" ถ้าส่ง heartbeat มาไม่เกิน 90 วินาทีที่ผ่านมา
+/* ถือว่า "ออนไลน์" ถ้า auth.js ส่ง online:true มาพร้อม heartbeat ล่าสุดไม่เกิน 90 วินาทีที่ผ่านมา
    (auth.js ส่งทุก 25 วินาที เผื่อระยะเผื่อเน็ตช้า/สลับแท็บไว้พอสมควร)
-   ถ้าไม่มี heartbeat นานเกิน 10 นาที จะซ่อนออกจากลิสต์ไปเลย (ถือว่าออกจากระบบ/ปิดเบราว์เซอร์ไปแล้ว) */
+   [แก้ไข] เดิมถ้าไม่มี heartbeat นานเกิน 10 นาทีจะซ่อนคนนั้นออกจากลิสต์ไปเลย เปลี่ยนเป็นแสดง
+   พนักงานทุกคนในระบบตลอด แค่สลับข้อความเป็น "ออฟไลน์ • ใช้งานล่าสุด ... ที่แล้ว" แทน */
 const ONLINE_THRESHOLD_MS = 90 * 1000;
-const HIDE_AFTER_MS = 10 * 60 * 1000;
+
+/* รายชื่อพนักงานทั้งหมดในระบบ (ให้ตรงกับตาราง EMAIL_TO_NAME ใน auth.js) เพื่อให้หน้านี้
+   แสดงพนักงานทุกคนเสมอ แม้บางคนจะยังไม่เคยล็อกอิน/ไม่มี heartbeat เข้ามาเลยก็ตาม */
+const ALL_EMPLOYEES = [
+    "ณุพล วิทยาขาว",
+    "อรุณลักษณ์ มหาจตุพัฒน์",
+    "วิภาพร คำเฮ้า",
+    "รัชนก ผางโคกสูง",
+    "วรรณิภา วิเศษบุตร",
+    "สุนิษา ยางไธสงค์",
+    "เพ็ญพักตร์ ปลื้มใจ",
+    "สุชาวดี ภิษุณี",
+    "ไอลัดดา ดวงกุลสา",
+    "น้ำทิพย์ ใบลี",
+    "ศิริธร สอนสอาด"
+];
+
+/* รูปพนักงาน (ชุดเดียวกับหน้า revenue.html) ใส่ path รูปในโฟลเดอร์ "photos/" ข้างๆ ไฟล์เว็บนี้
+   ถ้าไม่มีชื่อในตารางนี้ หรือหารูปไม่เจอ จะ fallback ไปโชว์ตัวอักษรย่อ (initials) แทนอัตโนมัติ */
+const EMPLOYEE_PHOTOS = {
+    "วิภาพร คำเฮ้า": "photos/po1.png",
+    "วรรณิภา วิเศษบุตร": "photos/po2.png",
+    "เพ็ญพักตร์ ปลื้มใจ": "photos/po3.jpg",
+    "สุชาวดี ภิษุณี": "photos/po4.png",
+    "รัชนก ผางโคกสูง": "photos/po5.png",
+    "ไอลัดดา ดวงกุลสา": "photos/po6.png",
+    "สุนิษา ยางไธสงค์": "photos/po7.png",
+    "น้ำทิพย์ ใบลี": "photos/po8.png",
+    "ศิริธร สอนสอาด": "photos/po9.png",
+    "อรุณลักษณ์ มหาจตุพัฒน์": "photos/po10.png",
+    "ณุพล วิทยาขาว": "photos/po11.png"
+};
+
+function getEmployeePhoto(name){
+    return EMPLOYEE_PHOTOS[name] || "";
+}
 
 let presenceData = [];
 
@@ -143,23 +188,48 @@ function timeAgoText(ms){
     const diffMin = Math.floor(diffSec / 60);
     if(diffMin < 60) return `${diffMin} นาทีที่แล้ว`;
     const diffHour = Math.floor(diffMin / 60);
-    return `${diffHour} ชั่วโมงที่แล้ว`;
+    if(diffHour < 24) return `${diffHour} ชั่วโมงที่แล้ว`;
+    const diffDay = Math.floor(diffHour / 24);
+    return `${diffDay} วันที่แล้ว`;
+}
+
+/* รวมรายชื่อพนักงานทั้งหมด (ALL_EMPLOYEES) เข้ากับข้อมูล presence ล่าสุดจาก Firestore
+   คนที่ไม่มี presence เลย (ยังไม่เคยล็อกอิน) จะได้ hasPresence:false
+   คนที่มี presence แต่ auth.js ปิดสถานะไว้ตอนล็อกเอาท์ (online:false) จะได้ isOnline:false
+   แต่ยังคง lastMs (เวลาล็อกเอาท์/ใช้งานล่าสุด) ไว้ให้แสดงผลได้ */
+function buildFullList(){
+    const now = Date.now();
+    const map = new Map();
+
+    ALL_EMPLOYEES.forEach(name => {
+        map.set(name, { name, page:"", lastMs:0, isOnline:false, hasPresence:false });
+    });
+
+    presenceData.forEach(u => {
+        const lastMs = (u.lastActive && typeof u.lastActive.toMillis === "function") ? u.lastActive.toMillis() : 0;
+        const name = u.name || "ไม่ทราบชื่อ";
+        const isOnline = (u.online === true) && lastMs > 0 && (now - lastMs) < ONLINE_THRESHOLD_MS;
+        map.set(name, { name, page: u.page || "", lastMs, isOnline, hasPresence: lastMs > 0 });
+    });
+
+    return [...map.values()];
 }
 
 function render(){
 
-    const now = Date.now();
     const searchTerm = (document.getElementById("userSearch").value || "").trim().toLowerCase();
 
-    let rows = presenceData
-        .map(u => ({
-            ...u,
-            lastMs: (u.lastActive && typeof u.lastActive.toMillis === "function") ? u.lastActive.toMillis() : 0
-        }))
-        .filter(u => u.lastMs > 0 && (now - u.lastMs) < HIDE_AFTER_MS)
-        .sort((a,b) => b.lastMs - a.lastMs);
+    let rows = buildFullList()
+        .sort((a,b) => {
+            // ออนไลน์มาก่อนเสมอ, ในกลุ่มเดียวกันเรียงตามใช้งานล่าสุดใหม่สุดก่อน,
+            // คนที่ไม่เคยมี presence เลยไปอยู่ท้ายสุด เรียงตามชื่อ
+            if(a.isOnline !== b.isOnline) return a.isOnline ? -1 : 1;
+            if(a.hasPresence !== b.hasPresence) return a.hasPresence ? -1 : 1;
+            if(a.hasPresence) return b.lastMs - a.lastMs;
+            return a.name.localeCompare(b.name, "th");
+        });
 
-    const onlineCount = rows.filter(u => (now - u.lastMs) < ONLINE_THRESHOLD_MS).length;
+    const onlineCount = rows.filter(u => u.isOnline).length;
     document.getElementById("onlineCount").innerText = `${onlineCount} คน`;
 
     if(searchTerm){
@@ -178,22 +248,50 @@ function render(){
 
     listEl.innerHTML = rows.map(u => {
 
-        const isOnline = (now - u.lastMs) < ONLINE_THRESHOLD_MS;
-        const statusHtml = isOnline
-            ? `<span class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600"><span class="pulse-dot" style="width:8px;height:8px;"></span> กำลังใช้งานอยู่</span>`
-            : `<span class="text-xs text-gray-400">🕒 ${timeAgoText(u.lastMs)}</span>`;
+        let statusHtml, borderClass;
+
+        if(u.isOnline){
+            borderClass = "border-emerald-200";
+            statusHtml = `<span class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600"><span class="pulse-dot" style="width:8px;height:8px;"></span> กำลังใช้งานอยู่</span>`;
+        } else if(u.hasPresence){
+            borderClass = "border-gray-100";
+            statusHtml = `<span class="inline-flex items-center gap-1.5 text-xs text-gray-400"><span class="offline-dot"></span> ออฟไลน์ • ${timeAgoText(u.lastMs)}</span>`;
+        } else {
+            borderClass = "border-gray-100";
+            statusHtml = `<span class="inline-flex items-center gap-1.5 text-xs text-gray-300"><span class="offline-dot"></span> ยังไม่เคยเข้าใช้งาน</span>`;
+        }
+
+        const photoUrl = getEmployeePhoto(u.name);
+        const ringClass = u.isOnline ? "ring-2 ring-emerald-400" : "ring-1 ring-gray-200";
+        const gradientClass = colorFor(u.name || "?");
+        const initialsText = initials(u.name);
+
+        // [แก้ไข] เดิมใช้ onerror="this.outerHTML='<div ...>'" ยัด HTML ที่มีเครื่องหมาย " ซ้อนเข้าไปใน
+        // แอตทริบิวต์ที่ครอบด้วย " เหมือนกัน ทำให้ browser ตัดแอตทริบิวต์ก่อนจบข้อความจริง เห็นเป็น
+        // ตัวอักษร/เครื่องหมายคำพูดเพี้ยนๆ หลุดออกมาเป็นข้อความบนหน้า เปลี่ยนมาวาง <img> กับ fallback
+        // div ซ้อนกันไว้ในกล่องเดียว แล้วสลับ display ด้วย onerror แทน ไม่ต้องยัด HTML ในแอตทริบิวต์อีก
+        const avatarHtml = `
+            <div class="relative w-11 h-11 flex-shrink-0">
+                <div class="w-11 h-11 rounded-full flex items-center justify-center font-bold text-white text-sm bg-gradient-to-br ${gradientClass}">
+                    ${initialsText}
+                </div>
+                ${photoUrl ? `
+                <img src="${photoUrl}"
+                    class="w-11 h-11 rounded-full object-cover absolute inset-0 ${ringClass}"
+                    onerror="this.style.display='none';">
+                ` : ""}
+            </div>
+        `;
 
         return `
-        <div class="bg-white p-4 rounded-2xl shadow-sm border ${isOnline ? "border-emerald-200" : "border-gray-100"}">
+        <div class="bg-white p-4 rounded-2xl shadow-sm border ${borderClass} ${!u.isOnline && !u.hasPresence ? "opacity-70" : ""}">
             <div class="flex items-center gap-3">
 
-                <div class="w-11 h-11 rounded-full flex items-center justify-center font-bold text-white text-sm flex-shrink-0 bg-gradient-to-br ${colorFor(u.name || "?")}">
-                    ${initials(u.name)}
-                </div>
+                ${avatarHtml}
 
                 <div class="min-w-0 flex-1">
                     <h4 class="font-bold text-slate-800 text-sm truncate">${u.name || "ไม่ทราบชื่อ"}</h4>
-                    <p class="text-xs text-gray-400 truncate">📄 ${u.page || "-"}</p>
+                    <p class="text-xs text-gray-400 truncate">${u.page ? "📄 " + u.page : ""}</p>
                 </div>
 
                 <div class="text-right flex-shrink-0">
