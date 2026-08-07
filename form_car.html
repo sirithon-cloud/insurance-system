@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ฟอร์มประกันรถยนต์</title>
+
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- บังคับให้ต้อง login ก่อนเข้าใช้งานหน้านี้ -->
+    <script src="auth.js"></script>
+    <script>
+        requireLogin();
+    </script>
+
+    <!-- flatpickr บังคับให้เลือกวันที่จาก popup เท่านั้น (เหมือน form_product.html) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/th.js"></script>
+
+    <style>
+        /* ปุ่มเลือก "ปี" แบบ dropdown (เหมือน form_product.html) */
+        .flatpickr-year-select {
+            font-family: "Kanit", sans-serif;
+            font-weight: bold;
+            font-size: 14px;
+            color: rgba(0,0,0,.9);
+            background: transparent;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 0 4px;
+            height: 34px;
+            width: auto !important;
+            min-width: 64px;
+            display: inline-block !important;
+            -webkit-appearance: menulist;
+            appearance: menulist;
+        }
+
+        /* ===== ปุ่มเลือกแบบ chip (ประเภทกรมธรรม์ / จำนวนงวด) ยกมาจาก form_product.html ===== */
+        .installment-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .row + .row { margin-top: 16px; }
+        .installment-options input[type="radio"] {
+            position: absolute; opacity: 0; width: 0; height: 0;
+        }
+        .installment-options label {
+            display: inline-flex; align-items: center; justify-content: center;
+            padding: 10px 20px; border: 2px solid #ccc; border-radius: 8px;
+            cursor: pointer; font-size: 16px; user-select: none;
+            transition: all 0.15s ease-in-out; background: #fff; margin: 0;
+        }
+        .installment-options input[type="radio"]:checked + label {
+            border-color: #2d6cdf; background: #2d6cdf; color: #fff;
+        }
+        .installment-options label:hover { border-color: #2d6cdf; }
+
+        /* ===== บันทึกการชำระเงิน (งวดที่ 1) ยกมาจาก form_product.html ===== */
+        .pay-method-options{
+            display:grid;
+            grid-template-columns:repeat(2,1fr);
+            gap:10px;
+            margin-bottom:20px;
+        }
+        .pay-method-btn{
+            padding: 10px 20px; border: 2px solid #ccc; border-radius: 8px;
+            cursor: pointer; font-size: 16px; font-family: 'Kanit', sans-serif;
+            font-weight: 600; user-select: none; transition: all 0.15s ease-in-out;
+            background: #fff; color: #666666;
+        }
+        .pay-method-btn:hover{ border-color: #2d6cdf; }
+        .pay-method-btn.active{ border-color: #2d6cdf; background: #2d6cdf; color: #fff; }
+
+        .pay-form-section{
+            background:var(--blue-light);
+            border:1px solid var(--blue-soft);
+            border-radius:16px;
+            padding:18px;
+            margin-bottom:10px;
+        }
+        .pay-account-grid{
+            display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px;
+        }
+        .pay-account-card{ cursor:pointer; display:block; position:relative; }
+        .pay-account-card input{ position:absolute; opacity:0; width:0; height:0; }
+        .pay-account-card .card-inner{
+            display:flex; flex-direction:column; align-items:center; justify-content:center;
+            gap:6px; padding:14px 6px; border-radius:14px; color:#fff; font-weight:700;
+            font-size:11px; text-align:center; min-height:70px;
+            transition:opacity .2s ease, filter .2s ease, transform .15s ease;
+        }
+        .pay-account-card input:checked + .card-inner{
+            outline:3px solid #fff; outline-offset:-3px; transform:scale(1.03);
+        }
+        .pay-account-card .card-inner.pay-account-dim{ opacity:.4; filter:grayscale(60%); }
+
+        .pay-time-row{ display:flex; align-items:flex-end; gap:8px; margin-top:8px; margin-bottom:16px; }
+        .pay-flip-card{ position:relative; display:flex; flex-direction:column; align-items:center; gap:3px; }
+        .pay-flip-btn{
+            box-sizing:border-box; width:76px; height:52px; border:1.5px solid var(--border);
+            border-radius:12px; background:var(--bg); font-family:'Kanit',sans-serif;
+            font-size:20px; font-weight:600; text-align:center; cursor:text;
+        }
+        .pay-flip-btn::-webkit-outer-spin-button,
+        .pay-flip-btn::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+
+        .discount-summary{
+            background:#f9fafb; border-radius:10px; padding:14px 16px; margin-top:10px;
+            font-size:14px; color:#334155;
+        }
+        .discount-summary b{ color:#152A54; }
+    </style>
+</head>
+
+<body class="form-page">
+
+<div class="topbar">
+    <button id="menuBtn">☰</button>
+    <img src="logo.png" class="toplogo" alt="logo">
+    <span class="apptitle">บันทึกข้อมูลประกันรถยนต์</span>
+</div>
+
+<aside class="sidebar" id="sidebar">
+    <ul>
+        <li><a href="index.html" class="menu-link">🏠 หน้าหลัก</a></li>
+        <li><a href="report_v2.html" class="menu-link">📊 รายงาน</a></li>
+        <li><a href="revenue.html" class="menu-link">📈 กราฟรายได้</a></li>
+    </ul>
+</aside>
+
+<div id="overlay"></div>
+
+<main class="form-card">
+
+    <h1 class="form-title">🚗 ฟอร์มประกันรถยนต์</h1>
+
+    <form id="carForm" autocomplete="off">
+
+        <div class="section-title">🏢 ข้อมูลงาน</div>
+
+        <label>เลขที่รับแจ้ง</label>
+        <input type="text" id="receiptNo" readonly>
+
+        <div class="row">
+            <div>
+                <label>เลขที่แจ้งหนี้</label>
+                <input type="text" id="invoiceNo" readonly>
+            </div>
+            <div>
+                <label>รหัส</label>
+                <input type="text" id="agentCode" placeholder="รหัสตัวแทน/พนักงาน">
+            </div>
+        </div>
+
+        <label>ชื่อผู้แจ้ง (ล็อกตามอีเมลที่เข้าสู่ระบบ)</label>
+        <input type="text" id="reporterName" placeholder="ชื่อผู้แจ้ง" readonly>
+
+        <label>เลขกรมธรรม์</label>
+        <input type="text" id="policyNumber">
+
+        <div class="section-title">👤 ข้อมูลผู้เอาประกัน</div>
+
+        <label>ชื่อผู้เอาประกัน <span style="color:red;">*</span></label>
+        <input type="text" id="name" name="insured_customer_field" required autocomplete="new-password">
+
+        <label>เบอร์โทร</label>
+        <input type="tel" id="phone" name="insured_phone_field" placeholder="08x-xxx-xxxx" autocomplete="new-password">
+
+        <label>ที่อยู่ปัจจุบัน</label>
+        <textarea id="address" name="insured_address_field" autocomplete="new-password"></textarea>
+
+        <label style="margin-top:15px;">ประเภท <span style="color:red;">*</span></label>
+        <div class="installment-options" id="policyTypeGroup">
+            <input type="radio" name="policyTypeOption" id="pt1" value="ประเภท 1">
+            <label for="pt1">1</label>
+
+            <input type="radio" name="policyTypeOption" id="pt2plus" value="ประเภท 2+">
+            <label for="pt2plus">2+</label>
+
+            <input type="radio" name="policyTypeOption" id="pt2" value="ประเภท 2">
+            <label for="pt2">2</label>
+
+            <input type="radio" name="policyTypeOption" id="pt3plus" value="ประเภท 3+">
+            <label for="pt3plus">3+</label>
+
+            <input type="radio" name="policyTypeOption" id="pt3" value="ประเภท 3">
+            <label for="pt3">3</label>
+
+            <input type="radio" name="policyTypeOption" id="pt4" value="ประเภท 4">
+            <label for="pt4">4</label>
+
+            <input type="radio" name="policyTypeOption" id="pt5" value="ประเภท 5">
+            <label for="pt5">5</label>
+        </div>
+        <input type="hidden" id="policyType">
+
+        <div class="section-title">🚘 ข้อมูลรถ</div>
+
+        <div class="row">
+            <div>
+                <label>รหัส</label>
+                <input type="text" id="modelCode" name="vehicle_model_code_field" placeholder="320" autocomplete="new-password">
+            </div>
+            <div>
+                <label>ยี่ห้อ/รุ่น</label>
+                <input type="text" id="brand" name="vehicle_brand_field" placeholder="เช่น Toyota " autocomplete="new-password">
+            </div>
+        </div>
+
+        <div class="row" style="margin-top:15px;">
+            <div>
+                <label>ทะเบียน</label>
+                <input type="text" id="plate" name="vehicle_plate_field" autocomplete="new-password">
+            </div>
+            <div>
+                <label>เลขตัวถัง</label>
+                <input type="text" id="chassis" name="vehicle_chassis_field" autocomplete="new-password">
+            </div>
+        </div>
+
+        <label>ปีรถ</label>
+        <input type="text" id="carYear" name="vehicle_year_field" placeholder="เช่น 2565" autocomplete="new-password">
+
+        <div class="section-title">📅 ระยะเวลาคุ้มครอง</div>
+
+        <div class="row">
+            <div>
+                <label>วันเริ่ม</label>
+                <input type="text" id="start" placeholder="เลือกวันที่" readonly>
+            </div>
+            <div>
+                <label>วันสิ้นสุด</label>
+                <input type="text" id="end" placeholder="เลือกวันที่" readonly>
+            </div>
+        </div>
+
+        <div class="section-title">💰 ข้อมูลการเงิน</div>
+
+        <div class="row">
+            <div>
+                <label>ทุนประกัน</label>
+                <input type="number" id="sumInsured">
+            </div>
+            <div>
+                <label>เบี้ยประกันสุทธิ</label>
+                <input type="number" id="net" step="0.01" oninput="updatePremiumChain()">
+            </div>
+        </div>
+
+        <!-- แก้ไข: ซ่อน "อากรแสตมป์ / รวมค่าเบี้ยประกัน / ภาษีมูลค่าเพิ่ม 7% / จำนวนเงินรวม" ออกจากหน้าฟอร์ม
+             ตามคำขอ (ไม่ต้องการให้ผู้กรอกเห็น/กรอกฟิลด์เหล่านี้อีกต่อไป) แต่ "ห้ามลบ" input ออกจาก DOM
+             เพราะ updatePremiumChain() ยังต้องใช้ id เหล่านี้คำนวณค่าทั้งสายต่อ (สำคัญตรง grandTotal/total
+             ที่คำนวณต่อจาก sumTotal) และตอนกด "บันทึกข้อมูล" ก็ยังอ่านค่าจาก id เหล่านี้ (parseMoney(...))
+             ไปบันทึกลง Firestore เหมือนเดิมทุกประการ ทำให้หน้ารายงาน (report.html/report_v2.html) และ
+             เอกสารอื่นๆ ที่อ้างอิงฟิลด์ stampDuty/sumTotal ยังคงแสดงค่าได้ถูกต้องครบถ้วนเหมือนเดิม
+             ใช้ style="display:none;" ที่ตัว .row เพื่อซ่อนทั้งแถว (ไม่กระทบ layout ของฟิลด์อื่นในฟอร์ม) -->
+        <div class="row" style="margin-top:15px;display:none;">
+            <div>
+                <label>อากรแสตมป์</label>
+                <input type="text" id="stampDuty" readonly>
+            </div>
+            <div>
+                <label>รวมค่าเบี้ยประกัน</label>
+                <input type="text" id="premiumCombined" readonly>
+            </div>
+        </div>
+
+        <div class="row" style="margin-top:15px;display:none;">
+            <div>
+                <label>ภาษีมูลค่าเพิ่ม 7%</label>
+                <input type="text" id="vatAmount" readonly>
+            </div>
+            <div>
+                <label>จำนวนเงินรวม</label>
+                <input type="text" id="sumTotal" readonly>
+            </div>
+        </div>
+
+        <div class="row" style="margin-top:15px;">
+            <div>
+                <label>พรบ</label>
+                <input type="number" id="actFee" step="0.01" oninput="updatePremiumChain()">
+            </div>
+            <div>
+                <label>ภาษี</label>
+                <input type="number" id="taxFee" step="0.01" oninput="updatePremiumChain()">
+            </div>
+        </div>
+
+        <div class="row" style="margin-top:15px;">
+            <div>
+                <label>อื่นๆ</label>
+                <input type="number" id="otherFee" step="0.01" oninput="updatePremiumChain()">
+            </div>
+            <div>
+                <label>รวมเป็นเงินทั้งสิ้น</label>
+                <input type="text" id="grandTotal" readonly>
+            </div>
+        </div>
+
+        <div class="row" style="margin-top:15px;">
+            <div>
+                <label>ส่วนลด</label>
+                <input type="number" id="discount" step="0.01" oninput="updatePremiumChain()">
+            </div>
+            <div>
+                <label>ยอดเรียกเก็บสุทธิ</label>
+                <input type="text" id="total" readonly>
+            </div>
+        </div>
+
+        <div class="discount-summary" id="discountSummaryBox">
+            รวมเป็นเงินทั้งสิ้น 0.00 บาท − ส่วนลด 0.00 บาท = <b>ยอดเรียกเก็บสุทธิ 0.00 บาท</b>
+        </div>
+
+        <label>จำนวนผ่อน</label>
+        <div class="installment-options" id="installmentCountGroup">
+            <input type="radio" name="installmentCount" id="installmentCount1" value="1">
+            <label for="installmentCount1">1 งวด</label>
+
+            <input type="radio" name="installmentCount" id="installmentCount2" value="2">
+            <label for="installmentCount2">2 งวด</label>
+
+            <input type="radio" name="installmentCount" id="installmentCount3" value="3">
+            <label for="installmentCount3">3 งวด</label>
+
+            <input type="radio" name="installmentCount" id="installmentCount4" value="4">
+            <label for="installmentCount4">4 งวด</label>
+
+            <input type="radio" name="installmentCount" id="installmentCount5" value="5">
+            <label for="installmentCount5">5 งวด</label>
+
+            <input type="radio" name="installmentCount" id="installmentCount6" value="6">
+            <label for="installmentCount6">6 งวด</label>
+        </div>
+
+        <div class="section-title" style="margin-top:28px;">💳 บันทึกการชำระเงิน (งวดที่ 1)</div>
+        <p class="subtitle" style="margin-top:-14px;margin-bottom:20px;">
+            ระบบจะบันทึกการชำระเงินนี้เป็น "งวดที่ 1" ให้อัตโนมัติ ส่วนงวดที่ 2 เป็นต้นไป
+            ให้ไปบันทึกที่เมนู "บันทึกการเงิน" ภายหลัง
+        </p>
+
+        <div class="pay-method-options" id="payMethodGroup">
+            <button type="button" class="pay-method-btn" data-method="transfer" onclick="selectPayMethod('transfer')">โอน</button>
+            <button type="button" class="pay-method-btn" data-method="cash" onclick="selectPayMethod('cash')">จ่ายสด</button>
+            <button type="button" class="pay-method-btn" data-method="check" onclick="selectPayMethod('check')">เช็ค</button>
+            <button type="button" class="pay-method-btn" data-method="direct" onclick="selectPayMethod('direct')">จ่ายตรง</button>
+        </div>
+
+        <div id="payFormSection" class="pay-form-section" style="display:none;"></div>
+
+        <div class="button-group">
+
+            <button type="button" class="back-btn" onclick="location.href='index.html'">
+                ← กลับ
+            </button>
+
+            <button type="submit" class="save-btn">
+                💾 บันทึกข้อมูล
+            </button>
+
+            <button type="button" class="edit-btn" onclick="loadEditDataIntoForm()">
+                ✏️ แก้ไขข้อมูล
+            </button>
+
+        </div>
+
+        <button type="button" class="document-btn" onclick="openFiles()">
+            📄 ไฟล์เอกสารทั้งหมด
+        </button>
+
+        <button type="button" class="document-btn" style="margin-top:12px; background:#2FBF9B;" onclick="openReceiptFromCarForm()">
+            🧾 ใบรับเงิน
+        </button>
+
+    </form>
+
+</main>
+
+<script type="module" src="script.js"></script>
+<script src="auth.js"></script>
+
+<!-- เพิ่มใหม่: helper ผูก Firestore สำหรับ
+     1) รันเลขที่แจ้งหนี้อัตโนมัติ (001/MM รีเซ็ตทุกเดือน)
+     2) รันเลขที่รับแจ้งอัตโนมัติ (001/พ.ศ. รีเซ็ตทุกปี)
+     3) ตรวจสอบข้อมูลซ้ำ (ชื่อ + ทะเบียนตรงกับรายการเดิม) -->
+<script type="module">
+import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, runTransaction } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCNpaYlwrkJhBA-8tAax022PWWFYMRz7Kw",
+  authDomain: "insurance-system-f26b0.firebaseapp.com",
+  projectId: "insurance-system-f26b0",
+  storageBucket: "insurance-system-f26b0.firebasestorage.app",
+  messagingSenderId: "438698153100",
+  appId: "1:438698153100:web:a553b97b59701883f057a9"
+};
+
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+async function computeNextInvoiceNo(){
+    const now = new Date();
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+
+    const snap = await getDocs(collection(db, "insuranceData"));
+
+    let maxSeq = 0;
+    snap.forEach(docSnap => {
+        const v = docSnap.data().invoiceNo || "";
+        const m = String(v).match(/^(\d+)\/(\d{2})$/);
+        if (m && m[2] === mm) {
+            const seq = parseInt(m[1], 10);
+            if (seq > maxSeq) maxSeq = seq;
+        }
+    });
+
+    return String(maxSeq + 1).padStart(3, "0") + "/" + mm;
+}
+
+async function computeNextReceiptNo(){
+    const now = new Date();
+    const yyyy = String(now.getFullYear() + 543);
+
+    const snap = await getDocs(collection(db, "insuranceData"));
+
+    let maxSeq = 0;
+    snap.forEach(docSnap => {
+        const v = docSnap.data().receiptNo || "";
+        const m = String(v).match(/^(\d+)\/(\d{4})$/);
+        if (m && m[2] === yyyy) {
+            const seq = parseInt(m[1], 10);
+            if (seq > maxSeq) maxSeq = seq;
+        }
+    });
+
+    return String(maxSeq + 1).padStart(3, "0") + "/" + yyyy;
+}
+
+async function checkDuplicateCustomer(customerName, plate, excludeId){
+    const name = String(customerName || "").trim().toLowerCase();
+    const plt = String(plate || "").trim().toLowerCase();
+
+    if (!name || !plt) return false;
+
+    const snap = await getDocs(collection(db, "insuranceData"));
+
+    let found = false;
+    snap.forEach(docSnap => {
+        if (excludeId && docSnap.id === excludeId) return;
+        const d = docSnap.data();
+        const dName = String(d.customer || "").trim().toLowerCase();
+        const dPlate = String(d.plate || "").trim().toLowerCase();
+        if (dName === name && dPlate === plt) found = true;
+    });
+
+    return found;
+}
+
+/* เพิ่มใหม่: ป้องกันเลขที่แจ้งหนี้/เลขที่รับแจ้งซ้ำกัน เมื่อพนักงาน 2 คนกดบันทึกพร้อมกัน
+   เดิม computeNextInvoiceNo/computeNextReceiptNo สแกนหาค่าสูงสุดจากข้อมูลทั้งหมดเฉยๆ
+   ใช้ได้แค่ "แสดงตัวอย่าง" ตอนเปิดฟอร์ม ไม่การันตีว่าจะไม่ชนกัน เพราะถ้า 2 คนสแกนพร้อมกัน
+   ก่อนที่ใครจะบันทึกเสร็จ จะได้เลขถัดไปเดียวกันทั้งคู่
+
+   แก้โดยกำหนดเลข "ตัวจริง" แบบ atomic ผ่าน Firestore Transaction บน collection ใหม่
+   "counters" (เอกสาร invoice_MM และ receipt_YYYY) เรียกตอนกดบันทึกจริงเท่านั้น
+   Firestore จะ retry ธุรกรรมให้อัตโนมัติถ้ามีการชนกัน จึงรับประกันว่าแต่ละคนได้เลขไม่ซ้ำ
+   แม้กดพร้อมกันเป๊ะ ครั้งแรกที่ยังไม่มีเอกสาร counter จะ seed ค่าเริ่มต้นจากค่าสูงสุด
+   ที่สแกนเจอจากข้อมูลเดิม เพื่อให้ต่อเนื่องกับเลขที่เคยออกไปแล้วก่อนหน้านี้ */
+async function computeMaxInvoiceSeqForMonth(mm){
+    const snap = await getDocs(collection(db, "insuranceData"));
+    let maxSeq = 0;
+    snap.forEach(docSnap => {
+        const v = docSnap.data().invoiceNo || "";
+        const m = String(v).match(/^(\d+)\/(\d{2})$/);
+        if (m && m[2] === mm) {
+            const seq = parseInt(m[1], 10);
+            if (seq > maxSeq) maxSeq = seq;
+        }
+    });
+    return maxSeq;
+}
+
+async function computeMaxReceiptSeqForYear(yyyy){
+    const snap = await getDocs(collection(db, "insuranceData"));
+    let maxSeq = 0;
+    snap.forEach(docSnap => {
+        const v = docSnap.data().receiptNo || "";
+        const m = String(v).match(/^(\d+)\/(\d{4})$/);
+        if (m && m[2] === yyyy) {
+            const seq = parseInt(m[1], 10);
+            if (seq > maxSeq) maxSeq = seq;
+        }
+    });
+    return maxSeq;
+}
+
+async function getNextSequenceAtomic(counterId, seedFn){
+    const counterRef = doc(db, "counters", counterId);
+    return await runTransaction(db, async (transaction) => {
+        const snap = await transaction.get(counterRef);
+        const current = snap.exists() ? Number(snap.data().seq || 0) : await seedFn();
+        const next = current + 1;
+        transaction.set(counterRef, { seq: next }, { merge: true });
+        return next;
+    });
+}
+
+async function computeNextInvoiceNoAtomic(){
+    const now = new Date();
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const nextSeq = await getNextSequenceAtomic("invoice_" + mm, () => computeMaxInvoiceSeqForMonth(mm));
+    return String(nextSeq).padStart(3, "0") + "/" + mm;
+}
+
+async function computeNextReceiptNoAtomic(){
+    const now = new Date();
+    const yyyy = String(now.getFullYear() + 543);
+    const nextSeq = await getNextSequenceAtomic("receipt_" + yyyy, () => computeMaxReceiptSeqForYear(yyyy));
+    return String(nextSeq).padStart(3, "0") + "/" + yyyy;
+}
+
+window.computeNextInvoiceNo = computeNextInvoiceNo;
+window.computeNextReceiptNo = computeNextReceiptNo;
+window.computeNextInvoiceNoAtomic = computeNextInvoiceNoAtomic;
+window.computeNextReceiptNoAtomic = computeNextReceiptNoAtomic;
+window.checkDuplicateCustomer = checkDuplicateCustomer;
+</script>
+
+<script>
+    let editingId = null;
+    let loadedRecordData = null;
+    let installment1PaymentRecordId = null;
+    /* เพิ่มใหม่: กันกดบันทึกซ้ำ (เน็ตช้า/มือลั่นกดรัว ๆ) ทำให้เกิดลูกค้าซ้ำ 2 รายการ
+       ใช้ flag เดียวกันกับทุกปุ่มที่บันทึกลง Firestore (บันทึกข้อมูล/ไฟล์เอกสาร/ใบรับเงิน) */
+    let isSaving = false;
+
+    const PAY_METHOD_LABELS = { transfer: "โอน", cash: "จ่ายสด", check: "เช็ค", direct: "จ่ายตรง" };
+
+    /* ===== ประเภท (ปุ่ม chip) ===== */
+    function setPolicyTypeValue(value) {
+        document.getElementById("policyType").value = value || "";
+        document.querySelectorAll('input[name="policyTypeOption"]').forEach(r => {
+            r.checked = (r.value === value);
+        });
+    }
+    function getPolicyTypeValue() {
+        const checked = document.querySelector('input[name="policyTypeOption"]:checked');
+        return checked ? checked.value : (document.getElementById("policyType")?.value || "");
+    }
+    document.querySelectorAll('input[name="policyTypeOption"]').forEach(r => {
+        r.addEventListener("change", function () { setPolicyTypeValue(this.value); });
+    });
+
+    function getInstallmentCount() {
+        const checked = document.querySelector('input[name="installmentCount"]:checked');
+        return checked ? checked.value : "";
+    }
+    function setInstallmentCount(value) {
+        const radio = document.getElementById("installmentCount" + value);
+        if (radio) radio.checked = true;
+    }
+
+   
+    /* ===== คำนวณเบี้ยประกันอัตโนมัติทั้งสาย (เบี้ยประกันสุทธิ -> ยอดเรียกเก็บสุทธิ) ===== */
+    function formatMoney2(n) {
+        return Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function parseMoney(id) {
+        const raw = document.getElementById(id)?.value || "";
+        const n = Number(String(raw).replace(/,/g, ""));
+        return isNaN(n) ? 0 : n;
+    }
+    function updatePremiumChain() {
+        const net = parseMoney("net");
+
+        const stamp = net > 0 ? Math.ceil((net / 250) - 1e-9) : 0;
+        const combined = net + stamp;
+        const vat = combined * 0.07;
+        const sumTotalVal = combined + vat;
+
+        document.getElementById("stampDuty").value = formatMoney2(stamp);
+        document.getElementById("premiumCombined").value = formatMoney2(combined);
+        document.getElementById("vatAmount").value = formatMoney2(vat);
+        document.getElementById("sumTotal").value = formatMoney2(sumTotalVal);
+
+        const actFee = parseMoney("actFee");
+        const taxFee = parseMoney("taxFee");
+        const otherFee = parseMoney("otherFee");
+        const discount = parseMoney("discount");
+
+        const grandTotal = sumTotalVal + actFee + taxFee + otherFee;
+        const netTotal = Math.max(grandTotal - discount, 0);
+
+        document.getElementById("grandTotal").value = formatMoney2(grandTotal);
+        document.getElementById("total").value = formatMoney2(netTotal);
+
+        document.getElementById("discountSummaryBox").innerHTML =
+            `รวมเป็นเงินทั้งสิ้น ${formatMoney2(grandTotal)} บาท − ส่วนลด ${formatMoney2(discount)} บาท = <b>ยอดเรียกเก็บสุทธิ ${formatMoney2(netTotal)} บาท</b>`;
+    }
+
+    /* ===== บันทึกการชำระเงิน (งวดที่ 1) — ยกมาจาก form_product.html ===== */
+    let currentPayMethod = null;
+    let payDatePicker = null;
+
+    function resetPayMethodButtons() {
+        document.querySelectorAll(".pay-method-btn").forEach(b => b.classList.remove("active"));
+    }
+
+    function selectPayMethod(method) {
+        if (currentPayMethod === method) {
+            currentPayMethod = null;
+            resetPayMethodButtons();
+            document.getElementById("payFormSection").style.display = "none";
+            return;
+        }
+        currentPayMethod = method;
+        resetPayMethodButtons();
+        const btn = document.querySelector(`.pay-method-btn[data-method="${method}"]`);
+        if (btn) btn.classList.add("active");
+        renderPayForm(method);
+    }
+
+    function getPayCurrentHour() { return ""; }
+    function getPayCurrentMinute() { return ""; }
+
+    function buildPayTimeListItems(type, currentValue) {
+        const max = type === "hour" ? 24 : 60;
+        let html = "";
+        for (let i = 0; i < max; i++) {
+            const value = String(i).padStart(2, "0");
+            const activeClass = value === currentValue ? " active" : "";
+            html += `<div class="pay-flip-option${activeClass}" onclick="paySelectTime('${type}','${value}')">${value}</div>`;
+        }
+        return html;
+    }
+
+    function payToggleTimeList(type) {
+        const listId = type === "hour" ? "pay_hour_list" : "pay_minute_list";
+        const otherId = type === "hour" ? "pay_minute_list" : "pay_hour_list";
+        const list = document.getElementById(listId);
+        const other = document.getElementById(otherId);
+        if (other) other.classList.remove("show");
+        if (list) list.classList.toggle("show");
+    }
+
+    function paySelectTime(type, value) {
+        const btnId = type === "hour" ? "pay_hour_btn" : "pay_minute_btn";
+        const listId = type === "hour" ? "pay_hour_list" : "pay_minute_list";
+        const btn = document.getElementById(btnId);
+        if (btn) { btn.dataset.value = value; btn.textContent = value; }
+        const list = document.getElementById(listId);
+        if (list) list.classList.remove("show");
+    }
+
+    document.addEventListener("click", function (e) {
+        if (e.target.closest(".pay-flip-card")) return;
+        document.querySelectorAll(".pay-flip-list.show").forEach(l => l.classList.remove("show"));
+    });
+
+    function onPayTransferAccountChange() {
+        const selected = document.querySelector('input[name="pay_tf_account"]:checked');
+        const otherInput = document.getElementById("pay_tf_account_other");
+
+        if (otherInput) {
+            otherInput.style.display = (selected && selected.value === "อื่นๆ") ? "block" : "none";
+        }
+
+        document.querySelectorAll('input[name="pay_tf_account"]').forEach(radio => {
+            const cardInner = radio.parentElement.querySelector(".card-inner");
+            if (!cardInner) return;
+            if (selected && radio !== selected) cardInner.classList.add("pay-account-dim");
+            else cardInner.classList.remove("pay-account-dim");
+        });
+    }
+
+    function renderPayForm(method) {
+        const section = document.getElementById("payFormSection");
+        section.style.display = "block";
+
+        let extraFieldsHtml = "";
+
+        if (method === "transfer") {
+            extraFieldsHtml = `
+                <label>เลือกบัญชี</label>
+                <div class="pay-account-grid">
+                    <label class="pay-account-card">
+                        <input type="radio" name="pay_tf_account" value="PLOY BROKERS" onchange="onPayTransferAccountChange()">
+                        <div class="card-inner" style="background:linear-gradient(135deg,#fb923c,#ea580c);">
+                            <span style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;">
+                                <img src="logos/Logo-BBL.png" alt="BBL" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.innerHTML='<span style=&quot;color:#1e4a9c;font-weight:800;font-size:10px;&quot;>BBL</span>'">
+                            </span>
+                            <span>PLOY BROKERS</span>
+                        </div>
+                    </label>
+                    <label class="pay-account-card">
+                        <input type="radio" name="pay_tf_account" value="นายณุพล วิทยาขาว" onchange="onPayTransferAccountChange()">
+                        <div class="card-inner" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);">
+                            <span style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;">
+                                <img src="logos/Logo-BBL.png" alt="BBL" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.innerHTML='<span style=&quot;color:#1e4a9c;font-weight:800;font-size:10px;&quot;>BBL</span>'">
+                            </span>
+                            <span>นายณุพล วิทยาขาว</span>
+                        </div>
+                    </label>
+                    <label class="pay-account-card">
+                        <input type="radio" name="pay_tf_account" value="อื่นๆ" onchange="onPayTransferAccountChange()">
+                        <div class="card-inner" style="background:linear-gradient(135deg,#fcd34d,#f59e0b);color:#3a2200;">
+                            <span style="width:56px;height:56px;border-radius:999px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;">✏️</span>
+                            <span>อื่นๆ</span>
+                        </div>
+                    </label>
+                </div>
+                <input type="text" id="pay_tf_account_other" placeholder="ระบุชื่อบัญชี" style="display:none;margin-bottom:14px;">
+            `;
+        }
+
+        if (method === "check") {
+            extraFieldsHtml = `
+                <div class="row">
+                    <div><label>ธนาคาร</label><input type="text" id="pay_bank"></div>
+                    <div><label>เลขที่เช็ค</label><input type="text" id="pay_checkNo"></div>
+                </div>
+            `;
+        }
+
+        if (method === "direct") {
+            extraFieldsHtml = `
+                <label>ชื่อผู้รับเงิน</label>
+                <input type="text" id="pay_payee">
+            `;
+        }
+
+        const amountLabel = method === "transfer" ? "ยอดเงินที่โอน" : "ยอดเงิน";
+        const dateLabel = method === "transfer" ? "วันที่โอน" : "วันที่";
+        const methodLabels = { cash: "จ่ายสด", check: "เช็ค", direct: "จ่ายตรง" };
+        const titleText = method === "transfer" ? "รายละเอียดการโอนเงิน" : "บันทึกการชำระเงิน (" + (methodLabels[method] || "") + ")";
+
+        section.innerHTML = `
+            <div style="font-weight:700;color:var(--blue-dark);margin-bottom:10px;">${titleText}</div>
+            ${extraFieldsHtml}
+            <div class="row">
+                <div>
+                    <label>${amountLabel}</label>
+                    <input type="number" id="pay_amount" min="0" step="0.01" placeholder="0.00">
+                </div>
+                <div>
+                    <label>${dateLabel}</label>
+                    <input type="text" id="pay_date" placeholder="เลือกวันที่" readonly>
+                </div>
+            </div>
+            <label>เวลา</label>
+            <div class="pay-time-row">
+                <div class="pay-flip-card">
+                    <input type="number" id="pay_hour_input" min="0" max="23" placeholder="ชม."
+                        value="${getPayCurrentHour()}" class="pay-flip-btn">
+                    <span style="font-size:10px;color:var(--text-soft);">ชม.</span>
+                </div>
+                <span style="font-size:22px;font-weight:700;margin-bottom:22px;">:</span>
+                <div class="pay-flip-card">
+                    <input type="number" id="pay_minute_input" min="0" max="59" placeholder="นาที"
+                        value="${getPayCurrentMinute()}" class="pay-flip-btn">
+                    <span style="font-size:10px;color:var(--text-soft);">นาที</span>
+                </div>
+            </div>
+            <label>หมายเหตุ (ไม่บังคับ)</label>
+            <input type="text" id="pay_note">
+        `;
+
+        if (typeof flatpickr === "function") {
+            payDatePicker = flatpickr("#pay_date", {
+                dateFormat: "d/m/Y",
+                allowInput: false,
+                locale: (typeof flatpickr.l10ns !== "undefined" && flatpickr.l10ns.th) ? "th" : undefined
+            });
+        }
+
+    }
+
+    function collectPaymentInstallment1() {
+        if (!currentPayMethod) {
+            return { amount: "", date: "", method: "", account: "", bank: "", checkNo: "", payee: "", time: "", note: "" };
+        }
+
+        const amount = document.getElementById("pay_amount")?.value || "";
+        const dateVal = document.getElementById("pay_date")?.value || "";
+
+        const payHourRaw = document.getElementById("pay_hour_input")?.value;
+        const payHourNum = Number(payHourRaw);
+        const payHourOK = payHourRaw !== "" && payHourRaw !== null && payHourRaw !== undefined && !isNaN(payHourNum) && payHourNum >= 0 && payHourNum <= 23;
+
+        const payMinuteRaw = document.getElementById("pay_minute_input")?.value;
+        const payMinuteNum = Number(payMinuteRaw);
+        const payMinuteOK = payMinuteRaw !== "" && payMinuteRaw !== null && payMinuteRaw !== undefined && !isNaN(payMinuteNum) && payMinuteNum >= 0 && payMinuteNum <= 59;
+
+        const timeVal = (payHourOK && payMinuteOK)
+            ? `${String(payHourNum).padStart(2,"0")}:${String(payMinuteNum).padStart(2,"0")}`
+            : "";
+
+        let account = "", bank = "", checkNo = "", payee = "";
+
+        if (currentPayMethod === "transfer") {
+            const selected = document.querySelector('input[name="pay_tf_account"]:checked');
+            account = selected ? selected.value : "";
+            if (account === "อื่นๆ") {
+                account = document.getElementById("pay_tf_account_other")?.value || "";
+            }
+        }
+        if (currentPayMethod === "check") {
+            bank = document.getElementById("pay_bank")?.value || "";
+            checkNo = document.getElementById("pay_checkNo")?.value || "";
+        }
+        if (currentPayMethod === "direct") {
+            payee = document.getElementById("pay_payee")?.value || "";
+        }
+
+        return {
+            amount: amount,
+            date: amount ? dateVal : "",
+            method: currentPayMethod,
+            account, bank, checkNo, payee,
+            time: timeVal,
+            note: document.getElementById("pay_note")?.value || ""
+        };
+    }
+
+    /* ===== เก็บข้อมูลฟอร์มทั้งหมด ===== */
+    function collectFormData(type) {
+        const payment1 = collectPaymentInstallment1();
+
+        const record = {
+            type: type || 'car',
+            receiptNo: document.getElementById("receiptNo")?.value,
+            invoiceNo: document.getElementById("invoiceNo")?.value,
+            agentCode: document.getElementById("agentCode")?.value,
+            reporterName: document.getElementById("reporterName")?.value,
+            policyNumber: document.getElementById("policyNumber")?.value,
+            customer: document.getElementById("name")?.value,
+            phone: document.getElementById("phone")?.value,
+            address: document.getElementById("address")?.value,
+            policyType: getPolicyTypeValue(),
+
+            modelCode: document.getElementById("modelCode")?.value,
+            brand: document.getElementById("brand")?.value,
+            plate: document.getElementById("plate")?.value,
+            chassis: document.getElementById("chassis")?.value,
+            carYear: document.getElementById("carYear")?.value,
+
+            start: document.getElementById("start")?.value,
+            end: document.getElementById("end")?.value,
+
+            sumInsured: document.getElementById("sumInsured")?.value,
+            net: document.getElementById("net")?.value,
+            stampDuty: parseMoney("stampDuty") || "",
+            vatAmount: parseMoney("vatAmount") || "",
+            sumTotal: parseMoney("sumTotal") || "",
+            actFee: document.getElementById("actFee")?.value,
+            taxFee: document.getElementById("taxFee")?.value,
+            otherFee: document.getElementById("otherFee")?.value,
+            grandTotal: parseMoney("grandTotal") || "",
+            discount: document.getElementById("discount")?.value,
+            total: parseMoney("total") || "",
+
+            installmentCount: getInstallmentCount(),
+            installment1: payment1.amount,
+            installment1Date: payment1.date,
+            installment1Method: payment1.method,
+            installment1Account: payment1.account,
+            installment1Bank: payment1.bank,
+            installment1CheckNo: payment1.checkNo,
+            installment1Payee: payment1.payee,
+            installment1Time: payment1.time,
+            installment1Note: payment1.note
+        };
+
+        if (editingId) {
+            record.id = editingId;
+        } else {
+            record.createDate = new Date().toLocaleDateString("th-TH");
+            record.employeeName = (typeof getEmployeeName === "function") ? getEmployeeName() : "";
+        }
+
+        return record;
+    }
+
+    /* เพิ่มใหม่: กำหนดเลขที่แจ้งหนี้/เลขที่รับแจ้ง "ตัวจริง" แบบ atomic ตอนกดบันทึกจริง
+       เฉพาะรายการใหม่เท่านั้น (ไม่แตะรายการที่กำลังแก้ไข ซึ่งมีเลขเดิมอยู่แล้ว)
+       ป้องกันเลขซ้ำกันเวลาพนักงาน 2 คนกดบันทึกพร้อมกัน (ดู computeNextInvoiceNoAtomic/
+       computeNextReceiptNoAtomic ในสคริปต์ด้านบน) */
+    async function assignFinalNumbersIfNew(record){
+        if (editingId) return;
+
+        if (typeof window.computeNextInvoiceNoAtomic === "function") {
+            const finalInvoiceNo = await window.computeNextInvoiceNoAtomic();
+            record.invoiceNo = finalInvoiceNo;
+            const invoiceEl = document.getElementById("invoiceNo");
+            if (invoiceEl) invoiceEl.value = finalInvoiceNo;
+        }
+
+        if (typeof window.computeNextReceiptNoAtomic === "function") {
+            const finalReceiptNo = await window.computeNextReceiptNoAtomic();
+            record.receiptNo = finalReceiptNo;
+            const receiptEl = document.getElementById("receiptNo");
+            if (receiptEl) receiptEl.value = finalReceiptNo;
+        }
+    }
+
+    /* ===== สร้าง/อัปเดตรายการในระบบ "รายงานการเงิน" ให้ตรงกับงวดที่ 1 ===== */
+    function toISODateFromDMY(dmy) {
+        if (!dmy) return "";
+        const parts = String(dmy).split("/");
+        if (parts.length !== 3) return "";
+        const [d, m, y] = parts;
+        return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+    }
+    function toThaiDateDisplayFromDMY(dmy) {
+        if (!dmy) return "-";
+        const parts = String(dmy).split("/");
+        if (parts.length !== 3) return dmy;
+        const [d, m, y] = parts;
+        return `${d}/${m}/${Number(y) + 543}`;
+    }
+
+    async function syncInstallment1PaymentRecord(record, savedId) {
+        const payment1 = collectPaymentInstallment1();
+
+        if (!payment1.method || !payment1.amount) return;
+
+        if (typeof window.savePaymentRecord !== "function") {
+            console.error("ไม่พบ window.savePaymentRecord (script.js อาจโหลดไม่สำเร็จ)");
+            return;
+        }
+
+        const paymentRecord = {
+            customerId: savedId,
+            customer: record.customer || "",
+            company: record.company || "",
+            plate: record.plate || "",
+            start: record.start || "",
+            phone: record.phone || "",
+            installmentNumber: 1,
+            type: "car",
+            method: payment1.method,
+            methodLabel: PAY_METHOD_LABELS[payment1.method] || payment1.method,
+            account: payment1.account || "",
+            bank: payment1.bank || "",
+            checkNo: payment1.checkNo || "",
+            payee: payment1.payee || "",
+            amount: Number(payment1.amount) || 0,
+            date: toISODateFromDMY(payment1.date),
+            dateDisplay: toThaiDateDisplayFromDMY(payment1.date),
+            time: payment1.time || "",
+            note: payment1.note || "",
+            recordedBy: (typeof getEmployeeName === "function") ? getEmployeeName() : ""
+        };
+
+        if (installment1PaymentRecordId) paymentRecord.id = installment1PaymentRecordId;
+
+        try {
+            const recId = await window.savePaymentRecord(paymentRecord);
+            if (recId && recId !== installment1PaymentRecordId) {
+                installment1PaymentRecordId = recId;
+                await window.saveRecord({ id: savedId, installment1PaymentRecordId: recId });
+            }
+        } catch (err) {
+            console.error("บันทึกรายการในรายงานการเงินไม่สำเร็จ:", err);
+        }
+    }
+
+    /* เพิ่มใหม่: เช็คข้อมูลซ้ำ (ชื่อ + ทะเบียน ตรงกับรายการเดิม) ก่อนบันทึกทุกครั้ง
+       ยกเว้นรายการที่กำลังแก้ไขอยู่ (editingId) เอง */
+    async function isDuplicateRecord(record) {
+        if (typeof window.checkDuplicateCustomer !== "function") return false;
+        return await window.checkDuplicateCustomer(record.customer, record.plate, editingId);
+    }
+
+    document.getElementById("carForm").addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        /* เพิ่มใหม่: ถ้ากำลังบันทึกอยู่แล้ว (จากปุ่มนี้หรือปุ่มอื่นที่บันทึกลง Firestore เหมือนกัน)
+           ให้ข้ามการกดซ้ำไปเลย จนกว่ารอบก่อนหน้าจะเสร็จ กันเน็ตช้า/มือลั่นกดรัว ๆ สร้างรายการซ้ำ */
+        if (isSaving) return;
+        isSaving = true;
+
+        const saveBtn = document.querySelector("#carForm .save-btn");
+        const saveBtnOriginalHtml = saveBtn ? saveBtn.innerHTML : "";
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = "⏳ กำลังบันทึก..."; }
+
+        try {
+            if (!getPolicyTypeValue()) {
+                alert("กรุณาเลือกประเภท");
+                return;
+            }
+
+            const record = collectFormData("car");
+
+            if (await isDuplicateRecord(record)) {
+                alert("⚠️ ข้อมูลซ้ำ (ชื่อผู้เอาประกัน + ทะเบียน ตรงกับรายการที่มีอยู่แล้ว) กรุณาแจ้งพี่เอ");
+                return;
+            }
+
+            await assignFinalNumbersIfNew(record);
+
+            const savedId = await window.saveRecord(record);
+
+            if (savedId) {
+                editingId = savedId;
+                record.id = savedId;
+                loadedRecordData = record;
+            }
+
+            if (savedId) {
+                await syncInstallment1PaymentRecord(record, savedId);
+            }
+
+            localStorage.setItem("pdfData", JSON.stringify(record));
+            localStorage.removeItem("editIndex");
+            localStorage.removeItem("editData");
+        } finally {
+            isSaving = false;
+            if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = saveBtnOriginalHtml; }
+        }
+    });
+
+    async function openFiles() {
+        /* เพิ่มใหม่: กันกดซ้ำ ใช้ isSaving ตัวเดียวกับปุ่ม "บันทึกข้อมูล" เพราะปุ่มนี้ก็บันทึก
+           ลง Firestore เช่นกัน ถ้ากำลังบันทึกอยู่จากปุ่มไหนก็ตาม ให้ข้ามการกดซ้ำจากปุ่มอื่นด้วย */
+        if (isSaving) return;
+        isSaving = true;
+
+        try {
+            if (!getPolicyTypeValue()) { alert("กรุณาเลือกประเภท"); return; }
+
+            const record = collectFormData("car");
+
+            if (await isDuplicateRecord(record)) {
+                alert("⚠️ ข้อมูลซ้ำ (ชื่อผู้เอาประกัน + ทะเบียน ตรงกับรายการที่มีอยู่แล้ว) กรุณาแจ้งพี่เอ");
+                return;
+            }
+
+            await assignFinalNumbersIfNew(record);
+
+            const savedId = await window.saveRecord(record);
+            if (savedId) { editingId = savedId; record.id = savedId; loadedRecordData = record; }
+            if (savedId) { await syncInstallment1PaymentRecord(record, savedId); }
+
+            localStorage.setItem("pdfData", JSON.stringify(record));
+            localStorage.removeItem("editIndex");
+            localStorage.removeItem("editData");
+
+            window.location.href = "contract_print_car.html";
+        } finally {
+            isSaving = false;
+        }
+    }
+
+    /* เพิ่มใหม่: ปุ่ม "🧾 ใบรับเงิน" บันทึกข้อมูลลง Firestore ก่อนเช่นเดียวกับปุ่มไฟล์เอกสาร
+       แล้วพาไปหน้า receipt_print_car.html (อ่านข้อมูลจาก localStorage คีย์ "pdfData" เหมือนกัน) */
+    async function openReceiptFromCarForm() {
+        /* เพิ่มใหม่: กันกดซ้ำ ใช้ isSaving ตัวเดียวกับปุ่ม "บันทึกข้อมูล" */
+        if (isSaving) return;
+        isSaving = true;
+
+        try {
+            if (!getPolicyTypeValue()) { alert("กรุณาเลือกประเภท"); return; }
+
+            const record = collectFormData("car");
+
+            if (await isDuplicateRecord(record)) {
+                alert("⚠️ ข้อมูลซ้ำ (ชื่อผู้เอาประกัน + ทะเบียน ตรงกับรายการที่มีอยู่แล้ว) กรุณาแจ้งพี่เอ");
+                return;
+            }
+
+            await assignFinalNumbersIfNew(record);
+
+            const savedId = await window.saveRecord(record);
+            if (savedId) { editingId = savedId; record.id = savedId; loadedRecordData = record; }
+            if (savedId) { await syncInstallment1PaymentRecord(record, savedId); }
+
+            localStorage.setItem("pdfData", JSON.stringify(record));
+            localStorage.removeItem("editIndex");
+            localStorage.removeItem("editData");
+
+            window.location.href = "receipt_print_car.html";
+        } finally {
+            isSaving = false;
+        }
+    }
+
+    function toDisplayDate(v) {
+        const legacyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || "");
+        return legacyMatch ? `${legacyMatch[3]}/${legacyMatch[2]}/${legacyMatch[1]}` : (v || "");
+    }
+
+    function loadEditDataIntoForm() {
+        const oldData = JSON.parse(localStorage.getItem("editData"));
+
+        if (!oldData) {
+            alert("ไม่พบข้อมูลที่ต้องการแก้ไข");
+            return;
+        }
+
+        editingId = oldData.id;
+        loadedRecordData = oldData;
+        installment1PaymentRecordId = oldData.installment1PaymentRecordId || null;
+
+        document.getElementById("receiptNo").value = oldData.receiptNo || "";
+        document.getElementById("invoiceNo").value = oldData.invoiceNo || "";
+        document.getElementById("agentCode").value = oldData.agentCode || "";
+        document.getElementById("reporterName").value = oldData.reporterName || "";
+        document.getElementById("policyNumber").value = oldData.policyNumber || "";
+        document.getElementById("name").value = oldData.customer || "";
+        document.getElementById("phone").value = oldData.phone || "";
+        document.getElementById("address").value = oldData.address || "";
+        setPolicyTypeValue(oldData.policyType || "");
+
+        document.getElementById("modelCode").value = oldData.modelCode || "";
+        document.getElementById("brand").value = oldData.brand || "";
+        document.getElementById("plate").value = oldData.plate || "";
+        document.getElementById("chassis").value = oldData.chassis || "";
+        document.getElementById("carYear").value = oldData.carYear || "";
+
+        const startVal = toDisplayDate(oldData.start);
+        const endVal = toDisplayDate(oldData.end);
+        if (startPicker) startPicker.setDate(startVal, true, "d/m/Y");
+        if (endPicker) endPicker.setDate(endVal, true, "d/m/Y");
+
+        document.getElementById("sumInsured").value = oldData.sumInsured || "";
+        document.getElementById("net").value = oldData.net || "";
+
+        document.getElementById("actFee").value = oldData.actFee || "";
+        document.getElementById("taxFee").value = oldData.taxFee || "";
+        document.getElementById("otherFee").value = oldData.otherFee || "";
+
+        document.getElementById("discount").value = oldData.discount || "";
+
+        updatePremiumChain();
+
+        if (oldData.installmentCount) setInstallmentCount(oldData.installmentCount);
+
+        if (oldData.installment1Method) {
+            selectPayMethod(oldData.installment1Method);
+            setTimeout(() => {
+                const amountEl = document.getElementById("pay_amount");
+                if (amountEl) amountEl.value = oldData.installment1 || "";
+
+                if (payDatePicker && oldData.installment1Date) {
+                    payDatePicker.setDate(oldData.installment1Date, true, "d/m/Y");
+                }
+
+                if (oldData.installment1Time) {
+                    const [savedHour, savedMinute] = String(oldData.installment1Time).split(":");
+                    const hourInputEl = document.getElementById("pay_hour_input");
+                    const minuteInputEl = document.getElementById("pay_minute_input");
+                    if (hourInputEl && savedHour) hourInputEl.value = savedHour.padStart(2, "0");
+                    if (minuteInputEl && savedMinute) minuteInputEl.value = savedMinute.padStart(2, "0");
+                }
+
+                if (oldData.installment1Account) {
+                    const radio = document.querySelector(`input[name="pay_tf_account"][value="${oldData.installment1Account}"]`);
+                    if (radio) {
+                        radio.checked = true;
+                        onPayTransferAccountChange();
+                    } else {
+                        const otherRadio = document.querySelector('input[name="pay_tf_account"][value="อื่นๆ"]');
+                        if (otherRadio) {
+                            otherRadio.checked = true;
+                            onPayTransferAccountChange();
+                            const otherInput = document.getElementById("pay_tf_account_other");
+                            if (otherInput) otherInput.value = oldData.installment1Account;
+                        }
+                    }
+                }
+
+                const bankEl = document.getElementById("pay_bank");
+                if (bankEl) bankEl.value = oldData.installment1Bank || "";
+                const checkNoEl = document.getElementById("pay_checkNo");
+                if (checkNoEl) checkNoEl.value = oldData.installment1CheckNo || "";
+                const payeeEl = document.getElementById("pay_payee");
+                if (payeeEl) payeeEl.value = oldData.installment1Payee || "";
+                const noteEl = document.getElementById("pay_note");
+                if (noteEl) noteEl.value = oldData.installment1Note || "";
+            }, 50);
+        }
+    }
+
+    /* ===== ตัวเลือกวันที่ (บังคับกดเลือกจาก popup เท่านั้น + ปุ่มเลือกปีแบบ dropdown) ===== */
+    function attachYearDropdown(instance) {
+        const calendarEl = instance.calendarContainer;
+        if (!calendarEl) return;
+
+        const yearInput = calendarEl.querySelector(".numInputWrapper input.cur-year");
+        if (!yearInput || yearInput.dataset.dropdownReady === "true") return;
+
+        const wrapper = yearInput.closest(".numInputWrapper");
+        if (!wrapper) return;
+
+        const select = document.createElement("select");
+        select.className = "flatpickr-year-select";
+
+        const centerYear = instance.currentYear;
+        const startYear = centerYear - 10;
+        const endYear = centerYear + 10;
+
+        for (let y = startYear; y <= endYear; y++) {
+            const option = document.createElement("option");
+            option.value = String(y);
+            option.textContent = String(y);
+            if (y === centerYear) option.selected = true;
+            select.appendChild(option);
+        }
+
+        select.addEventListener("change", function () {
+            instance.changeYear(parseInt(this.value, 10));
+        });
+
+        wrapper.style.display = "none";
+        wrapper.insertAdjacentElement("afterend", select);
+
+        yearInput.dataset.dropdownReady = "true";
+        instance._yearSelect = select;
+    }
+
+    function syncYearDropdown(instance) {
+        if (instance._yearSelect) {
+            instance._yearSelect.value = String(instance.currentYear);
+        }
+    }
+
+    let startPicker = null;
+    let endPicker = null;
+
+    if (typeof flatpickr === "function") {
+        const datePickerOptions = {
+            dateFormat: "d/m/Y",
+            allowInput: false,
+            clickOpens: true,
+            locale: (typeof flatpickr.l10ns !== "undefined" && flatpickr.l10ns.th) ? "th" : undefined,
+            onReady: function (selectedDates, dateStr, instance) {
+                attachYearDropdown(instance);
+            },
+            onOpen: function (selectedDates, dateStr, instance) {
+                attachYearDropdown(instance);
+                syncYearDropdown(instance);
+            },
+            onMonthChange: function (selectedDates, dateStr, instance) {
+                syncYearDropdown(instance);
+            },
+            onYearChange: function (selectedDates, dateStr, instance) {
+                syncYearDropdown(instance);
+            }
+        };
+
+        startPicker = flatpickr("#start", datePickerOptions);
+        endPicker = flatpickr("#end", datePickerOptions);
+    }
+
+    /* ===== เมนู sidebar ===== */
+    const menuBtn = document.getElementById("menuBtn");
+    const sidebar = document.querySelector(".sidebar");
+    const overlay = document.getElementById("overlay");
+    if (menuBtn && sidebar && overlay) {
+        menuBtn.addEventListener("click", function () {
+            sidebar.classList.toggle("show");
+            overlay.classList.toggle("show");
+        });
+        overlay.addEventListener("click", function () {
+            sidebar.classList.remove("show");
+            overlay.classList.remove("show");
+        });
+    }
+
+    /* ===== โหลดข้อมูลตอนเปิดหน้า (มาจากปุ่ม ✏️ แก้ไข ที่ report.html) ===== */
+    window.addEventListener("DOMContentLoaded", function () {
+        updatePremiumChain();
+
+        /* แก้ไข: ชื่อผู้แจ้งล็อกตามอีเมลที่เข้าสู่ระบบเสมอ (getEmployeeName() จาก auth.js)
+           ห้ามพิมพ์แก้เอง ไม่ว่าจะเป็นรายการใหม่หรือกำลังแก้ไขรายการเดิม */
+        const reporterNameEl = document.getElementById("reporterName");
+        if (reporterNameEl) {
+            reporterNameEl.value = (typeof getEmployeeName === "function") ? getEmployeeName() : "";
+            reporterNameEl.readOnly = true;
+        }
+
+        if (localStorage.getItem("editData")) {
+            loadEditDataIntoForm();
+        } else {
+            /* เพิ่มใหม่: รายการใหม่ -> รันเลขที่แจ้งหนี้ (001/MM รีเซ็ตทุกเดือน)
+               และเลขที่รับแจ้ง (001/พ.ศ. รีเซ็ตทุกปี) ให้อัตโนมัติ ไม่ต้องกรอกเอง */
+            if (typeof window.computeNextInvoiceNo === "function") {
+                window.computeNextInvoiceNo().then(v => {
+                    const el = document.getElementById("invoiceNo");
+                    if (el) el.value = v;
+                });
+            }
+            if (typeof window.computeNextReceiptNo === "function") {
+                window.computeNextReceiptNo().then(v => {
+                    const el = document.getElementById("receiptNo");
+                    if (el) el.value = v;
+                });
+            }
+        }
+    }, 300);
+</script>
+
+</body>
+
+</html>

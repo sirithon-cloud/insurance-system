@@ -1,0 +1,1891 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบบันทึกการเงิน</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <!-- เพิ่มใหม่: flatpickr สำหรับ Date Picker / Time Picker แบบกดเลือกจาก popup เท่านั้น
+         (ห้ามผู้ใช้พิมพ์วันที่/เวลาเอง ใช้ allowInput:false บังคับให้กดเลือกจาก popup อย่างเดียว) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/th.js"></script>
+
+    <!-- บังคับให้ต้อง login ก่อนเข้าใช้งานหน้านี้ เหมือนหน้าอื่นๆ ในระบบ -->
+    <script src="auth.js"></script>
+    <script>
+        requireLogin();
+    </script>
+
+    <style>
+        body { font-family: 'Prompt', sans-serif; }
+
+        /* กันไว้เผื่อโหลด Tailwind จาก CDN ไม่สำเร็จ (เช่น เน็ตช้า/ถูกบล็อก)
+           ทำให้คลาส hidden ยังคงซ่อนองค์ประกอบได้แน่นอนเสมอ ไม่ใช่แค่พึ่งพา Tailwind อย่างเดียว
+           (ค่าเดียวกับที่ Tailwind กำหนดไว้ให้ .hidden อยู่แล้ว จึงไม่ชนกัน) */
+        .hidden{
+            display:none !important;
+        }
+
+        .method-btn.active{
+            background:#2563eb;
+            color:#fff;
+            box-shadow:0 8px 18px rgba(37,99,235,.32);
+        }
+
+        /* แก้ไข: ย่อขนาดตัวเลือกเวลาให้เล็กกะทัดรัดลง (เดิมใหญ่เกินไป) และเปลี่ยนจาก <select> จริง
+           มาเป็นปุ่ม + รายการตัวเลือกที่ควบคุมเอง เพื่อบังคับให้รายการตัวเลือกกางลง "ด้านล่าง" เสมอ
+           (ของเดิมเป็น <select> ธรรมดา เบราว์เซอร์จะเลือกกางขึ้นบนเองถ้าพื้นที่ด้านล่างไม่พอ
+           ควบคุมไม่ได้ ใช้ปุ่ม+รายการของเราเอง กำหนด position:absolute ให้อยู่ใต้ปุ่มเสมอแทน) */
+        .fin-time-flip{
+            display:flex;
+            align-items:flex-start;
+            justify-content:center;
+            gap:8px;
+        }
+
+        .fin-flip-card{
+            position:relative;
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            gap:3px;
+        }
+
+        .fin-flip-card-label{
+            font-size:10px;
+            font-weight:600;
+            letter-spacing:.3px;
+            color:#6b7280;
+        }
+
+        /* แก้ไข: กล่องชั่วโมง/นาที พิมพ์เลขเองได้ ขนาดเท่ากับช่อง "ยอดเงิน"/"วันที่" ข้างๆ กัน
+           (เดิมเล็กกว่าช่องอื่นในแถวเดียวกันมาก) เพิ่ม box-sizing กันขนาดเพี้ยนตอนมี padding/border
+           และ -moz-appearance:textfield เพื่อเอาลูกศรขึ้น-ลงของ input type="number" ออกในเบราว์เซอร์ที่ใช้ Gecko (Firefox) */
+        .fin-flip-btn{
+            box-sizing:border-box;
+            width:72px;
+            height:46px;
+            margin:0;
+            padding:0 4px;
+
+            background:#ffffff;
+            color:#111827;
+
+            border:1px solid #d1d5db;
+            border-radius:12px;
+
+            font-family:'Prompt',sans-serif;
+            font-size:18px;
+            font-weight:600;
+            text-align:center;
+
+            cursor:text;
+            transition:.15s;
+            
+        }
+
+        .fin-flip-btn:hover{
+            background:#f9fafb;
+        }
+
+        .fin-flip-btn:focus{
+            outline:none;
+            border-color:#3b82f6;
+            box-shadow:0 0 0 3px rgba(59,130,246,.35);
+        }
+
+        /* เอาลูกศรขึ้น-ลง (spinner) ของ input type="number" ออกในเบราว์เซอร์ตระกูล Chrome/Safari (WebKit) */
+        .fin-flip-btn::-webkit-outer-spin-button,
+        .fin-flip-btn::-webkit-inner-spin-button{
+            -webkit-appearance:none;
+            margin:0;
+        }
+
+        .fin-time-flip-colon{
+            font-size:20px;
+            font-weight:700;
+            color:#111827;
+            line-height:1;
+            margin-top:12px;
+        }
+
+        /* รายการตัวเลือก (แทน <option> ของ select เดิม) กางลงด้านล่างปุ่มเสมอ ไม่มีทางขึ้นบน */
+        .fin-flip-list{
+            position:absolute;
+            top:calc(100% + 4px);
+            left:50%;
+            transform:translateX(-50%);
+            width:56px;
+            max-height:150px;
+            overflow-y:auto;
+
+            background:#ffffff;
+            border:1px solid #d1d5db;
+            border-radius:10px;
+            box-shadow:0 12px 26px rgba(0,0,0,.12);
+            padding:4px;
+
+            display:none;
+            z-index:60;
+        }
+
+        .fin-flip-list.show{
+            display:block;
+        }
+
+        .fin-flip-option{
+            padding:7px 0;
+            text-align:center;
+            font-family:'Prompt',sans-serif;
+            font-size:13px;
+            color:#111827;
+            border-radius:6px;
+            cursor:pointer;
+        }
+
+        .fin-flip-option:hover,
+        .fin-flip-option.active{
+            background:#2563eb;
+            color:#fff;
+        }
+
+        .fin-toast{
+            position:fixed;
+            left:50%;
+            top:50%;
+            transform:translate(-50%,-50%) scale(.95);
+            background:#152A54;
+            color:#fff;
+            padding:16px 28px;
+            border-radius:16px;
+            font-weight:600;
+            box-shadow:0 16px 40px rgba(21,42,84,.32);
+            opacity:0;
+            z-index:99999;
+            pointer-events:none;
+            transition:opacity .25s ease, transform .25s ease;
+            text-align:center;
+        }
+        .fin-toast.show{
+            opacity:1;
+            transform:translate(-50%,-50%) scale(1);
+        }
+
+        .status-badge{
+            display:inline-block;
+            padding:3px 10px;
+            border-radius:999px;
+            font-size:11px;
+            font-weight:600;
+            white-space:nowrap;
+        }
+        .status-overdue{ background:#fee2e2; color:#b91c1c; }
+        .status-normal{ background:#dcfce7; color:#15803d; }
+
+        .fin-tab-panel{ display:none; }
+        .fin-tab-panel.active{ display:block; }
+
+        .fin-tab-btn.active{
+            background:#152A54;
+            color:#fff;
+        }
+
+        /* แถวลูกค้าที่เลือกได้ (คลิกทั้งแถวเพื่อเลือก/ยกเลิก) */
+        .customer-row{
+            cursor:pointer;
+            transition:.15s;
+        }
+        .customer-row.selected{
+            background:#eff6ff;
+        }
+
+        .pick-btn{
+            padding:5px 12px;
+            border-radius:999px;
+            font-size:12px;
+            font-weight:600;
+            border:1.5px solid #cbd5e1;
+            background:#fff;
+            color:#334155;
+            white-space:nowrap;
+            transition:.15s;
+        }
+        .pick-btn.picked{
+            background:#2563eb;
+            border-color:#2563eb;
+            color:#fff;
+        }
+
+        .chip{
+            display:inline-flex;
+            align-items:center;
+            gap:6px;
+            background:#eff6ff;
+            border:1px solid #bfdbfe;
+            color:#1e40af;
+            padding:5px 6px 5px 12px;
+            border-radius:999px;
+            font-size:13px;
+            font-weight:600;
+        }
+        .chip button{
+            background:#dbeafe;
+            border-radius:999px;
+            width:20px;
+            height:20px;
+            font-size:12px;
+            line-height:1;
+            color:#1e40af;
+        }
+
+        .check-status-btn{
+            padding:6px 12px;
+            border-radius:999px;
+            font-size:12px;
+            font-weight:700;
+            white-space:nowrap;
+            border:none;
+            cursor:pointer;
+        }
+        .check-status-pending{ background:#fef3c7; color:#92400e; }
+        .check-status-done{ background:#dcfce7; color:#15803d; }
+
+        /* โมดัลประวัติการชำระ */
+        .fin-modal-overlay{
+            position:fixed; inset:0; background:rgba(15,23,42,.55);
+            display:flex; align-items:center; justify-content:center;
+            padding:16px; z-index:9999;
+        }
+        .fin-modal-box{
+            background:#fff; border-radius:20px; max-width:640px; width:100%;
+            max-height:85vh; overflow-y:auto; padding:22px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 p-4 md:p-6">
+
+    <div class="max-w-6xl mx-auto bg-white shadow-lg rounded-2xl p-4 md:p-8">
+
+        <div class="grid grid-cols-3 items-center mb-6 border-b pb-3">
+            <div class="flex items-center gap-3 justify-self-start">
+                <button onclick="location.href='account_menu.html'"
+                    style="display:inline-flex;align-items:center;gap:6px;background:#EAF1FF;color:#1E4FC4;border:none;padding:10px 20px;border-radius:999px;font-family:'Kanit',sans-serif;font-weight:600;font-size:14px;white-space:nowrap;cursor:pointer;transition:.2s;"
+                    onmouseover="this.style.background='#DCE9FF'" onmouseout="this.style.background='#EAF1FF'">
+                    ← กลับเมนูบัญชี
+                </button>
+            </div>
+            <h1 class="text-xl md:text-2xl font-bold text-blue-600 justify-self-center text-center">บันทึกการเงิน</h1>
+            <div class="justify-self-end"></div>
+        </div>
+
+        <!-- แท็บสลับ: บันทึกการชำระเงิน / รายงานการเงิน / ประวัติการชำระ -->
+        <div class="flex gap-2 mb-6 flex-wrap">
+            <button type="button" id="tabBtnPay" class="fin-tab-btn active px-5 py-2.5 rounded-xl font-semibold text-sm bg-gray-100 text-gray-700 transition">
+                💳 บันทึกการชำระเงิน
+            </button>
+            <button type="button" id="tabBtnReport" class="fin-tab-btn px-5 py-2.5 rounded-xl font-semibold text-sm bg-gray-100 text-gray-700 transition">
+                📊 รายงานการเงิน
+            </button>
+            <button type="button" id="btnAllHistory"
+                class="px-5 py-2.5 rounded-xl font-semibold text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 transition">
+                🕒 ประวัติการชำระ
+            </button>
+        </div>
+
+        <!-- ============================================================
+             TAB 1: บันทึกการชำระเงิน
+             ลำดับใหม่: 1) เลือกลูกค้าก่อน 2) ค่อยแสดงส่วนบันทึกการชำระ
+        ============================================================= -->
+        <div id="panelPay" class="fin-tab-panel active">
+
+            <!-- ขั้นที่ 2: แสดงต่อเมื่อเลือกลูกค้าอย่างน้อย 1 ราย (ย้ายมาไว้บนสุด อยู่เหนือของตารางลูกค้า) -->
+            <div id="paymentStage" class="hidden pb-6 mb-6 border-b">
+
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">2️⃣ ลูกค้าที่เลือก</h3>
+
+                <div class="flex flex-wrap items-center gap-2 mb-6" id="selectedChips"></div>
+
+                <button type="button" onclick="clearSelection()"
+                    class="mb-6 -mt-4 text-xs text-red-500 hover:text-red-700 font-medium underline">
+                    ล้างการเลือกทั้งหมด
+                </button>
+
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">3️⃣ บันทึกการชำระเงิน</h3>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <button data-method="transfer" onclick="selectMethod('transfer')" id="btn-transfer"
+                        class="method-btn py-3 px-4 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 font-medium rounded-xl transition shadow-sm">
+                        1. โอน
+                    </button>
+                    <button data-method="cash" onclick="selectMethod('cash')" id="btn-cash"
+                        class="method-btn py-3 px-4 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 font-medium rounded-xl transition shadow-sm">
+                        2. จ่ายสด
+                    </button>
+                    <button data-method="check" onclick="selectMethod('check')" id="btn-check"
+                        class="method-btn py-3 px-4 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 font-medium rounded-xl transition shadow-sm">
+                        3. เช็ค
+                    </button>
+                    <button data-method="direct" onclick="selectMethod('direct')" id="btn-direct"
+                        class="method-btn py-3 px-4 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 font-medium rounded-xl transition shadow-sm">
+                        4. จ่ายตรง
+                    </button>
+                </div>
+
+                <div id="paymentFormSection" class="hidden bg-blue-50/50 border border-blue-200 rounded-2xl p-5 mb-2 transition-all duration-300"></div>
+            </div>
+
+            <!-- ขั้นที่ 1: รายการลูกค้าค้างชำระทั้งหมด -->
+            <div class="mb-6" id="customerTableSection">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-3 gap-3">
+                    <h3 class="text-lg font-semibold text-gray-800">
+                        1️⃣ เลือกลูกค้าที่จะบันทึกการชำระเงิน
+                        <span id="debtCount" class="text-sm font-normal text-gray-500 block md:inline"></span>
+                    </h3>
+                    <input type="text" id="debtSearch" placeholder="🔍 ค้นหาชื่อลูกค้า / ทะเบียนรถ..."
+                        class="border border-gray-300 rounded-xl px-4 py-2 text-sm w-full md:w-72 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div class="flex justify-end items-center gap-2 mb-4">
+                    <label for="debtEmployeeFilter" class="text-xs font-semibold text-gray-600">👤 พนักงาน:</label>
+                    <select id="debtEmployeeFilter"
+                        class="border border-gray-300 rounded-lg px-3 py-1.5 text-xs font-semibold text-blue-800 bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-400"></select>
+                </div>
+
+                <div class="overflow-x-auto rounded-xl border border-gray-200">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-gray-100 text-gray-700">
+                                <th class="p-3 text-center">เลือก</th>
+                                <th class="p-3">ชื่อผู้เอาประกัน</th>
+                                <th class="p-3">บริษัท</th>
+                                <th class="p-3">ทะเบียน</th>
+                                <th class="p-3">วันเริ่ม</th>
+                                <th class="p-3">ยอดเงิน</th>
+                                <th class="p-3">เบอร์โทร</th>
+                                <th class="p-3 text-center">สถานะ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="debtTableBody" class="divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ============================================================
+             TAB 2: รายงานการเงิน
+        ============================================================= -->
+        <div id="panelReport" class="fin-tab-panel">
+
+            <div class="bg-gray-50 border border-gray-200 rounded-2xl p-4 mb-5">
+                <div class="flex flex-wrap gap-2 mb-3">
+                    <button type="button" id="btnFilterToday"
+                        class="px-3 py-1.5 rounded-lg bg-blue-100 text-blue-800 text-xs font-semibold hover:bg-blue-200 transition">
+                        📅 วันนี้ 
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-blue-900 mb-1">วันที่</label>
+                        <select id="reportFilterDay" class="w-full border border-gray-300 rounded-lg px-2 py-2 text-sm"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-blue-900 mb-1">เดือน</label>
+                        <select id="reportFilterMonth" class="w-full border border-gray-300 rounded-lg px-2 py-2 text-sm"></select>
+                    </div>
+
+                    <!-- เพิ่มใหม่: ตัวกรอง "ปี" (พ.ศ.) กรองฝั่ง client เหมือนวัน/เดือน (ดู getFilteredReportRows) -->
+                    <div>
+                        <label class="block text-xs font-semibold text-blue-900 mb-1">ปี (พ.ศ.)</label>
+                        <select id="reportFilterYear" class="w-full border border-gray-300 rounded-lg px-2 py-2 text-sm"></select>
+                    </div>
+
+                    <!-- เพิ่มใหม่: ตัวกรอง "พนักงาน" (ผู้บันทึกการชำระ) เหมือนหน้าอื่นในระบบ -->
+                    <div>
+                        <label class="block text-xs font-semibold text-blue-900 mb-1">พนักงาน</label>
+                        <select id="reportFilterEmployee" class="w-full border border-gray-300 rounded-lg px-2 py-2 text-sm"></select>
+                    </div>
+                </div>
+
+                <div class="flex flex-col md:flex-row justify-between items-center gap-3">
+                    <div id="reportTotal" class="font-bold text-blue-900 text-sm md:text-base"></div>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto rounded-xl border border-gray-200">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                        <tr class="bg-blue-900 text-white">
+                            <th class="p-3 whitespace-nowrap text-center">สถานะ</th>
+                            <th class="p-3">ชื่อ</th>
+                            <th class="p-3">บริษัท</th>
+                            <th class="p-3">ทะเบียน</th>
+                            <th class="p-3 whitespace-nowrap">วันเริ่ม</th>
+                            <th class="p-3 text-center whitespace-nowrap">งวดที่ชำระ</th>
+                            <th class="p-3">วิธีการชำระ</th>
+                            <th class="p-3 whitespace-nowrap">ยอดเงินที่ชำระ</th>
+                            <th class="p-3">ผู้บันทึก</th>
+                            <th class="p-3 text-center">ประวัติ</th>
+                            <th class="p-3 text-center">ลบ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportTableBody" class="divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- โมดัลประวัติการชำระ -->
+    <div id="historyModalOverlay" class="fin-modal-overlay hidden" onclick="if(event.target===this) closeHistoryModal()">
+        <div class="fin-modal-box">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-blue-900" id="historyModalTitle">ประวัติการชำระ</h3>
+                <button onclick="closeHistoryModal()" class="text-gray-400 hover:text-gray-700 text-xl leading-none">✕</button>
+            </div>
+            <div id="allHistoryFilters" class="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4 hidden">
+                <select id="allHistoryFilterDay" class="border border-gray-300 rounded-lg px-2 py-2 text-sm"></select>
+                <select id="allHistoryFilterMonth" class="border border-gray-300 rounded-lg px-2 py-2 text-sm"></select>
+                <select id="allHistoryFilterEmployee" class="border border-gray-300 rounded-lg px-2 py-2 text-sm"></select>
+            </div>
+            <div id="historyModalBody" class="space-y-3"></div>
+        </div>
+    </div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+import {
+    getFirestore,
+    collection,
+    onSnapshot,
+    addDoc,
+    updateDoc,
+    setDoc,
+    deleteDoc,
+    doc,
+    serverTimestamp,
+    query,
+    where,
+    getDocs
+} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+/* ตั้งค่าเดียวกับทุกหน้าในระบบ เพื่ออ่าน/เขียน collection เดียวกัน */
+const firebaseConfig = {
+  apiKey: "AIzaSyCNpaYlwrkJhBA-8tAax022PWWFYMRz7Kw",
+  authDomain: "insurance-system-f26b0.firebaseapp.com",
+  projectId: "insurance-system-f26b0",
+  storageBucket: "insurance-system-f26b0.firebasestorage.app",
+  messagingSenderId: "438698153100",
+  appId: "1:438698153100:web:a553b97b59701883f057a9",
+  measurementId: "G-XXWCQEMT0B"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* =========================================================
+   CONST / HELPERS
+========================================================= */
+const THAI_MONTHS = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน",
+    "กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+
+const METHOD_LABELS = { transfer:"โอน", cash:"จ่ายสด", check:"เช็ค", direct:"จ่ายตรง" };
+
+/* เพิ่มใหม่: จำกัดสิทธิ์ปุ่ม "✅ เช็คแล้ว / ⏳ รอตรวจสอบ" ในแท็บ "รายงานการเงิน"
+   ให้เฉพาะอีเมลผู้จัดการที่ระบุไว้เท่านั้นกดยืนยัน/ยกเลิกการเช็คได้ พนักงานคนอื่นจะเห็นสถานะ
+   เฉยๆ (กดไม่ได้) อีเมลอ่านจาก getEmployeeEmail() ของ auth.js (ผูกกับบัญชี Firebase Auth ที่ล็อกอินอยู่จริง) */
+const MANAGER_EMAILS = ["viriyah127551@gmail.com", "viriyah127552@gmail.com"];
+
+function isManagerUser(){
+    const email = (typeof getEmployeeEmail === "function") ? getEmployeeEmail() : "";
+    return MANAGER_EMAILS.includes(String(email || "").trim().toLowerCase());
+}
+
+/* =========================================================
+   เพิ่มใหม่: ลด Firestore Reads
+   เดิมหน้านี้เปิด onSnapshot อ่านทั้ง collection "insuranceData" และ "paymentRecords"
+   แบบไม่กรองเลยทุกครั้งที่เปิดหน้า (โดยเฉพาะ paymentRecords ที่สะสมไปเรื่อยๆ ไม่มีวันหมด)
+   เปลี่ยนมาใช้ Firestore Query (where) กรองตามตัวกรองที่เลือกอยู่ แล้ว subscribe ใหม่ทุกครั้งที่
+   เปลี่ยนตัวกรอง (แพทเทิร์นเดียวกับที่ report.html ใช้อยู่แล้ว)
+
+   ผลข้างเคียงที่ต้องแก้ตาม:
+   - dropdown "พนักงาน"/"บริษัท" เดิมสร้างจากข้อมูลที่โหลดมาทั้งหมด พอกรองแล้วจะเห็นแค่บางส่วน
+     จึงเปลี่ยนมาใช้ cache สะสมชื่อพนักงาน (เหมือน report.html) + รายชื่อบริษัทที่รู้จักไว้ล่วงหน้า
+     รวมกับบริษัทที่เจอใน insuranceData (ซึ่งโหลดอยู่แล้วสำหรับตาราง "เลือกลูกค้า")
+   - โมดัล "ประวัติการชำระ" ของลูกค้ารายคน (openHistoryModal) ต้องเห็นประวัติเต็มทุกงวดเสมอ
+     ไม่ใช่แค่ที่ตรงกับตัวกรองปัจจุบัน จึงเปลี่ยนไป query แยกเฉพาะ customerId นั้นตอนเปิดโมดัลจริงๆ
+     (อ่านเพิ่มเฉพาะตอนเปิดดู ไม่ใช่ทุกครั้งที่หน้าโหลด)
+========================================================= */
+const FIN_EMPLOYEE_CACHE_KEY = "finance_known_employees_v1";
+const FIN_KNOWN_COMPANIES = ["วิริยะ","เมืองไทย","AIG","AXA","KWI","กรุงเทพ"];
+
+function loadFinKnownEmployees(){
+    try{
+        const raw = localStorage.getItem(FIN_EMPLOYEE_CACHE_KEY);
+        return raw ? JSON.parse(raw) : [];
+    }catch(e){
+        return [];
+    }
+}
+
+function addFinKnownEmployees(names){
+    const set = new Set(loadFinKnownEmployees());
+    let changed = false;
+    (names || []).forEach(n=>{
+        if(n && !set.has(n)){
+            set.add(n);
+            changed = true;
+        }
+    });
+    const list = [...set];
+    if(changed){
+        try{ localStorage.setItem(FIN_EMPLOYEE_CACHE_KEY, JSON.stringify(list)); }catch(e){}
+    }
+    return list;
+}
+
+const finLoggedInEmployee = (typeof getEmployeeName === "function") ? getEmployeeName() : "";
+if(finLoggedInEmployee) addFinKnownEmployees([finLoggedInEmployee]);
+
+/* สร้าง Firestore Query ของ paymentRecords ตามตัวกรองปัจจุบันในแท็บ "รายงานการเงิน"
+   (เหลือแค่ "พนักงาน" ที่กรองระดับ query — วัน/เดือน กรองฝั่ง client ใน getFilteredReportRows) */
+function finBuildPaymentQuery(){
+
+    // แก้ไข: เอาตัวกรอง "ปี/บริษัท/วิธีชำระ" ออกตามที่ขอ เหลือ วัน/เดือน/พนักงาน เท่านั้น
+    // วัน/เดือนกรองที่ฝั่ง client อยู่แล้วใน getFilteredReportRows (ไม่ต้องพึ่งปีเลย จึงไม่ต้อง
+    // สร้างช่วงวันที่ที่นี่อีกต่อไป) ส่วนพนักงานยังกรองที่ระดับ Firestore query เพื่อลด reads
+    const employee = document.getElementById("reportFilterEmployee")?.value || "all";
+
+    const base = collection(db, "paymentRecords");
+    const constraints = [];
+
+    if(employee !== "all") constraints.push(where("recordedBy", "==", employee));
+
+    return constraints.length ? query(base, ...constraints) : base;
+}
+
+let unsubscribePaymentRecords = null;
+
+function subscribeToPaymentRecords(){
+
+    if(unsubscribePaymentRecords){
+        unsubscribePaymentRecords();
+        unsubscribePaymentRecords = null;
+    }
+
+    const q = finBuildPaymentQuery();
+
+    unsubscribePaymentRecords = onSnapshot(q, (snapshot) => {
+        paymentRecords = snapshot.docs.map(d => ({ id:d.id, ...d.data() })).filter(r => r.type !== "car");
+        addFinKnownEmployees(paymentRecords.map(r => r.recordedBy).filter(Boolean));
+        populateReportFilters();
+        renderReportTable();
+    });
+}
+
+let unsubscribeDebtData = null;
+
+/* กรองที่ระดับ Firestore query เมื่อเปิดปุ่ม "👤 เฉพาะลูกค้าของฉัน" แทนที่จะโหลดลูกค้าทุกคน
+   มาแล้วค่อยกรองทิ้งด้วย JS ฝั่ง client เหมือนเดิม ลด Reads ได้มากเมื่อเปิดใช้ตัวกรองนี้
+   หมายเหตุ: กรองจากฟิลด์ "employeeName" เท่านั้น (ข้อมูลเก่าก่อนมีฟิลด์นี้ที่มีแค่ requestName
+   จะไม่ถูกนับรวมตอนเปิดตัวกรองนี้ — พฤติกรรมเดียวกับตัวกรองพนักงานในหน้ารายงาน) */
+function subscribeToInsuranceData(){
+
+    if(unsubscribeDebtData){
+        unsubscribeDebtData();
+        unsubscribeDebtData = null;
+    }
+
+    const base = collection(db, "insuranceData");
+    const typeConstraint = where("type", "==", "product");
+    const q = (selectedDebtEmployee !== "all")
+        ? query(base, typeConstraint, where("employeeName", "==", selectedDebtEmployee))
+        : query(base, typeConstraint);
+
+    unsubscribeDebtData = onSnapshot(q, (snapshot) => {
+        insuranceData = snapshot.docs.map(d => ({ id:d.id, ...d.data() }));
+        addFinKnownEmployees(insuranceData.map(item => item.employeeName || item.requestName).filter(Boolean));
+        populateDebtEmployeeFilter();
+        rebuildDebtList();
+    });
+}
+
+/* เพิ่มใหม่: สร้างตัวเลือกพนักงานสำหรับตาราง 1️⃣ เลือกลูกค้า (แทนปุ่ม toggle เดิม)
+   ใช้ cache รายชื่อพนักงานเดียวกับตัวกรอง "พนักงาน" ของแท็บรายงานการเงิน */
+function populateDebtEmployeeFilter(){
+    const sel = document.getElementById("debtEmployeeFilter");
+    if(!sel) return;
+
+    const employees = loadFinKnownEmployees();
+
+    sel.innerHTML = `<option value="all">ทั้งหมด</option>` +
+        employees.map(e=>`<option value="${e}">${e}</option>`).join("");
+
+    sel.value = employees.includes(selectedDebtEmployee) ? selectedDebtEmployee : "all";
+}
+
+function fmt(n){ return Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2}); }
+function safe(v){ return (v===undefined||v===null||v==="") ? "-" : v; }
+
+function showToast(message){
+    const toast = document.createElement("div");
+    toast.className = "fin-toast";
+    toast.innerText = message;
+    document.body.appendChild(toast);
+    requestAnimationFrame(()=>toast.classList.add("show"));
+    setTimeout(()=>{
+        toast.classList.remove("show");
+        setTimeout(()=>toast.remove(), 300);
+    }, 2200);
+}
+
+function calcDebt(item){
+    const total = Number(item.total || 0);
+    let paid = 0;
+    for(let i=1;i<=4;i++) paid += Number(item["installment"+i] || 0);
+    Object.keys(item).forEach(k=>{
+        const m = k.match(/^installment(\d+)$/);
+        if(m && parseInt(m[1],10) > 4) paid += Number(item[k] || 0);
+    });
+    return total - paid;
+}
+
+function calculateOverdue(dateStr){
+    if(!dateStr) return 0;
+    let due;
+    const parts = String(dateStr).split("/");
+    if(parts.length === 3){
+        due = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+    } else {
+        due = new Date(dateStr);
+    }
+    if(isNaN(due.getTime())) return 0;
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    due.setHours(0,0,0,0);
+    const diff = today - due;
+    const days = Math.floor(diff / (1000*60*60*24));
+    return days > 0 ? days : 0;
+}
+
+/* แก้ไข: เดิมรองรับเฉพาะรูปแบบ ISO "YYYY-MM-DD" เท่านั้น (ใช้ split("-") ตรงๆ)
+   ถ้าข้อมูลเป็นรูปแบบ "DD/MM/YYYY" (ไม่มี "-") จะคืนค่าเดิมกลับไปโดยไม่แปลงเป็น พ.ศ. ให้
+   ทำให้วันที่บางจุด (เช่น "วันเริ่ม" ของลูกค้าที่ดึงมาจาก insuranceData) ยังโชว์เป็น ค.ศ. อยู่
+   เพิ่มการรองรับรูปแบบ DD/MM/YYYY ด้วย (เช็คปีถ้าน้อยกว่า 2400 ถือว่าเป็น ค.ศ. แล้วบวก 543 ให้
+   ถ้าเป็น พ.ศ. อยู่แล้วจะไม่บวกซ้ำ) */
+function toThaiDateDisplay(dateStr){
+
+    if(!dateStr) return "-";
+
+    const s = String(dateStr).trim();
+
+    let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if(m){
+        const yyyy = Number(m[1]) + 543;
+        const mm = m[2].padStart(2,"0");
+        const dd = m[3].padStart(2,"0");
+        return `${dd}/${mm}/${yyyy}`;
+    }
+
+    m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{3,4})$/);
+    if(m){
+        const dd = m[1].padStart(2,"0");
+        const mm = m[2].padStart(2,"0");
+        let yyyy = Number(m[3]);
+        if(yyyy < 2400) yyyy += 543;
+        return `${dd}/${mm}/${yyyy}`;
+    }
+
+    return s;
+}
+
+/* =========================================================
+   STATE
+========================================================= */
+let insuranceData = [];
+let debtList = [];
+let hiddenIds = new Set();     // ลูกค้าที่เพิ่งบันทึกชำระในเซสชันนี้ (ซ่อนออกจากตารางค้างชำระ)
+let selectedIds = new Set();   // ลูกค้าที่ถูกเลือกอยู่ (รอบันทึกการชำระ)
+let currentMethod = null;
+let paymentRecords = [];
+// แก้ไข: เปลี่ยนจากปุ่ม toggle "เฉพาะลูกค้าของฉัน" มาเป็นตัวเลือกพนักงานแบบ dropdown
+// ค่าเริ่มต้น = ชื่อพนักงานที่ล็อกอินอยู่ (แสดงเฉพาะลูกค้าของตัวเองก่อนเสมอ) เปลี่ยนเป็น "all" เพื่อดูทุกคนได้
+let selectedDebtEmployee = finLoggedInEmployee || "all";
+
+/* เพิ่มใหม่: ใช้ตั้งค่าเริ่มต้นของตัวกรอง "รายงานการเงิน" (เดือน/ปีปัจจุบัน + พนักงานที่ล็อกอินอยู่)
+   ให้ทำแค่ครั้งเดียวตอนเปิดหน้า ไม่ทับค่าที่พนักงานเลือกเองภายหลัง */
+let reportFiltersInitialized = false;
+
+/* เพิ่มใหม่: ข้อมูลลูกค้าที่ส่งมาจากปุ่ม "ชำระงวด" ของหน้า customer_debt.html
+   ถ้ามีค่านี้ ระบบจะเลือกลูกค้ารายนี้ให้อัตโนมัติทันทีที่ข้อมูลลูกหนี้โหลดเสร็จ
+   พนักงานไม่ต้องค้นหา/เลือกลูกค้าซ้ำอีก (ดู rebuildDebtList / renderSelectionStage ด้านล่าง) */
+let financeTarget = null;
+let financeTargetApplied = false;
+try {
+    const rawFinanceTarget = localStorage.getItem("financePayTarget");
+    if (rawFinanceTarget) financeTarget = JSON.parse(rawFinanceTarget);
+} catch (e) {
+    financeTarget = null;
+}
+
+/* เพิ่มใหม่: หา "งวดที่ยังไม่ได้ชำระ" ถัดไปของลูกค้ารายหนึ่งโดยอัตโนมัติ
+   (ตรรกะเดียวกับที่ customer_debt.html ใช้) พนักงานไม่ต้องเลือกงวดเอง */
+function computeNextInstallment(item){
+
+    const total = Number(item.total || 0);
+
+    let max = 4;
+    Object.keys(item).forEach(key => {
+        const m = key.match(/^installment(\d+)$/);
+        if (m) {
+            const n = parseInt(m[1], 10);
+            if (n > max) max = n;
+        }
+    });
+
+    let paid = 0;
+    for (let i = 1; i <= max; i++) {
+        paid += Number(item["installment" + i] || 0);
+    }
+
+    const debtAmount = total - paid;
+
+    let nextSlot = null;
+    for (let i = 1; i <= max; i++) {
+        const v = item["installment" + i];
+        const isEmpty = v === undefined || v === null || String(v).trim() === "" || Number(v) === 0;
+        if (isEmpty) {
+            nextSlot = i;
+            break;
+        }
+    }
+    if (nextSlot === null) {
+        nextSlot = max + 1;
+    }
+
+    const planCount = parseInt(item.installmentCount, 10) || 0;
+    const perInstallment = planCount > 0 ? (total / planCount) : debtAmount;
+    const dueAmount = Math.max(0, Math.min(debtAmount, perInstallment > 0 ? perInstallment : debtAmount));
+
+    return {
+        installmentNumber: nextSlot,
+        dueAmount: dueAmount,
+        debtAmount: debtAmount,
+        field: "installment" + nextSlot,
+        dateField: "installment" + nextSlot + "Date"
+    };
+}
+
+/* =========================================================
+   โหลดข้อมูลลูกค้าค้างชำระแบบ realtime
+========================================================= */
+subscribeToInsuranceData();
+
+function rebuildDebtList(){
+    debtList = insuranceData
+        .map(item => ({ ...item, debtAmount: calcDebt(item), overdue: calculateOverdue(item.end) }))
+        .filter(item => item.debtAmount > 0 && !hiddenIds.has(item.id))
+        .sort((a,b) => b.overdue - a.overdue);
+
+    [...selectedIds].forEach(id => {
+        if(!debtList.find(x => x.id === id)) selectedIds.delete(id);
+    });
+
+    // เพิ่มใหม่: ถ้ามาจากปุ่ม "ชำระงวด" ของหน้าลูกหนี้ ให้เลือกลูกค้ารายนั้นให้อัตโนมัติทันที
+    // ที่ข้อมูลลูกหนี้โหลดเสร็จ พนักงานไม่ต้องค้นหา/เลือกลูกค้าซ้ำอีก
+    // ทำแค่ครั้งเดียวต่อการเปิดหน้า (financeTargetApplied) เพื่อให้พนักงานยังยกเลิกการเลือกเองได้
+    // ภายหลังโดยไม่ถูกบังคับเลือกกลับให้ทุกครั้งที่ข้อมูล realtime อัปเดต
+    if (financeTarget && !financeTargetApplied) {
+        const targetItem = debtList.find(x => x.id === financeTarget.id);
+        if (targetItem) {
+            selectedIds.add(financeTarget.id);
+            financeTargetApplied = true;
+        }
+    }
+
+    renderDebtTable();
+    renderSelectionStage();
+}
+
+/* =========================================================
+   ขั้นที่ 1: ตารางลูกค้าค้างชำระ + ปุ่มเลือกลูกค้า
+========================================================= */
+function getFilteredDebtList(){
+    const term = (document.getElementById("debtSearch").value || "").trim().toLowerCase();
+
+    let list = debtList;
+
+    // แก้ไข: การกรองตามพนักงานเปลี่ยนไปทำที่ระดับ Firestore query แล้ว (ดู subscribeToInsuranceData)
+    // ที่นี่เหลือแค่กรองคำค้นหาต่อจากรายการที่ query มาแล้วเท่านั้น
+
+    if(!term) return list;
+    return list.filter(item =>
+        (item.customer || "").toLowerCase().includes(term) ||
+        (item.plate || "").toLowerCase().includes(term)
+    );
+}
+
+function renderDebtTable(){
+    const list = getFilteredDebtList();
+    const tbody = document.getElementById("debtTableBody");
+
+    document.getElementById("debtCount").innerText = `(ทั้งหมด ${list.length} รายการ)`;
+
+    tbody.innerHTML = list.map(item => {
+        const picked = selectedIds.has(item.id);
+        return `
+        <tr class="customer-row hover:bg-gray-50 ${picked ? "selected" : ""}" onclick="toggleSelectCustomer('${item.id}')">
+            <td class="p-3 text-center" onclick="event.stopPropagation(); toggleSelectCustomer('${item.id}')">
+                <button type="button" class="pick-btn ${picked ? "picked" : ""}">
+                    ${picked ? "✓ เลือกแล้ว" : "+ เลือก"}
+                </button>
+            </td>
+            <td class="p-3 font-medium text-gray-900">${safe(item.customer)}</td>
+            <td class="p-3 text-gray-600">${safe(item.company)}</td>
+            <td class="p-3 text-gray-600">${safe(item.plate)}</td>
+            <td class="p-3 text-gray-600 whitespace-nowrap">${toThaiDateDisplay(item.start)}</td>
+            <td class="p-3 text-blue-600 font-semibold whitespace-nowrap">${fmt(item.debtAmount)} ฿</td>
+            <td class="p-3 text-gray-600 whitespace-nowrap">${safe(item.phone)}</td>
+            <td class="p-3 text-center">
+                <span class="status-badge ${item.overdue > 0 ? "status-overdue" : "status-normal"}">
+                    ${item.overdue > 0 ? "เกินกำหนด " + item.overdue + " วัน" : "ปกติ"}
+                </span>
+            </td>
+        </tr>`;
+    }).join("") || `<tr><td colspan="8" class="p-6 text-center text-gray-400">ไม่มีลูกค้าค้างชำระ</td></tr>`;
+}
+
+/* แก้ไข (สำคัญ): เดิมเลือกลูกค้าได้พร้อมกันหลายคน (Set สะสมได้เรื่อยๆ) แล้วถ้ากรอกยอดเงิน
+   ช่องเดียวตอนบันทึกการชำระเงิน ระบบจะเอา "ยอดเดียวกัน" ไปบันทึกให้ทุกคนที่เลือกทั้งหมด
+   เสี่ยงบันทึกยอดเงินผิดเพราะลูกค้าแต่ละคนอาจจ่ายไม่เท่ากัน
+   แก้เป็นเลือกได้ทีละคนเท่านั้น: เลือกคนใหม่จะแทนที่คนเดิมที่เคยเลือกไว้เสมอ
+   (คลิกคนที่เลือกอยู่ซ้ำ = ยกเลิกการเลือก) */
+window.toggleSelectCustomer = function(id){
+    if(selectedIds.has(id)){
+        selectedIds.delete(id);
+    } else {
+        selectedIds.clear();
+        selectedIds.add(id);
+    }
+    renderDebtTable();
+    renderSelectionStage();
+};
+
+window.clearSelection = function(){
+    selectedIds.clear();
+    currentMethod = null;
+    renderDebtTable();
+    renderSelectionStage();
+};
+
+document.getElementById("debtSearch").addEventListener("input", renderDebtTable);
+
+/* แก้ไข: เปลี่ยนจากปุ่ม toggle "เฉพาะลูกค้าของฉัน" เป็นตัวเลือกพนักงานแบบ dropdown
+   เลือกพนักงานคนไหน ก็จะ re-subscribe ด้วย Firestore query ที่กรองเฉพาะลูกค้าของคนนั้น
+   ค่าเริ่มต้นตอนเปิดหน้าคือชื่อพนักงานที่ล็อกอินอยู่ (ดู selectedDebtEmployee ด้านบน) */
+document.getElementById("debtEmployeeFilter").addEventListener("change", (e) => {
+    selectedDebtEmployee = e.target.value;
+    subscribeToInsuranceData();
+});
+
+/* =========================================================
+   ขั้นที่ 2: แสดงลูกค้าที่เลือก + ปุ่มวิธีชำระ (โผล่มาก็ต่อเมื่อเลือกลูกค้าแล้ว)
+========================================================= */
+function renderSelectionStage(){
+
+    const stage = document.getElementById("paymentStage");
+
+    if(selectedIds.size === 0){
+        stage.classList.add("hidden");
+        document.getElementById("paymentFormSection").classList.add("hidden");
+        return;
+    }
+
+    stage.classList.remove("hidden");
+
+    const chipsWrap = document.getElementById("selectedChips");
+
+    // เพิ่มใหม่: ถ้ามาจากปุ่ม "ชำระงวด" ของหน้าลูกหนี้ แสดงข้อมูลลูกค้าครบถ้วนอัตโนมัติ
+    // (ชื่อผู้เอาประกัน / บริษัท / ทะเบียน / วันเริ่ม / ยอดเงิน / เบอร์โทร / สถานะ)
+    // พร้อมงวดที่ระบบเลือกให้ชำระโดยอัตโนมัติ
+    let financeInfoHtml = "";
+    if (financeTarget) {
+        const targetItem = debtList.find(x => x.id === financeTarget.id);
+        if (targetItem && selectedIds.has(financeTarget.id)) {
+            const inst = computeNextInstallment(targetItem);
+            financeInfoHtml = `
+                <div class="w-full mb-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-900 grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1">
+                    <div><b>ชื่อผู้เอาประกัน:</b> ${safe(targetItem.customer)}</div>
+                    <div><b>บริษัท:</b> ${safe(targetItem.company)}</div>
+                    <div><b>ทะเบียน:</b> ${safe(targetItem.plate)}</div>
+                    <div><b>วันเริ่ม:</b> ${toThaiDateDisplay(targetItem.start)}</div>
+                    <div><b>เบอร์โทร:</b> ${safe(targetItem.phone)}</div>
+                    <div><b>สถานะ:</b> ${targetItem.overdue > 0 ? "เกินกำหนด " + targetItem.overdue + " วัน" : "ปกติ"}</div>
+                    <div><b>งวดที่ชำระ:</b> งวดที่ ${inst.installmentNumber}</div>
+                    <div><b>ยอดที่ต้องชำระงวดนี้:</b> ${fmt(inst.dueAmount)} ฿</div>
+                </div>
+            `;
+        }
+    }
+
+    chipsWrap.innerHTML = financeInfoHtml + [...selectedIds].map(id => {
+        const item = debtList.find(x => x.id === id);
+        const name = item ? item.customer : "-";
+        return `
+            <span class="chip">
+                👤 ${safe(name)}
+                <button type="button" onclick="toggleSelectCustomer('${id}')" title="เอาออก">✕</button>
+            </span>
+        `;
+    }).join("");
+
+    // ทุกครั้งที่เลือก/ยกเลิกเลือกลูกค้า ให้เลื่อนทั้งหน้าจอขึ้นไปบนสุดเลย
+    window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/* =========================================================
+   ปุ่มวิธีชำระ + ฟอร์ม
+========================================================= */
+window.selectMethod = function(method){
+
+    if(currentMethod === method){
+        currentMethod = null;
+        resetMethodButtons();
+        document.getElementById("paymentFormSection").classList.add("hidden");
+        return;
+    }
+
+    currentMethod = method;
+    resetMethodButtons();
+    document.getElementById("btn-" + method).classList.add("active");
+    renderPaymentForm(method);
+};
+
+function resetMethodButtons(){
+    ["transfer","cash","check","direct"].forEach(m => {
+        document.getElementById("btn-" + m).classList.remove("active");
+    });
+}
+
+/* เลือกบัญชี "อื่นๆ" ของการโอนเงิน -> โชว์ช่องกรอกชื่อบัญชีเพิ่ม
+   เพิ่มใหม่: การ์ดบัญชีที่ "ไม่ถูกเลือก" จะจางลง (ลดความสว่าง/สี) เพื่อเน้นการ์ดที่เลือกอยู่ให้เด่นชัด
+   ส่วนการ์ดที่ถูกเลือกยังคงหน้าตาเดิมทุกประการ */
+window.onFinTransferAccountChange = function(){
+    const selected = document.querySelector('input[name="fin_tf_account"]:checked');
+    const otherInput = document.getElementById("fin_tf_account_other");
+
+    if(otherInput){
+        if(selected && selected.value === "อื่นๆ"){
+            otherInput.classList.remove("hidden");
+        } else {
+            otherInput.classList.add("hidden");
+        }
+    }
+
+    document.querySelectorAll('input[name="fin_tf_account"]').forEach(radio => {
+        const cardInner = radio.parentElement.querySelector(".tf-account-card-inner");
+        if(!cardInner) return;
+
+        if(selected && radio !== selected){
+            cardInner.classList.add("opacity-40", "grayscale");
+        } else {
+            cardInner.classList.remove("opacity-40", "grayscale");
+        }
+    });
+};
+
+/* แก้ไข: ย่อขนาดตัวเลือกเวลาให้เล็กลง และเปลี่ยนจาก <select> จริง (ที่เบราว์เซอร์อาจกางรายการ
+   ขึ้นด้านบนเองถ้าพื้นที่ด้านล่างไม่พอ) มาเป็นปุ่ม + รายการที่คุมตำแหน่งเอง เพื่อบังคับให้รายการ
+   ตัวเลขกางลง "ด้านล่างปุ่ม" เสมอ ยังคงกดเลือกได้อย่างเดียว พิมพ์เองไม่ได้เหมือนเดิม
+   getFinCurrentHour/Minute ใช้ตั้งค่าเริ่มต้นตอนสร้างฟอร์ม (เวลาปัจจุบัน)
+   buildFinTimeListItems ใช้สร้างรายการตัวเลขให้กดเลือกทีหลัง (เรียกจาก initFinTimeDropdowns) */
+function getFinCurrentHour(){
+    return String(new Date().getHours()).padStart(2, "0");
+}
+
+function getFinCurrentMinute(){
+    return String(new Date().getMinutes()).padStart(2, "0");
+}
+
+function buildFinTimeListItems(type, currentValue){
+
+    const max = type === "hour" ? 24 : 60;
+    let html = "";
+
+    for(let i = 0; i < max; i++){
+        const value = String(i).padStart(2, "0");
+        const activeClass = value === currentValue ? " active" : "";
+        html += `<div class="fin-flip-option${activeClass}" onclick="finSelectTime('${type}','${value}')">${value}</div>`;
+    }
+
+    return html;
+}
+
+/* เรียกหลังสร้างฟอร์ม (section.innerHTML) เสร็จทุกครั้ง เพื่อเติมรายการตัวเลขลงใน
+   กล่อง .fin-flip-list ที่ยังว่างอยู่ (แยกจาก HTML หลักเพื่อไม่ให้ template ยาวเกินไป) */
+function initFinTimeDropdowns(){
+
+    const hourBtn = document.getElementById("fin_hour_btn");
+    const minuteBtn = document.getElementById("fin_minute_btn");
+    const hourList = document.getElementById("fin_hour_list");
+    const minuteList = document.getElementById("fin_minute_list");
+
+    if(hourList) hourList.innerHTML = buildFinTimeListItems("hour", hourBtn?.dataset.value);
+    if(minuteList) minuteList.innerHTML = buildFinTimeListItems("minute", minuteBtn?.dataset.value);
+}
+
+/* กดที่ปุ่มชั่วโมง/นาที -> เปิด/ปิดรายการตัวเลขของกล่องนั้น (ปิดอีกกล่องที่อาจเปิดค้างไว้ก่อนเสมอ) */
+window.finToggleTimeList = function(type){
+
+    const listId = type === "hour" ? "fin_hour_list" : "fin_minute_list";
+    const otherId = type === "hour" ? "fin_minute_list" : "fin_hour_list";
+
+    const list = document.getElementById(listId);
+    const other = document.getElementById(otherId);
+
+    if(other) other.classList.remove("show");
+    if(list) list.classList.toggle("show");
+};
+
+/* กดเลือกตัวเลขในรายการ -> บันทึกค่าไว้ที่ data-value ของปุ่ม + อัปเดตตัวเลขที่แสดง แล้วปิดรายการ */
+window.finSelectTime = function(type, value){
+
+    const btnId = type === "hour" ? "fin_hour_btn" : "fin_minute_btn";
+    const listId = type === "hour" ? "fin_hour_list" : "fin_minute_list";
+
+    const btn = document.getElementById(btnId);
+    if(btn){
+        btn.dataset.value = value;
+        btn.textContent = value;
+    }
+
+    const list = document.getElementById(listId);
+    if(list) list.classList.remove("show");
+};
+
+/* กดที่อื่นนอกกล่องเวลา -> ปิดรายการที่เปิดค้างไว้ทั้งหมด */
+document.addEventListener("click", function(e){
+    if(e.target.closest(".fin-flip-card")) return;
+    document.querySelectorAll(".fin-flip-list.show").forEach(l => l.classList.remove("show"));
+});
+
+function renderPaymentForm(method){
+
+    const section = document.getElementById("paymentFormSection");
+    section.classList.remove("hidden");
+
+    let extraFieldsHtml = "";
+
+    /* "โอน" แสดงเป็นการ์ดในหน้าเดียวกันแทนโมดัลแยก: เลือกบัญชีก่อน แล้วค่อยกรอกยอดเงิน/วันที่/เวลา
+       แก้ไข: เปลี่ยนตัวเลือก "เลือกบัญชี" จากรายการ radio ธรรมดา มาเป็นปุ่มการ์ด 3 ช่อง
+       (PLOY BROKERS / นายณุพล วิทยาขาว / อื่นๆ) ใส่ตราธนาคารกรุงเทพ (BBL) ให้ 2 บัญชีแรก
+       และให้แต่ละปุ่มมีสีพื้นหลังต่างกัน (ส้ม / น้ำเงิน / เหลือง) ตามที่ต้องการ
+       ยังใช้ input radio ตัวเดิม (name="fin_tf_account") ซ่อนไว้เบื้องหลังการ์ดแต่ละใบ
+       เพื่อไม่ต้องแก้ตรรกะที่อื่น (onFinTransferAccountChange / savePayment ยังอ่านค่าจาก
+       input[name="fin_tf_account"]:checked เหมือนเดิมทุกประการ) */
+    if(method === "transfer"){
+        extraFieldsHtml = `
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-3">เลือกบัญชี:</label>
+                <div class="grid grid-cols-3 gap-3">
+
+                    <label class="cursor-pointer block">
+                        <input type="radio" name="fin_tf_account" value="PLOY BROKERS" class="peer hidden" onchange="onFinTransferAccountChange()">
+                        <div class="tf-account-card-inner flex flex-col items-center gap-2 rounded-2xl px-2 py-4 text-white font-bold shadow-md select-none
+                                    bg-gradient-to-br from-orange-400 to-orange-600
+                                    ring-2 ring-transparent peer-checked:ring-white peer-checked:ring-offset-2 peer-checked:ring-offset-orange-500
+                                    peer-checked:scale-105 transition-all">
+                            <span class="w-20 h-20 flex items-center justify-center">
+                                <img src="logos/Logo-BBL.png" alt="BBL" class="w-full h-full object-contain" onerror="this.parentElement.innerHTML='<span class=&quot;text-[10px] font-extrabold tracking-tight&quot; style=&quot;color:#1e4a9c;&quot;>BBL</span>'">
+                            </span>
+                            <span class="text-[10px] sm:text-xs text-center leading-tight">PLOY BROKERS</span>
+                        </div>
+                    </label>
+
+                    <label class="cursor-pointer block">
+                        <input type="radio" name="fin_tf_account" value="นายณุพล วิทยาขาว" class="peer hidden" onchange="onFinTransferAccountChange()">
+                        <div class="tf-account-card-inner flex flex-col items-center gap-2 rounded-2xl px-2 py-4 text-white font-bold shadow-md select-none
+                                    bg-gradient-to-br from-blue-500 to-blue-700
+                                    ring-2 ring-transparent peer-checked:ring-white peer-checked:ring-offset-2 peer-checked:ring-offset-blue-600
+                                    peer-checked:scale-105 transition-all">
+                            <span class="w-20 h-20 flex items-center justify-center">
+                                <img src="logos/Logo-BBL.png" alt="BBL" class="w-full h-full object-contain" onerror="this.parentElement.innerHTML='<span class=&quot;text-[10px] font-extrabold tracking-tight&quot; style=&quot;color:#1e4a9c;&quot;>BBL</span>'">
+                            </span>
+                            <span class="text-[10px] sm:text-xs text-center leading-tight">นายณุพล วิทยาขาว</span>
+                        </div>
+                    </label>
+
+                    <label class="cursor-pointer block">
+                        <input type="radio" name="fin_tf_account" value="อื่นๆ" class="peer hidden" onchange="onFinTransferAccountChange()">
+                        <div class="tf-account-card-inner flex flex-col items-center gap-2 rounded-2xl px-2 py-4 text-gray-900 font-bold shadow-md select-none
+                                    bg-gradient-to-br from-amber-300 to-amber-400
+                                    ring-2 ring-transparent peer-checked:ring-white peer-checked:ring-offset-2 peer-checked:ring-offset-amber-400
+                                    peer-checked:scale-105 transition-all">
+                            <span class="w-20 h-20 rounded-full bg-white flex items-center justify-center text-3xl">✏️</span>
+                            <span class="text-[10px] sm:text-xs text-center leading-tight">อื่นๆ</span>
+                        </div>
+                    </label>
+
+                </div>
+                <input type="text" id="fin_tf_account_other" placeholder="ระบุชื่อบัญชี"
+                    class="hidden mt-3 w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+        `;
+    }
+
+    if(method === "check"){
+        extraFieldsHtml = `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">ธนาคาร</label>
+                    <input type="text" id="fin_bank" class="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">เลขที่เช็ค</label>
+                    <input type="text" id="fin_checkNo" class="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+        `;
+    }
+
+    if(method === "direct"){
+        extraFieldsHtml = `
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อผู้รับเงิน</label>
+                <input type="text" id="fin_payee" class="w-full md:w-1/2 bg-white border border-gray-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+        `;
+    }
+
+    const titleText = method === "transfer" ? "รายละเอียดการโอนเงิน" : `บันทึกการชำระเงิน (${METHOD_LABELS[method]})`;
+    const amountLabel = method === "transfer" ? "ยอดเงินที่โอน" : "ยอดเงิน";
+    const dateLabel = method === "transfer" ? "วันที่โอน" : "วันที่";
+
+    section.innerHTML = `
+        <h3 class="font-semibold text-blue-800 mb-3">${titleText}</h3>
+
+        ${extraFieldsHtml}
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">${amountLabel}</label>
+                <input type="number" id="fin_amount" placeholder="0.00" min="0" step="0.01"
+                    class="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">${dateLabel}</label>
+                <input type="text" id="fin_date" placeholder="เลือกวันที่" readonly
+                    class="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">เวลา</label>
+                <!-- แก้ไข: ปรับให้เป็นกล่องเล็กกะทัดรัดแบบเดิม (เหมือนปุ่มเลือกเวลาตอนแรก) แต่ยังพิมพ์เลขเองได้ทั้งคู่
+                     ตั้งค่าเริ่มต้นเป็นเวลาปัจจุบันให้อัตโนมัติ -->
+                <div class="fin-time-flip">
+                    <div class="fin-flip-card">
+                        <input type="number" id="fin_hour_input" min="0" max="23"
+                            value="${getFinCurrentHour()}" class="fin-flip-btn">
+                        <span class="fin-flip-card-label">ชม.</span>
+                    </div>
+                    <span class="fin-time-flip-colon">:</span>
+                    <div class="fin-flip-card">
+                        <input type="number" id="fin_minute_input" min="0" max="59"
+                            value="${getFinCurrentMinute()}" class="fin-flip-btn">
+                        <span class="fin-flip-card-label">นาที</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ (ไม่บังคับ)</label>
+            <input type="text" id="fin_note"
+                class="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <div class="flex justify-end gap-3">
+            <button type="button" onclick="cancelPaymentForm()"
+                class="px-5 py-2.5 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium text-sm transition">
+                ยกเลิก
+            </button>
+            <button type="button" onclick="savePayment()"
+                class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition">
+                💾 บันทึก
+            </button>
+        </div>
+    `;
+
+    initFinDateTimePickers();
+
+    // เพิ่มใหม่: ถ้ามาจากปุ่ม "ชำระงวด" ของหน้าลูกหนี้ (เลือกลูกค้าเดียว) ให้เติมยอดเงินของงวดที่
+    // ระบบเลือกให้อัตโนมัติ และล็อกช่องนี้ไว้ไม่ให้แก้ไข เพื่อให้ตรงกับงวดที่กำลังบันทึกจริง
+    if (financeTarget && selectedIds.size === 1 && selectedIds.has(financeTarget.id)) {
+        const targetItem = debtList.find(x => x.id === financeTarget.id);
+        if (targetItem) {
+            const inst = computeNextInstallment(targetItem);
+            const amountInput = document.getElementById("fin_amount");
+            if (amountInput) {
+                // แก้ไข: เติมยอดที่ระบบคำนวณให้อัตโนมัติเป็นค่าเริ่มต้นเท่านั้น
+                // แต่ไม่ล็อกช่องนี้อีกต่อไป (เดิม readOnly = true ทำให้แก้ไขยอดเองไม่ได้)
+                // พนักงานยังคงแก้ไข/พิมพ์ยอดเงินเองได้ตามจริงเสมอ
+                amountInput.value = inst.dueAmount.toFixed(2);
+            }
+        }
+    }
+}
+
+/* เพิ่มใหม่: ผูก flatpickr เข้ากับช่อง "วันที่" ทุกครั้งที่สร้างฟอร์มขึ้นใหม่
+   (ต้องเรียกใหม่ทุกครั้ง เพราะ section.innerHTML แทนที่ element เดิมทั้งหมด)
+   allowInput:false + clickOpens:true = กดเพื่อเปิด popup เลือกได้อย่างเดียว พิมพ์เองไม่ได้เด็ดขาด
+   ส่วนช่อง "เวลา" เปลี่ยนไปใช้ปุ่ม + รายการที่คุมเอง (ดู finToggleTimeList() / finSelectTime()) */
+function initFinDateTimePickers(){
+
+    if(typeof flatpickr !== "function") return;
+
+    const thaiLocale = (flatpickr.l10ns && flatpickr.l10ns.th) ? "th" : undefined;
+
+    const dateInput = document.getElementById("fin_date");
+    if(dateInput){
+        flatpickr(dateInput, {
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "d/m/Y",
+            allowInput: false,
+            clickOpens: true,
+            locale: thaiLocale
+        });
+    }
+
+    // แก้ไข: ช่อง "เวลา" เปลี่ยนเป็นปุ่ม + รายการที่คุมเอง (ดู finToggleTimeList() / finSelectTime())
+    // ไม่ต้องผูก flatpickr อีกต่อไป เพราะ dropdown เลือกได้อย่างเดียวอยู่แล้วโดยธรรมชาติ
+}
+
+window.cancelPaymentForm = function(){
+    currentMethod = null;
+    resetMethodButtons();
+    document.getElementById("paymentFormSection").classList.add("hidden");
+};
+
+/* =========================================================
+   บันทึกข้อมูลจริงลง Firestore (ใช้ร่วมกันทั้งการ์ดชำระเงินแบบเดิม
+   สำหรับ จ่ายสด/เช็ค/จ่ายตรง และโมดัล "บันทึกการโอนเงิน")
+   หมายเหตุ: บันทึกเป็น "1 เอกสารต่อ 1 ลูกค้า" ใน collection paymentRecords
+   เพื่อให้ผู้จัดการกดปุ่ม "เช็คแล้ว/รอตรวจสอบ" และดูประวัติได้เป็นรายบุคคลชัดเจน
+   ถ้าเลือกหลายลูกค้าพร้อมกัน ยอดเงิน/วันที่/วิธีชำระที่กรอกจะถูกใช้ร่วมกันทุกคนที่เลือก
+
+   แก้ไข: เดิมซ่อนลูกค้าออกจากตารางค้างชำระทันทีไม่ว่าจะจ่ายครบหรือไม่ก็ตาม
+   ตอนนี้จะซ่อนก็ต่อเมื่อยอดชำระสะสมของลูกค้าคนนั้น (รวมรายการที่เพิ่งบันทึก)
+   ครบตามยอดค้างชำระ (ตามตารางลูกหนี้) แล้วเท่านั้น ถ้ายังจ่ายไม่ครบ ลูกค้าจะยังคง
+   แสดงอยู่ในรายการค้างชำระตามปกติ เพื่อให้บันทึกงวดถัดไปต่อได้
+========================================================= */
+async function persistPaymentRecords(fields){
+
+    if(selectedIds.size === 0){
+        alert("กรุณาเลือกลูกค้าอย่างน้อย 1 ราย");
+        return false;
+    }
+
+    const recordedBy = (typeof getEmployeeName === "function") ? getEmployeeName() : "";
+    const targets = [...selectedIds].map(id => debtList.find(x => x.id === id)).filter(Boolean);
+
+    try{
+
+        await Promise.all(targets.map(async (item) => {
+
+            // เพิ่มใหม่: ระบบเลือก "งวดที่ยังไม่ได้ชำระ" ให้อัตโนมัติ พนักงานไม่ต้องเลือกงวดเอง
+            const inst = computeNextInstallment(item);
+
+            await addDoc(collection(db, "paymentRecords"), {
+                customerId: item.id,
+                customer: item.customer || "",
+                company: item.company || "",
+                plate: item.plate || "",
+                start: item.start || "",
+                phone: item.phone || "",
+                installmentNumber: inst.installmentNumber,
+                type: "product",
+                ...fields,
+                recordedBy: recordedBy,
+                checked: false,
+                checkedBy: "",
+                checkedAt: null,
+                createdAt: serverTimestamp()
+            });
+
+            // เพิ่มใหม่: อัปเดตข้อมูลลูกหนี้จริงใน insuranceData (แหล่งข้อมูลกลางเดียวกับ
+            // customer_debt.html / report.html) ให้งวดที่เพิ่งชำระถูกบันทึกเป็น "ชำระแล้ว" ทันที
+            // เพื่อให้ครั้งถัดไปที่กด "ชำระงวด" ระบบดึงงวดถัดไปมาให้อัตโนมัติ และรายงานอัปเดตตรงกัน
+            await setDoc(
+                doc(db, "insuranceData", item.id),
+                {
+                    [inst.field]: Number(fields.amount) || 0,
+                    [inst.dateField]: fields.dateDisplay || fields.date || ""
+                },
+                { merge: true }
+            );
+
+        }));
+
+        // ซ่อนเฉพาะลูกค้าที่ยอดชำระสะสม (รวมรายการที่เพิ่งบันทึกนี้) ครบตามยอดค้างชำระแล้วเท่านั้น
+        targets.forEach(item => {
+            const paidBefore = paymentRecords
+                .filter(r => r.customerId === item.id)
+                .reduce((sum, r) => sum + Number(r.amount || 0), 0);
+            const paidTotal = paidBefore + Number(fields.amount || 0);
+            if(paidTotal >= Number(item.debtAmount || 0)){
+                hiddenIds.add(item.id);
+            }
+        });
+
+        selectedIds.clear();
+        currentMethod = null;
+
+        // เพิ่มใหม่: เคลียร์ข้อมูลลูกค้าที่ส่งมาจากหน้าลูกหนี้หลังบันทึกสำเร็จ ป้องกันไม่ให้ค้าง
+        // เลือกซ้ำถ้าเปิดหน้านี้อีกครั้งโดยไม่ได้มาจากปุ่ม "ชำระงวด"
+        if (financeTarget) {
+            localStorage.removeItem("financePayTarget");
+            financeTarget = null;
+        }
+
+        rebuildDebtList();
+
+        showToast("✅ บันทึกข้อมูลเรียบร้อย");
+
+        // กดบันทึกแล้วพาไปหน้ารายงานการเงินทันที เพื่อรอผู้จัดการตรวจสอบ
+        switchTab("report");
+
+        return true;
+
+    }catch(err){
+        console.error("บันทึกข้อมูลไม่สำเร็จ:", err);
+        alert("บันทึกข้อมูลไม่สำเร็จ: " + (err.message || "กรุณาลองใหม่อีกครั้ง"));
+        return false;
+    }
+}
+
+/* บันทึกการชำระเงิน: โอน / จ่ายสด / เช็ค / จ่ายตรง (จากการ์ดฝัง inline เดียวกันทั้งหมด) */
+window.savePayment = async function(){
+
+    if(!currentMethod){
+        alert("กรุณาเลือกวิธีชำระเงิน");
+        return;
+    }
+
+    const savedMethod = currentMethod;
+
+    let account = "";
+    if(savedMethod === "transfer"){
+        const selectedAccount = document.querySelector('input[name="fin_tf_account"]:checked');
+        if(!selectedAccount){
+            alert("กรุณาเลือกบัญชีรับเงิน");
+            return;
+        }
+        account = selectedAccount.value;
+        if(account === "อื่นๆ"){
+            const other = document.getElementById("fin_tf_account_other")?.value.trim();
+            if(!other){
+                alert("กรุณาระบุชื่อบัญชี");
+                return;
+            }
+            account = other;
+        }
+    }
+
+    const amount = Number(document.getElementById("fin_amount")?.value || 0);
+    if(!amount || amount <= 0){
+        alert(savedMethod === "transfer" ? "กรุณากรอกยอดเงินที่โอน" : "กรุณากรอกยอดเงิน");
+        return;
+    }
+
+    const dateVal = document.getElementById("fin_date")?.value;
+    if(!dateVal){
+        alert(savedMethod === "transfer" ? "กรุณาเลือกวันที่โอน" : "กรุณาเลือกวันที่");
+        return;
+    }
+
+    // แก้ไข: ทั้ง "ชั่วโมง" และ "นาที" พิมพ์เองทั้งคู่ ต้องตรวจสอบทั้งสองช่องว่าเป็นตัวเลขในช่วงที่ถูกต้อง
+    const hourRaw = document.getElementById("fin_hour_input")?.value;
+    const hourNum = Number(hourRaw);
+    if(hourRaw === "" || hourRaw === null || hourRaw === undefined || isNaN(hourNum) || hourNum < 0 || hourNum > 23){
+        alert("กรุณากรอกชั่วโมงให้ถูกต้อง (0-23)");
+        return;
+    }
+    const minuteRaw = document.getElementById("fin_minute_input")?.value;
+    const minuteNum = Number(minuteRaw);
+    if(minuteRaw === "" || minuteRaw === null || minuteRaw === undefined || isNaN(minuteNum) || minuteNum < 0 || minuteNum > 59){
+        alert("กรุณากรอกนาทีให้ถูกต้อง (0-59)");
+        return;
+    }
+    const timeVal = `${String(hourNum).padStart(2,"0")}:${String(minuteNum).padStart(2,"0")}`;
+
+    const bank = savedMethod === "check" ? (document.getElementById("fin_bank")?.value || "") : "";
+    const checkNo = savedMethod === "check" ? (document.getElementById("fin_checkNo")?.value || "") : "";
+    const payee = savedMethod === "direct" ? (document.getElementById("fin_payee")?.value || "") : "";
+    const note = document.getElementById("fin_note")?.value || "";
+
+    const ok = await persistPaymentRecords({
+        method: savedMethod,
+        methodLabel: METHOD_LABELS[savedMethod],
+        account, bank, checkNo, payee,
+        amount: amount,
+        date: dateVal,
+        dateDisplay: toThaiDateDisplay(dateVal),
+        time: timeVal,
+        note: note
+    });
+
+    if(ok){
+        document.getElementById("paymentFormSection").classList.add("hidden");
+        resetMethodButtons();
+    }
+};
+
+/* =========================================================
+   รายงานการเงิน (อ่านจาก paymentRecords แบบ realtime)
+========================================================= */
+function populateReportFilters(){
+
+    const daySelect = document.getElementById("reportFilterDay");
+    const monthSelect = document.getElementById("reportFilterMonth");
+
+    // เพิ่มใหม่: ตัวเลือก "วันที่" (1-31) เหมือนตัวเลือกเดือน ใช้กรองวันที่ชำระแบบเจาะจงวันได้
+    if(!daySelect.dataset.ready){
+        let dayOptions = `<option value="all">ทั้งหมด</option>`;
+        for(let d = 1; d <= 31; d++){
+            const key = String(d).padStart(2, "0");
+            dayOptions += `<option value="${key}">${d}</option>`;
+        }
+        daySelect.innerHTML = dayOptions;
+        daySelect.dataset.ready = "true";
+    }
+
+    if(!monthSelect.dataset.ready){
+        monthSelect.innerHTML = `<option value="all">ทั้งหมด</option>` +
+            THAI_MONTHS.map((m,i)=>`<option value="${String(i+1).padStart(2,"0")}">${m}</option>`).join("");
+        monthSelect.dataset.ready = "true";
+    }
+
+    /* เพิ่มใหม่: ตัวเลือก "ปี" แสดงเป็น พ.ศ. แต่เก็บค่า (value) เป็น ค.ศ. 4 หลัก
+       เพราะ row.date เก็บเป็น ISO "YYYY-MM-DD" (ค.ศ.) อยู่แล้ว (ดู getFilteredReportRows/parts[0])
+       แสดงย้อนหลัง 5 ปี ถึงล่วงหน้า 1 ปีจากปีปัจจุบัน ครอบคลุมการค้นหาข้อมูลเก่า */
+    const yearSelect = document.getElementById("reportFilterYear");
+    if(!yearSelect.dataset.ready){
+        const currentGregorianYear = new Date().getFullYear();
+        let yearOptions = `<option value="all">ทั้งหมด</option>`;
+        for(let y = currentGregorianYear + 1; y >= currentGregorianYear - 5; y--){
+            yearOptions += `<option value="${y}">${y + 543}</option>`;
+        }
+        yearSelect.innerHTML = yearOptions;
+        yearSelect.dataset.ready = "true";
+    }
+
+    /* แก้ไข: เดิมสร้างรายการพนักงานจาก recordedBy ที่เจอใน paymentRecords ที่โหลดมาแล้วเท่านั้น
+       เปลี่ยนเป็นใช้ cache สะสมชื่อพนักงานที่เคยเจอไว้ใน localStorage + ชื่อพนักงานที่ล็อกอินอยู่
+       ตอนนี้เสมอ (ดู addFinKnownEmployees ด้านบน) เพื่อไม่ต้องโหลด paymentRecords ทั้งหมดมาก่อน
+       ถึงจะรู้จักชื่อพนักงานครบ */
+    const employeeSelect = document.getElementById("reportFilterEmployee");
+    const prevEmployee = employeeSelect.value || "all";
+    const employeeList = addFinKnownEmployees(paymentRecords.map(r => r.recordedBy).filter(Boolean));
+    employeeSelect.innerHTML = `<option value="all">ทั้งหมด</option>` +
+        employeeList.map(e=>`<option value="${e}">${e}</option>`).join("");
+    employeeSelect.value = employeeList.includes(prevEmployee) ? prevEmployee : "all";
+
+    /* เพิ่มใหม่: ค่าเริ่มต้นตอนเปิดหน้าครั้งแรกเท่านั้น (ไม่ทับค่าที่พนักงานเลือกเองภายหลัง)
+       ตั้งวัน/เดือนปัจจุบันให้อัตโนมัติ และตั้งพนักงานเป็นคนที่ล็อกอินอยู่
+       (เห็นเฉพาะรายการที่ตัวเองบันทึกก่อน) พนักงานเปลี่ยนกลับเป็น "ทั้งหมด" เองได้เสมอถ้าต้องการเห็นทุกคน */
+    if(!reportFiltersInitialized){
+        reportFiltersInitialized = true;
+        // ตั้งค่าเริ่มต้น "วันนี้ + พนักงานที่ล็อกอินอยู่" เฉยๆ ไม่ subscribe/render ที่นี่
+        // (โค้ดที่เรียก populateReportFilters() ครั้งแรกจะเป็นคน subscribeToPaymentRecords() เอง
+        // ต่อจากนี้ทันที โดยใช้ค่าตัวกรองที่เพิ่งตั้งไว้)
+        applyTodayFilter(false);
+    }
+}
+
+/* เพิ่มใหม่: ตั้งตัวกรองให้เหลือเฉพาะ "วันนี้ + พนักงานที่ล็อกอินอยู่" ในคลิกเดียว
+   ใช้ทั้งตอนเปิดหน้าครั้งแรก (auto) และตอนกดปุ่ม "📅 วันนี้" เอง (manual) */
+function applyTodayFilter(shouldRender = true){
+
+    const now = new Date();
+    const currentDay = String(now.getDate()).padStart(2, "0");
+    const currentMonth = String(now.getMonth() + 1).padStart(2, "0");
+    const currentYear = String(now.getFullYear());
+
+    const daySelect = document.getElementById("reportFilterDay");
+    const monthSelect = document.getElementById("reportFilterMonth");
+    const yearSelect = document.getElementById("reportFilterYear");
+    const employeeSelect = document.getElementById("reportFilterEmployee");
+
+    if([...daySelect.options].some(o => o.value === currentDay)) daySelect.value = currentDay;
+    if([...monthSelect.options].some(o => o.value === currentMonth)) monthSelect.value = currentMonth;
+    if(yearSelect && [...yearSelect.options].some(o => o.value === currentYear)) yearSelect.value = currentYear;
+
+    const loggedInName = (typeof getEmployeeName === "function") ? getEmployeeName() : "";
+    if(loggedInName && [...employeeSelect.options].some(o => o.value === loggedInName)){
+        employeeSelect.value = loggedInName;
+    }
+
+    // แก้ไข: เดิมแค่ renderReportTable() (กรองฝั่ง client จากข้อมูลที่โหลดมาแล้วทั้งหมด)
+    // ตอนนี้ตัวกรองพนักงานอาจเปลี่ยน ต้อง subscribe ใหม่ด้วย query ที่กรองฝั่ง Firestore ด้วย
+    if(shouldRender) subscribeToPaymentRecords();
+}
+
+/* ปุ่ม "🔄 ดูทั้งหมด" ถูกเอาออกแล้วตามคำขอ พนักงานสามารถเปลี่ยนตัวกรองแต่ละช่อง
+   (วัน/เดือน/พนักงาน) เป็น "ทั้งหมด" เองได้ตามปกติจาก dropdown ด้านบน */
+document.getElementById("btnFilterToday").addEventListener("click", () => applyTodayFilter(true));
+
+function getFilteredReportRows(){
+
+    const day = document.getElementById("reportFilterDay").value;
+    const month = document.getElementById("reportFilterMonth").value;
+    const year = document.getElementById("reportFilterYear")?.value || "all";
+    const employee = document.getElementById("reportFilterEmployee")?.value || "all";
+
+    return paymentRecords.filter(row => {
+
+        const parts = (row.date || "").split("-");
+        const rowYear = parts[0] || "";
+        const rowMonth = parts[1] || "";
+        const rowDay = parts[2] || "";
+
+        const dayOK = day === "all" || rowDay === day;
+        const monthOK = month === "all" || rowMonth === month;
+        const yearOK = year === "all" || rowYear === year;
+        const employeeOK = employee === "all" || row.recordedBy === employee;
+        // แสดงเฉพาะรายการที่ "ยังไม่เช็ค" เท่านั้นในแท็บรายงานการเงิน (เช็คแล้วจะหายจากตารางนี้ไปอยู่ใน "ประวัติการชำระ" แทน)
+        const statusOK = !row.checked;
+
+        return dayOK && monthOK && yearOK && employeeOK && statusOK;
+
+    }).sort((a,b) => ((b.date||"")+(b.time||"")).localeCompare((a.date||"")+(a.time||"")));
+}
+
+function accountDisplay(row){
+    if(row.method === "transfer") return row.account || "-";
+    if(row.method === "check") return `${row.bank || "-"} เลขที่ ${row.checkNo || "-"}`;
+    if(row.method === "direct") return row.payee || "-";
+    return "-";
+}
+
+function renderReportTable(){
+
+    const rows = getFilteredReportRows();
+    const tbody = document.getElementById("reportTableBody");
+
+    tbody.innerHTML = rows.map(row => `
+        <tr class="hover:bg-gray-50">
+            <td class="p-3 text-center">
+                ${
+                    isManagerUser()
+                    ? `<button type="button"
+                            class="check-status-btn ${row.checked ? "check-status-done" : "check-status-pending"}"
+                            onclick="toggleChecked('${row.id}', ${row.checked ? "true" : "false"})">
+                            ${row.checked ? "✅ เช็คแล้ว" : "⏳ รอตรวจสอบ"}
+                        </button>`
+                    : `<span class="check-status-btn ${row.checked ? "check-status-done" : "check-status-pending"}" style="cursor:default;">
+                            ${row.checked ? "✅ เช็คแล้ว" : "⏳ รอตรวจสอบ"}
+                        </span>`
+                }
+            </td>
+            <td class="p-3 font-medium text-gray-900">${safe(row.customer)}</td>
+            <td class="p-3">${safe(row.company)}</td>
+            <td class="p-3">${safe(row.plate)}</td>
+            <td class="p-3 whitespace-nowrap">${toThaiDateDisplay(row.start)}</td>
+            <td class="p-3 text-center font-semibold text-blue-700 whitespace-nowrap">${row.installmentNumber ? "งวดที่ " + row.installmentNumber : "-"}</td>
+            <td class="p-3">${row.methodLabel || METHOD_LABELS[row.method] || "-"}</td>
+            <td class="p-3 text-blue-700 font-semibold whitespace-nowrap">${fmt(row.amount)} ฿</td>
+            <td class="p-3">${safe(row.recordedBy)}</td>
+            <td class="p-3 text-center">
+                <button type="button" onclick="openHistoryModal('${row.customerId}', '${(row.customer||"").replace(/'/g,"\\'")}')"
+                    class="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold">
+                    🕒 ดูประวัติ
+                </button>
+            </td>
+            <td class="p-3 text-center">
+                <button type="button" onclick="deleteReportRow('${row.id}', '${row.customerId || ""}', ${row.installmentNumber ? row.installmentNumber : "null"})"
+                    class="px-3 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-700 text-xs font-semibold">
+                    🗑️ ลบ
+                </button>
+            </td>
+        </tr>
+    `).join("") || `<tr><td colspan="11" class="p-6 text-center text-gray-400">ไม่มีข้อมูล</td></tr>`;
+
+    const total = rows.reduce((s,r)=>s+Number(r.amount||0), 0);
+    document.getElementById("reportTotal").innerText = `💰 ยอดรวม: ${fmt(total)} บาท (${rows.length} รายการ)`;
+}
+
+/* แก้ไข: วัน/เดือน/ปี/พนักงาน ตามที่ขอ (เอาบริษัท/วิธีชำระ/ค้นหา ออก)
+   วัน/เดือน/ปี กรองฝั่ง client เท่านั้น (ไม่ต้อง query Firestore ใหม่ แค่ render ตารางใหม่พอ)
+   พนักงาน กรองที่ระดับ Firestore query ด้วย (ดู finBuildPaymentQuery) จึงต้อง subscribe ใหม่ */
+["reportFilterDay","reportFilterMonth","reportFilterYear"].forEach(id=>{
+    document.getElementById(id).addEventListener("change", renderReportTable);
+});
+document.getElementById("reportFilterEmployee").addEventListener("change", subscribeToPaymentRecords);
+
+/* ปุ่มสถานะ: สลับ "รอตรวจสอบ" <-> "เช็คแล้ว" — ให้ผู้จัดการกดยืนยันเมื่อตรวจสอบเสร็จ
+   แก้ไข: แท็บ "รายงานการเงิน" ตอนนี้แสดงเฉพาะรายการที่ "ยังไม่เช็ค" เท่านั้น (ดู getFilteredReportRows)
+   ดังนั้นเมื่อกดยืนยัน "เช็คแล้ว" รายการนี้จะหายไปจากตารางรายงานทันที แต่ยังคงดูได้ในปุ่ม "ประวัติการชำระ" เสมอ */
+window.toggleChecked = async function(id, currentlyChecked){
+
+    if(!isManagerUser()){
+        alert("เฉพาะผู้จัดการเท่านั้นที่สามารถกดเช็คสถานะนี้ได้");
+        return;
+    }
+
+    try{
+        const nowChecked = !currentlyChecked;
+        await updateDoc(doc(db, "paymentRecords", id), {
+            checked: nowChecked,
+            checkedBy: nowChecked ? ((typeof getEmployeeName === "function") ? getEmployeeName() : "") : "",
+            checkedAt: nowChecked ? serverTimestamp() : null
+        });
+        showToast(nowChecked ? "✅ ทำเครื่องหมายว่าเช็คแล้ว" : "↩️ เปลี่ยนกลับเป็นรอตรวจสอบ");
+    }catch(err){
+        console.error("อัปเดตสถานะไม่สำเร็จ:", err);
+        alert("อัปเดตสถานะไม่สำเร็จ: " + (err.message || ""));
+    }
+};
+
+/* =========================================================
+   โมดัลประวัติการชำระ: แสดงทุกรายการชำระของลูกค้ารายนั้น (เรียงล่าสุดก่อน)
+========================================================= */
+window.openHistoryModal = async function(customerId, customerName){
+
+    document.getElementById("historyModalTitle").innerText = `🕒 ประวัติการชำระของ ${customerName}`;
+    document.getElementById("allHistoryFilters")?.classList.add("hidden");
+    document.getElementById("historyModalBody").innerHTML = `<div class="text-center text-gray-400 py-8">⏳ กำลังโหลด...</div>`;
+    document.getElementById("historyModalOverlay").classList.remove("hidden");
+
+    /* เพิ่มใหม่: paymentRecords ที่โหลดไว้ในหน้าหลักตอนนี้ถูกกรองตามตัวกรองของแท็บ "รายงานการเงิน"
+       อยู่แล้ว (เพื่อลด Reads) ทำให้ประวัติของลูกค้าอาจแสดงไม่ครบถ้าอ่านจากตัวแปรนั้นตรงๆ
+       จึง query แยกเฉพาะ customerId นี้ตอนเปิดโมดัลจริงๆ เท่านั้น (อ่านเพิ่มเฉพาะตอนเปิดดู
+       ไม่ใช่ทุกครั้งที่หน้าโหลด) เพื่อให้เห็นประวัติเต็มทุกงวดเสมอ */
+    let history = [];
+    try{
+        const snap = await getDocs(query(collection(db, "paymentRecords"), where("customerId", "==", customerId)));
+        history = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+            .sort((a,b) => ((b.date||"")+(b.time||"")).localeCompare((a.date||"")+(a.time||"")));
+    }catch(err){
+        console.error("โหลดประวัติการชำระไม่สำเร็จ:", err);
+    }
+
+    document.getElementById("historyModalBody").innerHTML = history.map(r => `
+        <div class="border border-gray-200 rounded-xl p-3 flex justify-between items-center gap-3">
+            <div>
+                <div class="font-semibold text-gray-800">${r.dateDisplay || toThaiDateDisplay(r.date)} เวลา ${r.time || "-"} ${r.installmentNumber ? "· งวดที่ " + r.installmentNumber : ""}</div>
+                <div class="text-xs text-gray-500 mt-0.5">
+                    ${r.methodLabel || METHOD_LABELS[r.method] || "-"} · ${accountDisplay(r)} · บันทึกโดย ${safe(r.recordedBy)}
+                </div>
+                ${r.note ? `<div class="text-xs text-gray-400 mt-0.5">หมายเหตุ: ${r.note}</div>` : ""}
+            </div>
+            <div class="text-right">
+                <div class="font-bold text-blue-700">${fmt(r.amount)} ฿</div>
+                <span class="check-status-btn ${r.checked ? "check-status-done" : "check-status-pending"}" style="cursor:default;">
+                    ${r.checked ? "✅ เช็คแล้ว" : "⏳ รอตรวจสอบ"}
+                </span>
+            </div>
+        </div>
+    `).join("") || `<div class="text-center text-gray-400 py-8">ยังไม่มีประวัติการชำระ</div>`;
+};
+
+window.closeHistoryModal = function(){
+    document.getElementById("historyModalOverlay").classList.add("hidden");
+};
+
+/* =========================================================
+   โมดัลประวัติการชำระ (ทั้งหมด): เปิดจากปุ่ม "🕒 ประวัติการชำระ" ที่อยู่ข้างแท็บ
+   แสดงทุกรายการชำระของลูกค้าทุกคน เรียงล่าสุดก่อน
+========================================================= */
+/* แก้ไข: ปุ่ม "ประวัติการชำระ" ตอนนี้แสดง "ทั้งหมด" จริงๆ (ทั้งที่เช็คแล้วและยังไม่เช็ค)
+   ไม่ผูกกับตัวกรองของแท็บ "รายงานการเงิน" อีกต่อไป (เพราะแท็บนั้นตอนนี้แสดงเฉพาะรายการที่ยังไม่เช็ค)
+   จึง query ข้อมูลทั้ง collection "paymentRecords" แยกต่างหากเฉพาะตอนเปิดโมดัลนี้เท่านั้น
+   (ไม่กระทบ Reads ของหน้าหลัก เพราะโหลดเฉพาะตอนผู้ใช้กดดูจริงๆ)
+   ตัวกรองของโมดัลนี้เหลือแค่ วันที่ / เดือน / ปี / พนักงาน เท่านั้น (ตัดบริษัท/วิธีชำระ/สถานะออก) */
+
+let allHistoryFullData = [];
+
+function populateAllHistoryFilters(){
+
+    const daySel = document.getElementById("allHistoryFilterDay");
+    const monthSel = document.getElementById("allHistoryFilterMonth");
+    const empSel = document.getElementById("allHistoryFilterEmployee");
+
+    if(!daySel || !monthSel || !empSel) return;
+
+    if(!daySel.dataset.ready){
+        let dayOpts = `<option value="all">ทุกวัน</option>`;
+        for(let d = 1; d <= 31; d++){
+            const key = String(d).padStart(2,"0");
+            dayOpts += `<option value="${key}">${d}</option>`;
+        }
+        daySel.innerHTML = dayOpts;
+        daySel.dataset.ready = "true";
+    }
+
+    if(!monthSel.dataset.ready){
+        monthSel.innerHTML = `<option value="all">ทุกเดือน</option>` +
+            THAI_MONTHS.map((m,i)=>`<option value="${String(i+1).padStart(2,"0")}">${m}</option>`).join("");
+        monthSel.dataset.ready = "true";
+    }
+
+    const prevEmployee = empSel.value || "all";
+    const employeeList = loadFinKnownEmployees();
+    empSel.innerHTML = `<option value="all">ทุกพนักงาน</option>` +
+        employeeList.map(e=>`<option value="${e}">${e}</option>`).join("");
+    empSel.value = employeeList.includes(prevEmployee) ? prevEmployee : "all";
+}
+
+function getFilteredAllHistory(){
+
+    const day = document.getElementById("allHistoryFilterDay")?.value || "all";
+    const month = document.getElementById("allHistoryFilterMonth")?.value || "all";
+    const employee = document.getElementById("allHistoryFilterEmployee")?.value || "all";
+
+    return allHistoryFullData.filter(row=>{
+
+        const parts = (row.date || "").split("-");
+        const rowMonth = parts[1] || "";
+        const rowDay = parts[2] || "";
+
+        const dayOK = day === "all" || rowDay === day;
+        const monthOK = month === "all" || rowMonth === month;
+        const employeeOK = employee === "all" || row.recordedBy === employee;
+
+        return dayOK && monthOK && employeeOK;
+    });
+}
+
+function renderAllHistoryList(){
+
+    const history = [...getFilteredAllHistory()]
+        .sort((a,b) => ((b.date||"")+(b.time||"")).localeCompare((a.date||"")+(a.time||"")));
+
+    document.getElementById("historyModalBody").innerHTML = history.map(r => `
+        <div class="border border-gray-200 rounded-xl p-3 flex justify-between items-center gap-3">
+            <div>
+                <div class="font-semibold text-gray-800">${safe(r.customer)} · ${r.dateDisplay || toThaiDateDisplay(r.date)} เวลา ${r.time || "-"} ${r.installmentNumber ? "· งวดที่ " + r.installmentNumber : ""}</div>
+                <div class="text-xs text-gray-500 mt-0.5">
+                    ${r.methodLabel || METHOD_LABELS[r.method] || "-"} · ${accountDisplay(r)} · บันทึกโดย ${safe(r.recordedBy)}
+                </div>
+                ${r.note ? `<div class="text-xs text-gray-400 mt-0.5">หมายเหตุ: ${r.note}</div>` : ""}
+            </div>
+            <div class="text-right">
+                <div class="font-bold text-blue-700">${fmt(r.amount)} ฿</div>
+                <span class="check-status-btn ${r.checked ? "check-status-done" : "check-status-pending"}" style="cursor:default;">
+                    ${r.checked ? "✅ เช็คแล้ว" : "⏳ รอตรวจสอบ"}
+                </span>
+            </div>
+        </div>
+    `).join("") || `<div class="text-center text-gray-400 py-8">ยังไม่มีประวัติการชำระ</div>`;
+}
+
+async function loadAllHistoryData(){
+
+    document.getElementById("historyModalBody").innerHTML = `<div class="text-center text-gray-400 py-8">⏳ กำลังโหลด...</div>`;
+
+    try{
+        const snap = await getDocs(collection(db, "paymentRecords"));
+        allHistoryFullData = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(r => r.type !== "car");
+        addFinKnownEmployees(allHistoryFullData.map(r => r.recordedBy).filter(Boolean));
+        populateAllHistoryFilters();
+    }catch(err){
+        console.error("โหลดประวัติการชำระทั้งหมดไม่สำเร็จ:", err);
+        allHistoryFullData = [];
+    }
+
+    renderAllHistoryList();
+}
+
+window.openAllHistoryModal = async function(){
+
+    document.getElementById("historyModalTitle").innerText = "🕒 ประวัติการชำระ (ทั้งหมด)";
+    document.getElementById("allHistoryFilters")?.classList.remove("hidden");
+    document.getElementById("historyModalOverlay").classList.remove("hidden");
+
+    populateAllHistoryFilters();
+
+    ["allHistoryFilterDay","allHistoryFilterMonth","allHistoryFilterEmployee"].forEach(id=>{
+        const el = document.getElementById(id);
+        if(el && !el.dataset.boundChange){
+            el.addEventListener("change", renderAllHistoryList);
+            el.dataset.boundChange = "true";
+        }
+    });
+
+    await loadAllHistoryData();
+};
+
+document.getElementById("btnAllHistory").addEventListener("click", openAllHistoryModal);
+
+/* เพิ่มใหม่: ลบรายการในรายงานการเงิน (paymentRecords) 1 รายการ
+   พร้อมย้อนคืนค่าในงวดที่บันทึกไว้ใน insuranceData (installmentN / installmentNDate)
+   กลับเป็นค่าว่าง เพื่อให้ยอดค้างชำระที่ customer_debt.html / report.html เห็น
+   ตรงกันทันที และครั้งถัดไปที่กด "ชำระงวด" ระบบจะดึงงวดนั้นกลับมาให้ชำระใหม่ได้ถูกต้อง
+   (ถ้ารายการนี้ไม่มี customerId/installmentNumber เช่นข้อมูลเก่าก่อนอัปเดต จะลบแค่ประวัติ
+   การชำระอย่างเดียว ไม่ไปแตะ insuranceData) */
+window.deleteReportRow = async function(id, customerId, installmentNumber){
+
+    if(!confirm("ต้องการลบรายการนี้หรือไม่ ?")) return;
+
+    try{
+
+        await deleteDoc(doc(db, "paymentRecords", id));
+
+        if(customerId && installmentNumber){
+            await setDoc(
+                doc(db, "insuranceData", customerId),
+                {
+                    ["installment" + installmentNumber]: "",
+                    ["installment" + installmentNumber + "Date"]: ""
+                },
+                { merge: true }
+            );
+        }
+
+        // ลูกค้ารายนี้อาจเคยถูกซ่อนออกจากตารางลูกหนี้เพราะถือว่าจ่ายครบแล้ว
+        // เมื่อลบรายการชำระออก ต้องเอากลับมาแสดงในตารางลูกหนี้ให้ถูกต้องอีกครั้ง
+        if(customerId) hiddenIds.delete(customerId);
+
+        showToast("🗑️ ลบข้อมูลเรียบร้อย");
+
+    }catch(err){
+        console.error("ลบข้อมูลไม่สำเร็จ:", err);
+        alert("ลบข้อมูลไม่สำเร็จ: " + (err.message || "กรุณาลองใหม่อีกครั้ง"));
+    }
+};
+
+/* =========================================================
+   สลับแท็บ
+========================================================= */
+window.switchTab = function(tab){
+    const isPay = tab === "pay";
+    document.getElementById("tabBtnPay").classList.toggle("active", isPay);
+    document.getElementById("tabBtnReport").classList.toggle("active", !isPay);
+    document.getElementById("panelPay").classList.toggle("active", isPay);
+    document.getElementById("panelReport").classList.toggle("active", !isPay);
+};
+
+document.getElementById("tabBtnPay").addEventListener("click", ()=>switchTab("pay"));
+document.getElementById("tabBtnReport").addEventListener("click", ()=>switchTab("report"));
+
+/* =========================================================
+   เริ่มทำงาน: paymentRecords
+   [แก้ไข] เดิม onSnapshot(collection(db,"paymentRecords"),...) อ่านทั้ง collection ทันทีที่หน้าโหลด
+   เปลี่ยนเป็น 2 ขั้นตอนแบบเดียวกับ report.html:
+   1) เรียก populateReportFilters() ก่อน เพื่อตั้งค่าตัวกรองเริ่มต้น (วันนี้ + พนักงานที่ล็อกอินอยู่)
+      บนตัว <select> ให้เรียบร้อยก่อน (ไม่ query อะไรตอนนี้)
+   2) เรียก subscribeToPaymentRecords() เพื่อ query Firestore เฉพาะข้อมูลที่ตรงกับตัวกรองเริ่มต้นนั้น
+      (ดู finBuildPaymentQuery ด้านบน) แทนที่จะโหลดทั้ง collection มาก่อนเสมอ
+========================================================= */
+populateReportFilters();
+subscribeToPaymentRecords();
+
+</script>
+
+</body>
+</html>

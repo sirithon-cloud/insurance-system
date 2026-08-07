@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบประกันกับคุณพลอย</title>
+
+    <!-- เพิ่มใหม่: manifest + ไอคอน สำหรับตอนเพิ่มเว็บเข้าหน้าจอโฮมมือถือ (Add to Home Screen) -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="logo.png">
+    <link rel="apple-touch-icon" href="logo.png">
+    <meta name="theme-color" content="#2F6FED">
+
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- เพิ่มใหม่: ระบบ login แบบง่าย (ไม่มี username/password) -->
+    <script src="auth.js"></script>
+    <script>
+        // ตรวจสอบทันทีตั้งแต่ต้นหน้า: ถ้ายังไม่มีชื่อพนักงานผู้แจ้งงาน ให้เด้งไปหน้า login.html ก่อน
+        requireLogin();
+    </script>
+
+    <!-- เพิ่มใหม่: ปรับความสวยงามของแถบด้านบน (topbar) เฉพาะหน้านี้
+         บังคับให้อยู่บรรทัดเดียวเสมอ (เมนู + โลโก้ + ชื่อพนักงาน + ปุ่มออกจากระบบ)
+         ไม่ตัดขึ้นบรรทัดที่ 2 อีกต่อไป (ของเดิมที่ตัดบรรทัดทำให้ความสูง topbar ไม่คงที่
+         และคำนวณระยะเว้นด้วย JS ผิดพลาดเป็นบางจังหวะ ทำให้หัวข้อ "เลือกประเภทประกัน" โดนบังบางส่วน)
+         ใช้วิธีลดขนาด/ตัดข้อความ (ellipsis) แทนการขึ้นบรรทัดใหม่บนจอแคบ
+         สโคปด้วย body#homePage เพื่อไม่กระทบ .topbar ของหน้าอื่นในระบบ -->
+    <style>
+        #homePage .topbar{
+            flex-wrap:nowrap;
+            height:70px;
+            padding:0 16px;
+            gap:10px;
+        }
+
+        #homePage .topbar-left{
+            display:flex;
+            align-items:center;
+            gap:10px;
+            min-width:0;
+            flex:0 0 auto;
+        }
+
+        #homePage .topbar-right{
+            display:flex;
+            align-items:center;
+            gap:8px;
+            min-width:0;
+            flex:0 1 auto;
+            margin-left:auto;
+            justify-content:flex-end;
+        }
+
+        #homePage #employeeBadge{
+            display:inline-flex;
+            align-items:center;
+            gap:5px;
+            background:rgba(255,255,255,.55);
+            border:1px solid rgba(21,42,84,.10);
+            color:var(--navy);
+            font-size:12.5px;
+            font-weight:600;
+            padding:6px 12px;
+            border-radius:999px;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
+            min-width:0;
+            max-width:170px;
+        }
+
+        #homePage #logoutBtn{
+            white-space:nowrap;
+            flex:0 0 auto;
+        }
+
+        /* จอแคบ: ย่อโลโก้/ป้ายชื่อ/ปุ่ม ให้พอดีบรรทัดเดียว แทนการขึ้นบรรทัดใหม่ */
+        @media(max-width:480px){
+
+            #homePage .topbar{
+                padding:0 12px;
+                gap:6px;
+            }
+
+            #homePage .toplogo{
+                height:28px;
+            }
+
+            #homePage #employeeBadge{
+                max-width:88px;
+                font-size:11px;
+                padding:5px 9px;
+            }
+
+            #homePage #logoutBtn{
+                padding:6px 12px !important;
+                font-size:12px !important;
+            }
+        }
+
+        /* จอแคบมาก: ซ่อนป้ายชื่อพนักงาน เหลือแค่ปุ่มออกจากระบบ กันไม่ให้ล้น */
+        @media(max-width:340px){
+
+            #homePage #employeeBadge{
+                display:none;
+            }
+        }
+
+        /* เพิ่มใหม่: จัดกลุ่มเมนูด้านข้าง (Sidebar) แยกเป็นหมวดหมู่
+           "ประกันสินค้า" / "ประกันรถยนต์" / "ทั่วไป" เหมือนตัวอย่างที่อ้างอิงมา
+           (หัวข้อกลุ่มตัวเล็ก ตัวหนา สีเทา เว้นระยะเหนือกลุ่มถัดไป) */
+        #homePage .menu-group-label{
+            font-size:11px;
+            font-weight:700;
+            letter-spacing:.6px;
+            text-transform:uppercase;
+            color:var(--text-soft);
+            padding:18px 22px 8px;
+        }
+
+        #homePage .menu-group-label:first-of-type{
+            padding-top:6px;
+        }
+
+        #homePage .sidebar ul.menu-group{
+            padding:0 10px;
+        }
+
+        #homePage .sidebar ul.menu-group li{
+            margin:4px 0;
+        }
+    </style>
+
+</head>
+
+<body id="homePage">
+
+    <!-- TOPBAR -->
+    <div class="topbar" id="topbar">
+
+        <div class="topbar-left">
+            <button id="menuBtn">☰</button>
+            <img src="logo.png" class="toplogo" alt="logo">
+        </div>
+
+        <!-- เพิ่มใหม่: แสดงชื่อพนักงานที่ล็อกอินอยู่ + ปุ่ม Logout จัดเป็นกลุ่มเดียวกันชิดขวา -->
+        <div class="topbar-right">
+            <span id="employeeBadge"></span>
+            <button id="logoutBtn"
+                style="background:#EAF1FF; color:#1E4FC4; border:none; padding:8px 16px; border-radius:999px; font-family:'Kanit',sans-serif; font-weight:600; font-size:13px; cursor:pointer;"
+                onclick="logoutEmployee()">
+                ออกจากระบบ
+            </button>
+        </div>
+
+    </div>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+        <img src="logo.png" class="logo">
+
+        <ul class="menu menu-group">
+            <li><a href="index.html" class="menu-link">🏠 หน้าหลัก</a></li>
+        </ul>
+
+        <div class="menu-group-label">📦 ประกันสินค้า</div>
+        <ul class="menu menu-group">
+            <li><a href="report.html" class="menu-link">📊 รายงานประกันสินค้า</a></li>
+            <li><a href="customer_debt_product.html" class="menu-link">💰 ลูกหนี้ประกันสินค้า</a></li>
+            <li><a href="finance.html" class="menu-link">💵 บันทึกการเงิน (สินค้า)</a></li>
+        </ul>
+
+        <div class="menu-group-label">🚗 ประกันรถยนต์</div>
+        <ul class="menu menu-group">
+            <li><a href="report_v2.html" class="menu-link">📊 รายงานประกันรถยนต์</a></li>
+            <li><a href="customer_debt_car.html" class="menu-link">💰 ลูกหนี้ประกันรถยนต์</a></li>
+            <li><a href="finance_car.html" class="menu-link">💵 บันทึกการเงิน (รถยนต์)</a></li>
+        </ul>
+
+        <div class="menu-group-label">📈 ทั่วไป</div>
+        <ul class="menu menu-group">
+            <li><a href="revenue.html" class="menu-link">📊 ผลงานพนักงาน</a></li>
+            <li><a href="revenue.html" class="menu-link">📈 กราฟ</a></li>
+            <li><a href="online_users.html" class="menu-link">🟢 ผู้ใช้งานออนไลน์</a></li>
+        </ul>
+    </aside>
+
+    <!-- OVERLAY: เพิ่มใหม่ กดพื้นที่ว่างด้านขวาตอนแถบเมนูเปิดอยู่ เพื่อปิดแถบเมนูได้ทันที
+         โดยไม่ต้องเลือกเมนูใดๆ (เดิมหน้านี้ไม่มี overlay เลย ปิดแถบเมนูได้แค่กดปุ่ม ☰ ซ้ำเท่านั้น) -->
+    <div id="overlay"></div>
+
+    <!-- MAIN -->
+     
+    <main class="main">
+        <h2 class="title">เลือกประเภทประกัน</h2>
+
+        <div class="cards">
+
+            <!-- แก้ไข: เดิมพาไป form_car.html โดยตรง เปลี่ยนให้เข้า documents_v2.html ก่อน
+                 (หน้าย่อยเลือก "ฟอร์มงาน" / "บัญชี" แบบเดียวกับที่การ์ด "ประกันสินค้า" ใช้ documents.html) -->
+            <div class="card car" onclick="location.href='documents_v2.html'">
+                <div class="icon">🚗</div>
+                <h3>
+                    ประกันรถยนต์
+                </h3>
+            </div>
+
+            <div class="card product" onclick="location.href='documents.html'">
+                <div class="icon">📦</div>
+                <h3>
+                    ประกันสินค้า
+                </h3>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- IMPORTANT: JS ต้องอยู่ล่างสุด -->
+    <script type="module" src="script.js"></script>
+
+    <!-- เพิ่มใหม่: เติมชื่อพนักงานที่ล็อกอินอยู่ลงในป้ายด้านบน -->
+    <script>
+        (function () {
+            var badge = document.getElementById("employeeBadge");
+            var name = getEmployeeName();
+            if (badge && name) {
+                badge.innerText = "👤 " + name;
+            }
+        })();
+    </script>
+    <!-- เพิ่มใหม่: เปิด/ปิดแถบเมนูซ้าย + กดพื้นที่ว่าง (overlay) เพื่อปิดแถบเมนูได้ทันที
+         (หน้านี้มี #overlay ของตัวเองแล้ว จึงจัดการ event เองที่นี่ แทนการพึ่ง script.js
+         ซึ่งเดิมจะข้ามการผูก event ให้ถ้าเจอ #overlay อยู่แล้วในหน้า) -->
+    <script>
+        (function () {
+            var menuBtn = document.getElementById("menuBtn");
+            var sidebar = document.getElementById("sidebar");
+            var overlay = document.getElementById("overlay");
+
+            if (menuBtn && sidebar && overlay) {
+                menuBtn.addEventListener("click", function () {
+                    sidebar.classList.toggle("show");
+                    overlay.classList.toggle("show");
+                });
+
+                overlay.addEventListener("click", function () {
+                    sidebar.classList.remove("show");
+                    overlay.classList.remove("show");
+                });
+            }
+        })();
+    </script>
+
+</body>
+
+</html>

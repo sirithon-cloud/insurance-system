@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="th">
+ 
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ฟอร์มประกันสินค้า</title>
+ 
+    <link rel="stylesheet" href="style.css">
+ 
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- เพิ่มใหม่: บังคับให้ต้อง login ก่อนเข้าใช้งานหน้านี้ (เดิมเข้าตรงผ่าน URL ได้โดยไม่ต้อง login) -->
+    <script src="auth.js"></script>
+    <script>
+        requireLogin();
+    </script>
+ 
+    <!-- เพิ่มใหม่: flatpickr บังคับให้แสดงผลเป็น วัน/เดือน/ปี เสมอ -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+    <!-- เพิ่มใหม่: ภาษาไทยสำหรับปฏิทิน (ชื่อเดือน/ชื่อวันเป็นภาษาไทย) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/th.js"></script>
+
+    <style>
+        /* เพิ่มใหม่: ปุ่มเลือก "ปี" แบบ dropdown ให้กดง่ายเหมือนปุ่มเลือกเดือน
+           (แทนที่ลูกศรขึ้น-ลงตัวเล็กๆ ของปีเดิมใน flatpickr ที่กดยากบนมือถือ) */
+        .flatpickr-year-select {
+            font-family: "Kanit", sans-serif;
+            font-weight: bold;
+            font-size: 14px;
+            color: rgba(0,0,0,.9);
+            background: transparent;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 0 4px;
+            height: 34px;
+            width: auto !important;
+            min-width: 64px;
+            display: inline-block !important;
+            -webkit-appearance: menulist;
+            appearance: menulist;
+        }
+
+        .installment-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        /* เพิ่มใหม่: เว้นระยะห่างระหว่างแถวงวดที่ 1-2 กับแถวงวดที่ 3-4
+           เดิมสองแถวนี้ชิดติดกันเพราะไม่มี label/section-title คั่นระหว่างแถวเหมือนจุดอื่นในฟอร์ม
+           ใช้ selector .row + .row จึงเจาะจงเฉพาะจุดนี้ ไม่กระทบ .row อื่นในฟอร์มที่มี label/section-title คั่นอยู่แล้ว */
+        .row + .row {
+            margin-top: 16px;
+        }
+ 
+        .installment-options input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+ 
+        .installment-options label {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 20px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            user-select: none;
+            transition: all 0.15s ease-in-out;
+            background: #fff;
+            margin: 0;
+        }
+ 
+        .installment-options input[type="radio"]:checked + label {
+            border-color: #2d6cdf;
+            background: #2d6cdf;
+            color: #fff;
+        }
+ 
+        .installment-options label:hover {
+            border-color: #2d6cdf;
+        }
+
+        /* เพิ่มใหม่: ปุ่มที่ถูกล็อก (disabled) ให้ดูจางลงชัดเจน แยกจากปุ่มที่เลือกได้ปกติ */
+        .installment-options input[type="radio"]:disabled + label {
+            opacity: .45;
+            cursor: not-allowed;
+        }
+        .installment-options input[type="radio"]:disabled + label:hover {
+            border-color: #ccc;
+        }
+
+        /* เพิ่มใหม่: ส่วน "3️⃣ บันทึกการชำระเงิน (งวดที่ 1)" ยกแบบมาจากหน้า "บันทึกการเงิน" (finance.html) */
+        .pay-method-options{
+            display:grid;
+            grid-template-columns:repeat(2,1fr);
+            gap:10px;
+            margin-bottom:20px;
+        }
+
+        .pay-method-btn{
+            padding: 10px 20px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-family: 'Kanit', sans-serif;
+            font-weight: 600;
+            user-select: none;
+            transition: all 0.15s ease-in-out;
+            background: #fff;
+            color: #666666;
+        }
+
+        .pay-method-btn:hover{
+            border-color: #2d6cdf;
+        }
+
+        .pay-method-btn.active{
+            border-color: #2d6cdf;
+            background: #2d6cdf;
+            color: #fff;
+        }
+
+        .pay-form-section{
+            background:var(--blue-light);
+            border:1px solid var(--blue-soft);
+            border-radius:16px;
+            padding:18px;
+            margin-bottom:10px;
+        }
+
+        .pay-account-grid{
+            display:grid;
+            grid-template-columns:repeat(3,1fr);
+            gap:10px;
+            margin-bottom:14px;
+        }
+
+        .pay-account-card{
+            cursor:pointer;
+            display:block;
+            position:relative;
+        }
+
+        .pay-account-card input{
+            position:absolute;
+            opacity:0;
+            width:0;
+            height:0;
+        }
+
+        .pay-account-card .card-inner{
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            justify-content:center;
+            gap:6px;
+            padding:14px 6px;
+            border-radius:14px;
+            color:#fff;
+            font-weight:700;
+            font-size:11px;
+            text-align:center;
+            min-height:70px;
+            transition:opacity .2s ease, filter .2s ease, transform .15s ease;
+        }
+
+        .pay-account-card input:checked + .card-inner{
+            outline:3px solid #fff;
+            outline-offset:-3px;
+            transform:scale(1.03);
+        }
+
+        /* เพิ่มใหม่: การ์ดบัญชีที่ "ไม่ถูกเลือก" จะจางลง เพื่อเน้นการ์ดที่เลือกอยู่ให้เด่นชัด
+           การ์ดที่ถูกเลือกยังคงหน้าตาเดิมทุกประการ (ไม่ติดคลาสนี้) */
+        .pay-account-card .card-inner.pay-account-dim{
+            opacity:.4;
+            filter:grayscale(60%);
+        }
+
+        .pay-time-row{
+            display:flex;
+            align-items:flex-end;
+            gap:8px;
+            margin-top:8px;
+            margin-bottom:16px;
+        }
+
+        .pay-flip-card{
+            position:relative;
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            gap:3px;
+        }
+
+        .pay-flip-btn{
+            box-sizing:border-box;
+            width:76px;
+            height:52px;
+            border:1.5px solid var(--border);
+            border-radius:12px;
+            background:var(--bg);
+            font-family:'Kanit',sans-serif;
+            font-size:20px;
+            font-weight:600;
+            text-align:center;
+            cursor:text;
+            
+        }
+
+        /* เพิ่มใหม่: เอาลูกศรขึ้น-ลง (spinner) ของ input type="number" ออก เหลือแค่ช่องกรอกตัวเลขเปล่าๆ */
+        .pay-flip-btn::-webkit-outer-spin-button,
+        .pay-flip-btn::-webkit-inner-spin-button{
+            -webkit-appearance:none;
+            margin:0;
+        }
+
+        .pay-flip-list{
+            position:absolute;
+            top:calc(100% + 4px);
+            left:50%;
+            transform:translateX(-50%);
+            width:56px;
+            max-height:150px;
+            overflow-y:auto;
+            background:#fff;
+            border:1px solid var(--border);
+            border-radius:10px;
+            box-shadow:0 12px 26px rgba(0,0,0,.12);
+            padding:4px;
+            display:none;
+            z-index:60;
+        }
+
+        .pay-flip-list.show{ display:block; }
+
+        .pay-flip-option{
+            padding:7px 0;
+            text-align:center;
+            font-size:13px;
+            border-radius:6px;
+            cursor:pointer;
+        }
+
+        .pay-flip-option:hover,
+        .pay-flip-option.active{
+            background:var(--blue);
+            color:#fff;
+        }
+    </style>
+ 
+</head>
+ 
+<body class="form-page">
+ 
+<div class="topbar">
+    <button id="menuBtn">☰</button>
+    <img src="logo.png" class="toplogo" alt="logo">
+    <span class="apptitle">บันทึกข้อมูลประกันสินค้า</span>
+</div>
+ 
+<aside class="sidebar" id="sidebar">
+    <ul>
+        <li><a href="index.html" class="menu-link">🏠 หน้าหลัก</a></li>
+        <li><a href="report.html" class="menu-link">📊 รายงาน</a></li>
+        <li><a href="revenue.html" class="menu-link">📈 กราฟรายได้</a></li>
+    </ul>
+</aside>
+ 
+<div id="overlay"></div>
+ 
+<main class="form-card">
+ 
+        <h1 class="form-title">📦 ประกันสินค้า</h1>
+        <p class="subtitle" style="margin-top:-20px;">เมื่อกรอกข้อมูลลูกค้าคนเดิมใหม่ ข้อมูลเก่าจะไม่หาย นอกจากจะกดแก้ไขที่หน้ารายงานค่ะ </p>
+ 
+        <form id="productForm">
+ 
+            <div class="section-title">🏢 ข้อมูลบริษัท</div>
+ 
+            <label>บริษัทประกันภัย</label>
+            <select id="company" required>
+                <option value="">-- เลือกบริษัท --</option>
+                <option value="วิริยะ">วิริยะ</option>
+                <option value="เมืองไทย">เมืองไทย</option>
+                <option value="AIG">AIG</option>
+                <option value="AXA">AXA</option>
+                <option value="KWI">KWI</option>
+                <option value="กรุงเทพ">กรุงเทพ</option>
+            </select>
+ 
+            <div class="section-title">👤 ข้อมูลผู้เอาประกัน</div>
+ 
+            <label>ชื่อผู้แจ้ง</label>
+            <input type="text" id="requestName" required>
+ 
+            <label>ชื่อผู้เอาประกัน</label>
+            <input type="text" id="name" required>
+ 
+            <div class="form-group">
+            <label>เบอร์โทรศัพท์</label>
+            <input type="tel" id="phone" placeholder="08x-xxx-xxxx">
+            </div>
+ 
+            <label>ที่อยู่</label>
+            <textarea id="address"></textarea>
+ 
+            <div class="section-title">🚗 ข้อมูลรถ</div>
+ 
+            <label>ยี่ห้อ</label>
+            <input type="text" id="brand">
+ 
+            <label>ทะเบียน</label>
+            <input type="text" id="plate">
+ 
+            <label>เลขตัวถัง</label>
+            <input type="text" id="chassis">
+ 
+            <div class="section-title">📅 ระยะเวลาคุ้มครอง</div>
+ 
+            <div class="row">
+                <div>
+                    <label>วันเริ่ม</label>
+                    <input type="text" id="start" placeholder="วว/ดด/ปปปป" autocomplete="off">
+                </div>
+ 
+                <div>
+                    <label>วันสิ้นสุด</label>
+                    <input type="text" id="end" placeholder="วว/ดด/ปปปป" autocomplete="off">
+                </div>
+            </div>
+ 
+            <div class="section-title">💰 ข้อมูลการเงิน</div>
+ 
+            <div class="row">
+                <div>
+                    <label>ทุนประกัน</label>
+                    <input type="number" id="sumInsured">
+                </div>
+ 
+                <div>
+                    <label>รวม</label>
+                    <input type="number" id="total">
+                </div>
+            </div>
+ 
+            <label>กลุ่มสินค้า</label>
+            <div class="installment-options" id="groupOptionsGroup">
+                <input type="radio" name="groupOption" id="groupOption1" value="กลุ่ม 1">
+                <label for="groupOption1">กลุ่ม 1</label>
+
+                <input type="radio" name="groupOption" id="groupOption2" value="กลุ่ม 2">
+                <label for="groupOption2">กลุ่ม 2</label>
+
+                <input type="radio" name="groupOption" id="groupOption3" value="กลุ่ม 3">
+                <label for="groupOption3">กลุ่ม 3</label>
+
+                <input type="radio" name="groupOption" id="groupOption3o" value="กลุ่ม 3 บรรทุกน้ำหนักเกิน">
+                <label for="groupOption3o">กลุ่ม 3 บรรทุกน้ำหนักเกิน</label>
+
+                <input type="radio" name="groupOption" id="groupOption4" value="กลุ่ม 4">
+                <label for="groupOption4">กลุ่ม 4</label>
+
+                <input type="radio" name="groupOption" id="groupOption5" value="กลุ่ม 5">
+                <label for="groupOption5">กลุ่ม 5</label>
+
+                <input type="radio" name="groupOption" id="groupOption6" value="กลุ่ม 6">
+                <label for="groupOption6">กลุ่ม 6</label>
+
+                <input type="radio" name="groupOption" id="groupOption7" value="กลุ่ม 7">
+                <label for="groupOption7">กลุ่ม 7</label>
+            </div>
+            <!-- ซ่อนไว้ เก็บค่ากลุ่มที่เลือกไว้ใช้กับโค้ดเดิมที่อ่านค่าจาก #group (collectFormData / editData) -->
+            <input type="hidden" id="group">
+ 
+            <div class="section-title">จำนวนงวด</div>
+ 
+            <div class="installment-options" id="installmentCountGroup">
+                <input type="radio" name="installmentCount" id="installmentCount1" value="1">
+                <label for="installmentCount1">1 งวด</label>
+ 
+                <input type="radio" name="installmentCount" id="installmentCount2" value="2">
+                <label for="installmentCount2">2 งวด</label>
+ 
+                <input type="radio" name="installmentCount" id="installmentCount3" value="3">
+                <label for="installmentCount3">3 งวด</label>
+ 
+                <input type="radio" name="installmentCount" id="installmentCount4" value="4">
+                <label for="installmentCount4">4 งวด</label>
+            </div>
+ 
+            <div class="section-title"> บันทึกการชำระเงิน (งวดที่ 1)</div>
+            <p class="subtitle" style="margin-top:-14px;margin-bottom:20px;">
+                ระบบจะบันทึกการชำระเงินนี้เป็น "งวดที่ 1" ให้อัตโนมัติ ส่วนงวดที่ 2 เป็นต้นไป
+                ให้ไปบันทึกที่เมนู "บันทึกการเงิน" ภายหลัง
+            </p>
+
+            <div class="pay-method-options" id="payMethodGroup">
+                <button type="button" class="pay-method-btn" data-method="transfer" onclick="selectPayMethod('transfer')">โอน</button>
+                <button type="button" class="pay-method-btn" data-method="cash" onclick="selectPayMethod('cash')">จ่ายสด</button>
+                <button type="button" class="pay-method-btn" data-method="check" onclick="selectPayMethod('check')">เช็ค</button>
+                <button type="button" class="pay-method-btn" data-method="direct" onclick="selectPayMethod('direct')">จ่ายตรง</button>
+            </div>
+
+            <div id="payFormSection" class="pay-form-section" style="display:none;"></div>
+ 
+            <div class="button-group">
+ 
+                <button
+                type="button"
+                class="back-btn"
+                onclick="location.href='index.html'"> 
+ 
+                ← กลับ
+ 
+                </button>
+ 
+ 
+                <button
+                type="submit"
+                class="save-btn">
+                    💾 บันทึกข้อมูล
+                </button>
+ 
+ 
+                <!-- แก้ไข: เดิม onclick="editData()" เรียกฟังก์ชันของ script.js (type="module")
+                     ซึ่งมี scope แยกต่างหากจากหน้านี้เสมอ ไม่เคยตั้งค่า editingId ของหน้านี้ได้เลย
+                     เปลี่ยนเป็นเรียก loadEditDataIntoForm() ซึ่งเป็นฟังก์ชันของหน้านี้เอง -->
+                <button type="button" class="edit-btn" onclick="loadEditDataIntoForm()">
+                    ✏️ แก้ไขข้อมูล
+                </button>
+ 
+            </div>
+ 
+        <button type="button"
+                class="document-btn"
+                onclick="openFiles()">
+            📄 ไฟล์เอกสารทั้งหมด
+        </button>
+
+        <!-- เพิ่มใหม่: ปุ่มเชื่อมไปหน้าใบรับเงิน (receipt_print.html) โดยตรงจากฟอร์มนี้ -->
+        <button type="button"
+                class="document-btn"
+                style="margin-top:12px; background:#2FBF9B;"
+                onclick="openReceiptFromForm()">
+            🧾 ใบรับเงิน
+        </button>
+ 
+        </form>
+ 
+    </main>
+ 
+    <script type="module" src="script.js"></script>
+
+    <!-- เพิ่มใหม่: helper ผูก Firestore สำหรับตรวจสอบข้อมูลซ้ำ (ชื่อ + ทะเบียนตรงกับรายการเดิม)
+         ใช้เกณฑ์เดียวกับ form_car.html เพื่อกันกรอกลูกค้ารายเดิมซ้ำโดยไม่ตั้งใจ
+         (getApps()/getApp() เพื่อใช้ app instance เดียวกับที่ script.js ได้ initializeApp ไว้แล้ว
+         ไม่สร้าง connection ซ้ำซ้อน) -->
+    <script type="module">
+    import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCNpaYlwrkJhBA-8tAax022PWWFYMRz7Kw",
+      authDomain: "insurance-system-f26b0.firebaseapp.com",
+      projectId: "insurance-system-f26b0",
+      storageBucket: "insurance-system-f26b0.firebasestorage.app",
+      messagingSenderId: "438698153100",
+      appId: "1:438698153100:web:a553b97b59701883f057a9"
+    };
+
+    const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    async function checkDuplicateCustomer(customerName, plate, excludeId){
+        const name = String(customerName || "").trim().toLowerCase();
+        const plt = String(plate || "").trim().toLowerCase();
+
+        if (!name || !plt) return false;
+
+        const snap = await getDocs(collection(db, "insuranceData"));
+
+        let found = false;
+        snap.forEach(docSnap => {
+            if (excludeId && docSnap.id === excludeId) return;
+            const d = docSnap.data();
+            const dName = String(d.customer || "").trim().toLowerCase();
+            const dPlate = String(d.plate || "").trim().toLowerCase();
+            if (dName === name && dPlate === plt) found = true;
+        });
+
+        return found;
+    }
+
+    window.checkDuplicateCustomer = checkDuplicateCustomer;
+    </script>
+
+    <!-- เพิ่มใหม่: โหลด auth.js เพื่อใช้ getEmployeeName() ตอนบันทึกข้อมูล -->
+    <script src="auth.js"></script>
+ 
+    <script>
+        /* แก้ไข (สำคัญ): เดิมตรงนี้ไม่มีการประกาศ editingId เลยสักบรรทัด (ตัดออกไปทั้งหมด
+           โดยเข้าใจผิดว่า script.js ประกาศ editingId ไว้ให้แล้วใช้ร่วมกันได้)
+           แต่ script.js เป็น type="module" จึงมี scope ของตัวเองแยกขาดจากหน้านี้เสมอ
+           ตัวแปร editingId ของ script.js เข้าถึงจากที่นี่ไม่ได้จริงๆ
+           ผลคือถ้าเปิดฟอร์มมาเพื่อ "บันทึกข้อมูลใหม่" (ไม่ได้มาจากหน้าแก้ไข) editingId จะไม่เคย
+           ถูกประกาศ/กำหนดค่าที่ไหนเลยทั้งไฟล์ พอกด "บันทึกข้อมูล" แล้ว collectFormData()
+           ไปเช็ค if (editingId) จะเกิด ReferenceError: editingId is not defined ทันที
+           ทำให้บันทึกข้อมูลใหม่ไม่ได้เลยสักรายการ (error เงียบๆ ใน console ไม่มี alert เตือน)
+           แก้โดยเติมการประกาศตัวแปรนี้กลับมาที่หน้านี้ (เป็นของหน้านี้เท่านั้น ไม่ชนกับ script.js) */
+        let editingId = null;
+
+        /* เก็บข้อมูลเดิมของรายการที่กำลังแก้ไข (ถ้ามี) ไว้ใช้อ้างอิงทั่วไป (เช่น id ของเอกสาร) */
+        let loadedRecordData = null;
+
+        /* เพิ่มใหม่: id ของเอกสารใน collection "paymentRecords" (รายงานการเงิน) ที่ผูกกับ
+           การชำระเงินงวดที่ 1 ของรายการนี้ (ถ้าเคยสร้างไว้แล้ว) ใช้กันไม่ให้กดบันทึกซ้ำแล้ว
+           กลายเป็นสร้างรายการซ้อนในรายงานการเงินหลายใบ - จะ "อัปเดต" รายการเดิมแทนเสมอ */
+        let installment1PaymentRecordId = null;
+
+        /* เพิ่มใหม่: กันกดบันทึกซ้ำ (เน็ตช้า/มือลั่นกดรัว ๆ) ทำให้เกิดลูกค้าซ้ำ 2 รายการ
+           ใช้ flag เดียวกันกับทุกปุ่มที่บันทึกลง Firestore (บันทึกข้อมูล/ไฟล์เอกสาร/ใบรับเงิน) */
+        let isSaving = false;
+
+        /* เพิ่มใหม่: เช็คข้อมูลซ้ำ (ชื่อ + ทะเบียน ตรงกับรายการเดิม) ก่อนบันทึกทุกครั้ง
+           ยกเว้นรายการที่กำลังแก้ไขอยู่ (editingId) เอง — เกณฑ์เดียวกับ form_car.html */
+        async function isDuplicateRecord(record) {
+            if (typeof window.checkDuplicateCustomer !== "function") return false;
+            return await window.checkDuplicateCustomer(record.customer, record.plate, editingId);
+        }
+
+        const PAY_METHOD_LABELS = { transfer: "โอน", cash: "จ่ายสด", check: "เช็ค", direct: "จ่ายตรง" };
+
+        /* แปลงวันที่รูปแบบ d/m/Y (ปี ค.ศ. จากปฏิทินที่เลือก) เป็น Y-m-d
+           ให้ตรงกับรูปแบบ "date" ที่ finance.html ใช้กรอง/เรียงลำดับข้อมูลในรายงานการเงิน */
+        function toISODateFromDMY(dmy) {
+            if (!dmy) return "";
+            const parts = String(dmy).split("/");
+            if (parts.length !== 3) return "";
+            const [d, m, y] = parts;
+            return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+        }
+
+        /* แปลงวันที่รูปแบบ d/m/Y (ปี ค.ศ.) เป็นข้อความวันที่แบบไทย (ปี พ.ศ.)
+           ให้ตรงกับ "dateDisplay" ที่ finance.html ใช้แสดงผลในตารางรายงานการเงิน */
+        function toThaiDateDisplayFromDMY(dmy) {
+            if (!dmy) return "-";
+            const parts = String(dmy).split("/");
+            if (parts.length !== 3) return dmy;
+            const [d, m, y] = parts;
+            return `${d}/${m}/${Number(y) + 543}`;
+        }
+
+        /* เพิ่มใหม่: สร้าง/อัปเดตรายการ "การชำระเงินงวดที่ 1" ในระบบ "รายงานการเงิน" (finance.html)
+           เพื่อให้ผู้จัดการเห็นและกดเช็คสถานะได้ทันทีที่บันทึกจากฟอร์มนี้
+           - ถ้ายังไม่ได้เลือกวิธีชำระ/ยังไม่กรอกยอดเงินในส่วน "บันทึกการชำระเงิน (งวดที่ 1)" -> ข้ามไปเลย
+           - ถ้าเคยสร้างรายการไว้แล้ว (installment1PaymentRecordId มีค่า) -> อัปเดตรายการเดิม ไม่สร้างซ้ำ */
+        async function syncInstallment1PaymentRecord(record, savedId) {
+
+            const payment1 = collectPaymentInstallment1();
+
+            if (!payment1.method || !payment1.amount) {
+                return;
+            }
+
+            if (typeof window.savePaymentRecord !== "function") {
+                console.error("ไม่พบ window.savePaymentRecord (script.js อาจโหลดไม่สำเร็จ)");
+                return;
+            }
+
+            const paymentRecord = {
+                customerId: savedId,
+                customer: record.customer || "",
+                company: record.company || "",
+                plate: record.plate || "",
+                start: record.start || "",
+                phone: record.phone || "",
+                installmentNumber: 1,
+                type: "product",
+                method: payment1.method,
+                methodLabel: PAY_METHOD_LABELS[payment1.method] || payment1.method,
+                account: payment1.account || "",
+                bank: payment1.bank || "",
+                checkNo: payment1.checkNo || "",
+                payee: payment1.payee || "",
+                amount: Number(payment1.amount) || 0,
+                date: toISODateFromDMY(payment1.date),
+                dateDisplay: toThaiDateDisplayFromDMY(payment1.date),
+                time: payment1.time || "",
+                note: payment1.note || "",
+                recordedBy: (typeof getEmployeeName === "function") ? getEmployeeName() : ""
+            };
+
+            if (installment1PaymentRecordId) {
+                paymentRecord.id = installment1PaymentRecordId;
+            }
+
+            try {
+                const recId = await window.savePaymentRecord(paymentRecord);
+
+                if (recId && recId !== installment1PaymentRecordId) {
+                    installment1PaymentRecordId = recId;
+
+                    // เก็บ id ของรายการรายงานการเงินไว้กับข้อมูลลูกค้าหลัก เพื่อให้ครั้งถัดไป
+                    // (แก้ไข/บันทึกซ้ำ) รู้ว่าต้อง "อัปเดต" รายการเดิมนี้ ไม่ใช่สร้างใหม่ซ้อนขึ้นมา
+                    await window.saveRecord({ id: savedId, installment1PaymentRecordId: recId });
+                }
+            } catch (err) {
+                console.error("บันทึกรายการในรายงานการเงินไม่สำเร็จ:", err);
+            }
+        }
+ 
+        function getInstallmentCount() {
+            const checked = document.querySelector('input[name="installmentCount"]:checked');
+            return checked ? checked.value : "";
+        }
+
+        /* ปุ่มเลือก "กลุ่มสินค้า" แบบเดียวกับปุ่มจำนวนงวด
+           ต้องซิงค์ค่ากลับเข้าช่อง input hidden #group เสมอ เพื่อให้โค้ดเดิม
+           (collectFormData ในหน้านี้) ที่อ่านค่าจาก #group ทำงานได้ตามปกติ ไม่ต้องแก้ที่อื่น */
+        function setGroupValue(value) {
+            const hiddenGroup = document.getElementById("group");
+            if (hiddenGroup) hiddenGroup.value = value || "";
+
+            document.querySelectorAll('input[name="groupOption"]').forEach(r => {
+                r.checked = (r.value === value);
+            });
+        }
+
+        function getGroupValue() {
+            const checked = document.querySelector('input[name="groupOption"]:checked');
+            return checked ? checked.value : (document.getElementById("group")?.value || "");
+        }
+
+        document.querySelectorAll('input[name="groupOption"]').forEach(r => {
+            r.addEventListener("change", function () {
+                setGroupValue(this.value);
+            });
+        });
+
+        /* ถ้าเลือกบริษัทอื่นที่ไม่ใช่ "วิริยะ" ให้ตั้งค่าเริ่มต้นของกลุ่มสินค้าเป็น
+           "กลุ่ม 3 บรรทุกน้ำหนักเกิน" ให้อัตโนมัติ (เพื่อความสะดวก เพราะบริษัทอื่นส่วนใหญ่ใช้กลุ่มนี้)
+           แต่ยังคงเลือกกลุ่มอื่นได้ตามปกติเสมอ ไม่ปิดใช้งาน (disable) ปุ่มกลุ่มใดๆ ทั้งสิ้น
+
+           แก้ไข (รอบ 1): เดิมฟังก์ชันนี้ถูกเรียกตอนโหลดข้อมูลเก่ามาแก้ไข (loadEditDataIntoForm) ด้วย
+           ทำให้ค่ากลุ่มสินค้าที่บันทึกไว้จริงของลูกค้าถูกทับเป็น "กลุ่ม 3 บรรทุกน้ำหนักเกิน"
+           แบบเงียบๆ ทุกครั้งที่บริษัทของรายการนั้นไม่ใช่วิริยะ (เช่น เดิมเลือกไว้เป็น "กลุ่ม 3"
+           พอเปิดแก้ไขค่าจะเปลี่ยนเป็น "กลุ่ม 3 บรรทุกน้ำหนักเกิน" ทันที โดยพนักงานไม่ทันสังเกต)
+           แก้โดยเพิ่มพารามิเตอร์ preserveValue: true สำหรับกรณีโหลดข้อมูลเดิมมาแก้ไขโดยเฉพาะ
+
+           แก้ไข (รอบ 2): เดิมยังปิดใช้งาน (disable) ปุ่มกลุ่มอื่นทั้งหมดเมื่อบริษัทไม่ใช่วิริยะ
+           ทำให้เลือกกลุ่มอื่นไม่ได้เลยแม้ต้องการ ตัดส่วน disable ออก เหลือแค่ตั้งค่าเริ่มต้นให้เฉยๆ
+           ปุ่มกลุ่มทุกกลุ่มยังกดเลือกได้เสมอไม่ว่าจะเลือกบริษัทใด */
+        function applyGroupLockForCompany(options) {
+            const companyEl = document.getElementById("company");
+            const company = companyEl ? companyEl.value : "";
+            const groupRadios = document.querySelectorAll('input[name="groupOption"]');
+
+            // ปุ่มกลุ่มสินค้าทุกกลุ่มเลือกได้เสมอ ไม่ล็อก/ปิดใช้งานอีกต่อไป
+            groupRadios.forEach(r => {
+                r.disabled = false;
+            });
+
+            // แก้ไข: เดิมใช้พารามิเตอร์ preserveValue ที่ส่งเข้ามาแค่ครั้งเดียวตอนโหลดข้อมูลแก้ไข
+            // ทำให้ถ้าอยู่ระหว่างแก้ไขรายการเดิม (editingId มีค่า) แล้วพนักงานสลับเปลี่ยนบริษัทอีกครั้ง
+            // (ทำให้ event "change" ยิงใหม่โดยไม่มี preserveValue) ค่ากลุ่มสินค้าจริงของลูกค้าเสี่ยงถูกทับ
+            // เปลี่ยนมาเช็คจาก editingId ของหน้านี้โดยตรงแทน เพื่อให้ "อยู่ระหว่างแก้ไขข้อมูลเดิม" ไม่ถูกตั้งค่า
+            // กลุ่มสินค้าอัตโนมัติทับให้เองเด็ดขาด ไม่ว่าจะสลับบริษัทกี่ครั้งก็ตาม
+            if (company && company !== "วิริยะ" && !editingId && !getGroupValue()) {
+                // ตั้งค่าเริ่มต้นให้เฉพาะตอนที่เป็นการบันทึกข้อมูลใหม่ และยังไม่ได้เลือกกลุ่มใดไว้เท่านั้น
+                // (กันไม่ให้ไปทับค่าที่พนักงานเลือกเองอยู่แล้วเวลาสลับบริษัทไปมา หรือค่าจริงของข้อมูลที่กำลังแก้ไข)
+                setGroupValue("กลุ่ม 3 บรรทุกน้ำหนักเกิน");
+            }
+        }
+
+        document.getElementById("company")?.addEventListener("change", applyGroupLockForCompany);
+ 
+        /* =========================================================
+           เพิ่มใหม่: 3️⃣ บันทึกการชำระเงิน (งวดที่ 1)
+           ยกมาจากส่วน "3️⃣ บันทึกการชำระเงิน" ของหน้า finance.html (renderPaymentForm)
+           ผลของการกรอกส่วนนี้จะถูกบันทึกเป็น "งวดที่ 1" (installment1) เท่านั้น
+           งวดที่ 2 เป็นต้นไป พนักงานต้องไปบันทึกต่อที่หน้า "บันทึกการเงิน" (finance.html) เอง
+        ========================================================= */
+        let currentPayMethod = null;
+        let payDatePicker = null;
+
+        function resetPayMethodButtons() {
+            document.querySelectorAll(".pay-method-btn").forEach(b => b.classList.remove("active"));
+        }
+
+        function selectPayMethod(method) {
+            if (currentPayMethod === method) {
+                currentPayMethod = null;
+                resetPayMethodButtons();
+                document.getElementById("payFormSection").style.display = "none";
+                return;
+            }
+            currentPayMethod = method;
+            resetPayMethodButtons();
+            const btn = document.querySelector(`.pay-method-btn[data-method="${method}"]`);
+            if (btn) btn.classList.add("active");
+            renderPayForm(method);
+        }
+
+        function getPayCurrentHour() { return String(new Date().getHours()).padStart(2, "0"); }
+        function getPayCurrentMinute() { return String(new Date().getMinutes()).padStart(2, "0"); }
+
+        function buildPayTimeListItems(type, currentValue) {
+            const max = type === "hour" ? 24 : 60;
+            let html = "";
+            for (let i = 0; i < max; i++) {
+                const value = String(i).padStart(2, "0");
+                const activeClass = value === currentValue ? " active" : "";
+                html += `<div class="pay-flip-option${activeClass}" onclick="paySelectTime('${type}','${value}')">${value}</div>`;
+            }
+            return html;
+        }
+
+        function initPayTimeDropdowns() {
+            const hourBtn = document.getElementById("pay_hour_btn");
+            const minuteBtn = document.getElementById("pay_minute_btn");
+            const hourList = document.getElementById("pay_hour_list");
+            const minuteList = document.getElementById("pay_minute_list");
+            if (hourList) hourList.innerHTML = buildPayTimeListItems("hour", hourBtn?.dataset.value);
+            if (minuteList) minuteList.innerHTML = buildPayTimeListItems("minute", minuteBtn?.dataset.value);
+        }
+
+        function payToggleTimeList(type) {
+            const listId = type === "hour" ? "pay_hour_list" : "pay_minute_list";
+            const otherId = type === "hour" ? "pay_minute_list" : "pay_hour_list";
+            const list = document.getElementById(listId);
+            const other = document.getElementById(otherId);
+            if (other) other.classList.remove("show");
+            if (list) list.classList.toggle("show");
+        }
+
+        function paySelectTime(type, value) {
+            const btnId = type === "hour" ? "pay_hour_btn" : "pay_minute_btn";
+            const listId = type === "hour" ? "pay_hour_list" : "pay_minute_list";
+            const btn = document.getElementById(btnId);
+            if (btn) { btn.dataset.value = value; btn.textContent = value; }
+            const list = document.getElementById(listId);
+            if (list) list.classList.remove("show");
+        }
+
+        document.addEventListener("click", function (e) {
+            if (e.target.closest(".pay-flip-card")) return;
+            document.querySelectorAll(".pay-flip-list.show").forEach(l => l.classList.remove("show"));
+        });
+
+        /* เพิ่มใหม่: การ์ดบัญชีที่ "ไม่ถูกเลือก" จะจางลง เพื่อเน้นการ์ดที่เลือกอยู่ให้เด่นชัด
+           การ์ดที่ถูกเลือกยังคงหน้าตาเดิมทุกประการ */
+        function onPayTransferAccountChange() {
+            const selected = document.querySelector('input[name="pay_tf_account"]:checked');
+            const otherInput = document.getElementById("pay_tf_account_other");
+
+            if (otherInput) {
+                if (selected && selected.value === "อื่นๆ") {
+                    otherInput.style.display = "block";
+                } else {
+                    otherInput.style.display = "none";
+                }
+            }
+
+            document.querySelectorAll('input[name="pay_tf_account"]').forEach(radio => {
+                const cardInner = radio.parentElement.querySelector(".card-inner");
+                if (!cardInner) return;
+
+                if (selected && radio !== selected) {
+                    cardInner.classList.add("pay-account-dim");
+                } else {
+                    cardInner.classList.remove("pay-account-dim");
+                }
+            });
+        }
+
+        function renderPayForm(method) {
+            const section = document.getElementById("payFormSection");
+            section.style.display = "block";
+
+            let extraFieldsHtml = "";
+
+            if (method === "transfer") {
+                extraFieldsHtml = `
+                    <label>เลือกบัญชี</label>
+                    <div class="pay-account-grid">
+                        <label class="pay-account-card">
+                            <input type="radio" name="pay_tf_account" value="PLOY BROKERS" onchange="onPayTransferAccountChange()">
+                            <div class="card-inner" style="background:linear-gradient(135deg,#fb923c,#ea580c);">
+                                <span style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;">
+                                    <img src="logos/Logo-BBL.png" alt="BBL" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.innerHTML='<span style=&quot;color:#1e4a9c;font-weight:800;font-size:10px;&quot;>BBL</span>'">
+                                </span>
+                                <span>PLOY BROKERS</span>
+                            </div>
+                        </label>
+                        <label class="pay-account-card">
+                            <input type="radio" name="pay_tf_account" value="นายณุพล วิทยาขาว" onchange="onPayTransferAccountChange()">
+                            <div class="card-inner" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);">
+                                <span style="width:56px;height:56px;display:flex;align-items:center;justify-content:center;">
+                                    <img src="logos/Logo-BBL.png" alt="BBL" style="width:100%;height:100%;object-fit:contain;" onerror="this.parentElement.innerHTML='<span style=&quot;color:#1e4a9c;font-weight:800;font-size:10px;&quot;>BBL</span>'">
+                                </span>
+                                <span>นายณุพล วิทยาขาว</span>
+                            </div>
+                        </label>
+                        <label class="pay-account-card">
+                            <input type="radio" name="pay_tf_account" value="อื่นๆ" onchange="onPayTransferAccountChange()">
+                            <div class="card-inner" style="background:linear-gradient(135deg,#fcd34d,#f59e0b);color:#3a2200;">
+                                <span style="width:56px;height:56px;border-radius:999px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;">✏️</span>
+                                <span>อื่นๆ</span>
+                            </div>
+                        </label>
+                    </div>
+                    <input type="text" id="pay_tf_account_other" placeholder="ระบุชื่อบัญชี" style="display:none;margin-bottom:14px;">
+                `;
+            }
+
+            if (method === "check") {
+                extraFieldsHtml = `
+                    <div class="row">
+                        <div><label>ธนาคาร</label><input type="text" id="pay_bank"></div>
+                        <div><label>เลขที่เช็ค</label><input type="text" id="pay_checkNo"></div>
+                    </div>
+                `;
+            }
+
+            if (method === "direct") {
+                extraFieldsHtml = `
+                    <label>ชื่อผู้รับเงิน</label>
+                    <input type="text" id="pay_payee">
+                `;
+            }
+
+            const amountLabel = method === "transfer" ? "ยอดเงินที่โอน" : "ยอดเงิน";
+            const dateLabel = method === "transfer" ? "วันที่โอน" : "วันที่";
+            const methodLabels = { cash: "จ่ายสด", check: "เช็ค", direct: "จ่ายตรง" };
+            const titleText = method === "transfer" ? "รายละเอียดการโอนเงิน" : "บันทึกการชำระเงิน (" + (methodLabels[method] || "") + ")";
+
+            section.innerHTML = `
+                <div style="font-weight:700;color:var(--blue-dark);margin-bottom:10px;">${titleText}</div>
+                ${extraFieldsHtml}
+                <div class="row">
+                    <div>
+                        <label>${amountLabel}</label>
+                        <input type="number" id="pay_amount" min="0" step="0.01" placeholder="0.00">
+                    </div>
+                    <div>
+                        <label>${dateLabel}</label>
+                        <input type="text" id="pay_date" placeholder="เลือกวันที่" readonly>
+                    </div>
+                </div>
+                <label>เวลา</label>
+                <!-- แก้ไข: ปรับให้เป็นกล่องเล็กกะทัดรัดแบบเดิม (เหมือนปุ่มเลือกเวลาตอนแรก) แต่ยังพิมพ์เลขเองได้ทั้งคู่
+                     ตั้งค่าเริ่มต้นเป็นเวลาปัจจุบันให้อัตโนมัติ -->
+                <div class="pay-time-row">
+                    <div class="pay-flip-card">
+                        <input type="number" id="pay_hour_input" min="0" max="23"
+                            value="${getPayCurrentHour()}" class="pay-flip-btn">
+                        <span style="font-size:10px;color:var(--text-soft);">ชม.</span>
+                    </div>
+                    <span style="font-size:22px;font-weight:700;margin-bottom:22px;">:</span>
+                    <div class="pay-flip-card">
+                        <input type="number" id="pay_minute_input" min="0" max="59"
+                            value="${getPayCurrentMinute()}" class="pay-flip-btn">
+                        <span style="font-size:10px;color:var(--text-soft);">นาที</span>
+                    </div>
+                </div>
+                <label>หมายเหตุ (ไม่บังคับ)</label>
+                <input type="text" id="pay_note">
+            `;
+
+            if (typeof flatpickr === "function") {
+                payDatePicker = flatpickr("#pay_date", {
+                    dateFormat: "d/m/Y",
+                    allowInput: false,
+                    locale: (typeof flatpickr.l10ns !== "undefined" && flatpickr.l10ns.th) ? "th" : undefined
+                });
+                payDatePicker.setDate(new Date(), true, "d/m/Y");
+            }
+
+        }
+
+        /* รวบรวมค่าจากส่วน "บันทึกการชำระเงิน" ด้านบน ให้กลายเป็นข้อมูลของ "งวดที่ 1" เท่านั้น
+           ถ้ายังไม่ได้เลือกวิธีชำระเลย ให้ถือว่างวดที่ 1 ยังไม่มีการชำระ (ค่าว่างทั้งหมด) */
+        function collectPaymentInstallment1() {
+            if (!currentPayMethod) {
+                return { amount: "", date: "", method: "", account: "", bank: "", checkNo: "", payee: "", time: "", note: "" };
+            }
+
+            const amount = document.getElementById("pay_amount")?.value || "";
+            const dateVal = document.getElementById("pay_date")?.value || "";
+            // แก้ไข: ทั้ง "ชั่วโมง" และ "นาที" พิมพ์เองทั้งคู่ ถ้าช่องใดกรอกไม่ถูกต้อง (ว่าง/นอกช่วง) ถือว่ายังไม่ได้กรอกเวลา
+            const payHourRaw = document.getElementById("pay_hour_input")?.value;
+            const payHourNum = Number(payHourRaw);
+            const payHourOK = payHourRaw !== "" && payHourRaw !== null && payHourRaw !== undefined && !isNaN(payHourNum) && payHourNum >= 0 && payHourNum <= 23;
+
+            const payMinuteRaw = document.getElementById("pay_minute_input")?.value;
+            const payMinuteNum = Number(payMinuteRaw);
+            const payMinuteOK = payMinuteRaw !== "" && payMinuteRaw !== null && payMinuteRaw !== undefined && !isNaN(payMinuteNum) && payMinuteNum >= 0 && payMinuteNum <= 59;
+
+            const timeVal = (payHourOK && payMinuteOK)
+                ? `${String(payHourNum).padStart(2,"0")}:${String(payMinuteNum).padStart(2,"0")}`
+                : "";
+
+            let account = "", bank = "", checkNo = "", payee = "";
+
+            if (currentPayMethod === "transfer") {
+                const selected = document.querySelector('input[name="pay_tf_account"]:checked');
+                account = selected ? selected.value : "";
+                if (account === "อื่นๆ") {
+                    account = document.getElementById("pay_tf_account_other")?.value || "";
+                }
+            }
+            if (currentPayMethod === "check") {
+                bank = document.getElementById("pay_bank")?.value || "";
+                checkNo = document.getElementById("pay_checkNo")?.value || "";
+            }
+            if (currentPayMethod === "direct") {
+                payee = document.getElementById("pay_payee")?.value || "";
+            }
+
+            return {
+                amount: amount,
+                date: amount ? dateVal : "",
+                method: currentPayMethod,
+                account, bank, checkNo, payee,
+                time: timeVal,
+                note: document.getElementById("pay_note")?.value || ""
+            };
+        }
+
+        function collectFormData(type) {
+
+        const payment1 = collectPaymentInstallment1();
+
+        const record = {
+    type: type,
+ 
+            company: document.getElementById("company")?.value,
+            requestName: document.getElementById("requestName")?.value,
+            customer: document.getElementById("name")?.value,
+            phone: document.getElementById("phone")?.value,
+            address: document.getElementById("address")?.value,
+            brand: document.getElementById("brand")?.value,
+            plate: document.getElementById("plate")?.value,
+            chassis: document.getElementById("chassis")?.value,
+            start: document.getElementById("start")?.value,
+            end: document.getElementById("end")?.value,
+            sumInsured: document.getElementById("sumInsured")?.value,
+            total: document.getElementById("total")?.value,
+            group: document.getElementById("group")?.value,
+            installmentCount: getInstallmentCount(),
+            // แก้ไข: งวดที่ 1 มาจากส่วน "3️⃣ บันทึกการชำระเงิน" ด้านบนแทนช่องกรอกตัวเลขแบบเดิม
+            // งวดที่ 2 เป็นต้นไป ไม่มีในฟอร์มนี้แล้ว ให้ไปบันทึกที่หน้า "บันทึกการเงิน" (finance.html) แทน
+            installment1: payment1.amount,
+            installment1Date: payment1.date,
+            installment1Method: payment1.method,
+            installment1Account: payment1.account,
+            installment1Bank: payment1.bank,
+            installment1CheckNo: payment1.checkNo,
+            installment1Payee: payment1.payee,
+            installment1Time: payment1.time,
+            installment1Note: payment1.note
+        };
+ 
+        // แนบ id เฉพาะตอนแก้ไขข้อมูลเดิม (id คือ document id จริงจาก Firestore)
+        // ถ้าเป็นข้อมูลใหม่จะไม่มี id -> saveRecord() จะสร้างเอกสารใหม่ด้วย addDoc
+        //
+        // แก้ไข (สำคัญ): เดิมใส่ createDate (วันที่แจ้งงาน) และ employeeName (ผู้แจ้งงานที่ล็อกอินอยู่)
+        // เข้าไปใน record ทุกครั้งไม่ว่าจะบันทึกใหม่หรือแก้ไขข้อมูลเดิม ทำให้เวลาพนักงานคนอื่น
+        // เปิดแก้ไขรายการเก่า (เช่น แก้แค่เบอร์โทร) แล้วกดบันทึก จะไปทับวันที่แจ้งงานจริง
+        // เป็นวันที่กดบันทึกล่าสุด และทับชื่อผู้แจ้งงานจริงเป็นชื่อคนที่ล็อกอินอยู่ตอนนั้นแทน
+        // ทำให้รายงานยอดขายรายเดือน/รายพนักงานผิดเพี้ยนย้อนหลัง
+        //
+        // แก้โดยใส่ 2 ฟิลด์นี้เฉพาะตอน "บันทึกข้อมูลใหม่" เท่านั้น (ไม่มี editingId)
+        // ส่วนตอนแก้ไขข้อมูลเดิม จะไม่ส่ง 2 ฟิลด์นี้ไปเลย -> saveRecord() ใช้ merge:true
+        // จึงไม่แตะค่าที่บันทึกไว้เดิมใน Firestore ทั้งสองฟิลด์นี้จะยังเป็นของเดิมเสมอ
+        if (editingId) {
+            record.id = editingId;
+        } else {
+            record.createDate = new Date().toLocaleDateString("th-TH");
+            record.employeeName = (typeof getEmployeeName === "function") ? getEmployeeName() : "";
+        }
+ 
+        return record;
+    }
+ 
+        /* แก้ไข (ตามคำขอ): กด "บันทึกข้อมูล" แล้วไม่ต้องเด้งไปหน้ารายงานอีกต่อไป
+             แค่บันทึกแล้วแจ้งเตือน (alert ของ saveRecord()) แล้วอยู่หน้าเดิมต่อ
+             เพิ่มใหม่: หลังบันทึกครั้งแรกสำเร็จ ตั้ง editingId ให้อัตโนมัติจาก id ที่ saveRecord() คืนกลับมา
+             เพื่อไม่ให้กดบันทึกซ้ำ (หรือกดปุ่มไฟล์เอกสาร/ใบรับเงินต่อ) แล้วกลายเป็นสร้างรายการใหม่ซ้อนขึ้นมาอีกรายการ */
+        document.getElementById("productForm").addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    /* เพิ่มใหม่: ถ้ากำลังบันทึกอยู่แล้ว (จากปุ่มนี้หรือปุ่มอื่นที่บันทึกลง Firestore เหมือนกัน)
+       ให้ข้ามการกดซ้ำไปเลย จนกว่ารอบก่อนหน้าจะเสร็จ กันเน็ตช้า/มือลั่นกดรัว ๆ สร้างรายการซ้ำ */
+    if (isSaving) return;
+    isSaving = true;
+
+    const saveBtn = document.querySelector("#productForm .save-btn");
+    const saveBtnOriginalHtml = saveBtn ? saveBtn.innerHTML : "";
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = "⏳ กำลังบันทึก..."; }
+
+    try {
+        if (!getInstallmentCount()) {
+            alert("กรุณาเลือกจำนวนงวด");
+            return;
+        }
+
+        const record = collectFormData("product");
+
+        if (await isDuplicateRecord(record)) {
+            alert("⚠️ ข้อมูลซ้ำ (ชื่อผู้เอาประกัน + ทะเบียน ตรงกับรายการที่มีอยู่แล้ว) กรุณาตรวจสอบอีกครั้ง");
+            return;
+        }
+
+        // บันทึกลง Firestore (แหล่งข้อมูลกลางเดียว ทุกเครื่องเห็นตรงกัน)
+        // saveRecord() จะ alert "บันทึกข้อมูลเรียบร้อย" ให้เองแล้ว และคืนค่า id ของเอกสารกลับมา
+        const savedId = await window.saveRecord(record);
+
+        // ตั้ง editingId ของหน้านี้ให้ชี้ไปที่รายการที่เพิ่งบันทึก (ทั้งกรณีบันทึกใหม่และแก้ไขเดิม)
+        if (savedId) {
+            editingId = savedId;
+            record.id = savedId;
+            loadedRecordData = record;
+        }
+
+        // เพิ่มใหม่: ถ้ามีการกรอก "บันทึกการชำระเงิน (งวดที่ 1)" ไว้ ให้สร้าง/อัปเดตรายการ
+        // ในระบบ "รายงานการเงิน" (finance.html) ให้อัตโนมัติ เพื่อให้ผู้จัดการเห็นและกดเช็คได้ทันที
+        if (savedId) {
+            await syncInstallment1PaymentRecord(record, savedId);
+        }
+
+        // เก็บไว้เฉพาะข้อมูลชั่วคราวสำหรับเปิดเอกสาร PDF ของรายการนี้ทันที (ถ้ากดปุ่มเอกสารต่อ)
+        localStorage.setItem(
+            "pdfData",
+            JSON.stringify(record)
+        );
+
+        // เคลียร์ข้อมูลแก้ไขชั่วคราวของรายการเก่า (ถ้ามี) เพราะตอนนี้ยึดตาม editingId ของหน้านี้แทนแล้ว
+        localStorage.removeItem("editIndex");
+        localStorage.removeItem("editData");
+
+        // ไม่เด้งไปหน้ารายงานอีกต่อไป อยู่หน้าเดิมต่อ (ตามที่ขอ)
+    } finally {
+        isSaving = false;
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = saveBtnOriginalHtml; }
+    }
+
+});
+
+    /* แก้ไข (ตามคำขอ): ปุ่ม "ไฟล์เอกสารทั้งหมด" ตอนนี้บันทึกข้อมูลลง Firestore ก่อนเสมอ
+       (เดิมแค่เก็บไว้ใน localStorage ชั่วคราว ไม่เคยบันทึกจริง ถ้าไม่เคยกด "บันทึกข้อมูล" มาก่อน
+       ข้อมูลจะหายไปไม่ขึ้นในรายงาน/ลูกหนี้/บันทึกการเงินเลย) */
+    async function openFiles() {
+
+        /* เพิ่มใหม่: กันกดซ้ำ ใช้ isSaving ตัวเดียวกับปุ่ม "บันทึกข้อมูล" เพราะปุ่มนี้ก็บันทึก
+           ลง Firestore เช่นกัน ถ้ากำลังบันทึกอยู่จากปุ่มไหนก็ตาม ให้ข้ามการกดซ้ำจากปุ่มอื่นด้วย */
+        if (isSaving) return;
+        isSaving = true;
+
+        try {
+            if (!getInstallmentCount()) {
+                alert("กรุณาเลือกจำนวนงวด");
+                return;
+            }
+
+            const record = collectFormData("product");
+
+            if (!record.company) {
+                alert("กรุณาเลือกบริษัทประกันภัย");
+                return;
+            }
+
+            if (await isDuplicateRecord(record)) {
+                alert("⚠️ ข้อมูลซ้ำ (ชื่อผู้เอาประกัน + ทะเบียน ตรงกับรายการที่มีอยู่แล้ว) กรุณาตรวจสอบอีกครั้ง");
+                return;
+            }
+
+            const savedId = await window.saveRecord(record);
+
+            if (savedId) {
+                editingId = savedId;
+                record.id = savedId;
+                loadedRecordData = record;
+            }
+
+            if (savedId) {
+                await syncInstallment1PaymentRecord(record, savedId);
+            }
+
+            localStorage.setItem(
+                "pdfData",
+                JSON.stringify(record)
+            );
+
+            localStorage.removeItem("editIndex");
+            localStorage.removeItem("editData");
+
+            window.location.href = "contract_print.html";
+        } finally {
+            isSaving = false;
+        }
+    }
+
+    /* เพิ่มใหม่: ปุ่ม "🧾 ใบรับเงิน" บันทึกข้อมูลลง Firestore ก่อนเช่นเดียวกัน
+       แล้วพาไปหน้า receipt_print.html (หน้านี้อ่านข้อมูลจาก localStorage คีย์ "pdfData" เหมือนกัน) */
+    async function openReceiptFromForm() {
+
+        /* เพิ่มใหม่: กันกดซ้ำ ใช้ isSaving ตัวเดียวกับปุ่ม "บันทึกข้อมูล" */
+        if (isSaving) return;
+        isSaving = true;
+
+        try {
+            if (!getInstallmentCount()) {
+                alert("กรุณาเลือกจำนวนงวด");
+                return;
+            }
+
+            const record = collectFormData("product");
+
+            if (!record.company) {
+                alert("กรุณาเลือกบริษัทประกันภัย");
+                return;
+            }
+
+            if (await isDuplicateRecord(record)) {
+                alert("⚠️ ข้อมูลซ้ำ (ชื่อผู้เอาประกัน + ทะเบียน ตรงกับรายการที่มีอยู่แล้ว) กรุณาตรวจสอบอีกครั้ง");
+                return;
+            }
+
+            const savedId = await window.saveRecord(record);
+
+            if (savedId) {
+                editingId = savedId;
+                record.id = savedId;
+                loadedRecordData = record;
+            }
+
+            if (savedId) {
+                await syncInstallment1PaymentRecord(record, savedId);
+            }
+
+            localStorage.setItem(
+                "pdfData",
+                JSON.stringify(record)
+            );
+
+            localStorage.removeItem("editIndex");
+            localStorage.removeItem("editData");
+
+            window.location.href = "receipt_print.html";
+        } finally {
+            isSaving = false;
+        }
+    }
+
+        function attachYearDropdown(instance) {
+
+            const calendarEl = instance.calendarContainer;
+            if (!calendarEl) return;
+
+            const yearInput = calendarEl.querySelector(".numInputWrapper input.cur-year");
+            if (!yearInput || yearInput.dataset.dropdownReady === "true") return;
+
+            const wrapper = yearInput.closest(".numInputWrapper");
+            if (!wrapper) return;
+
+            const select = document.createElement("select");
+            select.className = "flatpickr-year-select";
+
+            const centerYear = instance.currentYear;
+            const startYear = centerYear - 10;
+            const endYear = centerYear + 10;
+
+            for (let y = startYear; y <= endYear; y++) {
+                const option = document.createElement("option");
+                option.value = String(y);
+                option.textContent = String(y);
+                if (y === centerYear) option.selected = true;
+                select.appendChild(option);
+            }
+
+            select.addEventListener("change", function () {
+                instance.changeYear(parseInt(this.value, 10));
+            });
+
+            wrapper.style.display = "none";
+            wrapper.insertAdjacentElement("afterend", select);
+
+            yearInput.dataset.dropdownReady = "true";
+            instance._yearSelect = select;
+        }
+
+        function syncYearDropdown(instance) {
+            if (instance._yearSelect) {
+                instance._yearSelect.value = String(instance.currentYear);
+            }
+        }
+
+        let startPicker = null;
+        let endPicker = null;
+
+        if (typeof flatpickr === "function") {
+
+            const datePickerOptions = {
+                dateFormat: "d/m/Y",
+                allowInput: true,
+                locale: (typeof flatpickr.l10ns !== "undefined" && flatpickr.l10ns.th) ? "th" : undefined,
+                onReady: function (selectedDates, dateStr, instance) {
+                    attachYearDropdown(instance);
+                },
+                onOpen: function (selectedDates, dateStr, instance) {
+                    attachYearDropdown(instance);
+                    syncYearDropdown(instance);
+                },
+                onMonthChange: function (selectedDates, dateStr, instance) {
+                    syncYearDropdown(instance);
+                },
+                onYearChange: function (selectedDates, dateStr, instance) {
+                    syncYearDropdown(instance);
+                }
+            };
+
+            startPicker = flatpickr("#start", datePickerOptions);
+            endPicker = flatpickr("#end", datePickerOptions);
+        }
+
+        const menuBtn = document.getElementById("menuBtn");
+        const sidebar = document.querySelector(".sidebar");
+        const overlay = document.getElementById("overlay");
+ 
+        if (menuBtn && sidebar && overlay) {
+ 
+            menuBtn.addEventListener("click", function () {
+                sidebar.classList.toggle("show");
+                overlay.classList.toggle("show");
+            });
+ 
+            overlay.addEventListener("click", function () {
+                sidebar.classList.remove("show");
+                overlay.classList.remove("show");
+            });
+ 
+        }
+
+        /* แปลงวันที่แบบเก่า (ปปปป-ดด-วว จาก input type="date") ให้เป็น วว/ดด/ปปปป
+           ใช้ทั้งตอนโหลดหน้า (DOMContentLoaded) และตอนกดปุ่ม "แก้ไขข้อมูล" (loadEditDataIntoForm) */
+        function toDisplayDate(v) {
+            const legacyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || "");
+            return legacyMatch ? `${legacyMatch[3]}/${legacyMatch[2]}/${legacyMatch[1]}` : (v || "");
+        }
+
+        /* รวมโค้ดเติมข้อมูลเดิมลงฟอร์มไว้ในฟังก์ชันเดียว ใช้ร่วมกันทั้ง 2 จุด
+           1) ตอนเปิดหน้านี้มาจาก report.html (ผ่าน DOMContentLoaded ด้านล่าง)
+           2) ตอนกดปุ่ม "✏️ แก้ไขข้อมูล" เอง (onclick="loadEditDataIntoForm()")
+           สำคัญที่สุดคือฟังก์ชันนี้ตั้งค่า editingId ของ "หน้านี้เอง" ให้ถูกต้องเสมอ */
+        function loadEditDataIntoForm() {
+
+            const oldData = JSON.parse(localStorage.getItem("editData"));
+
+            if (!oldData) {
+                alert("ไม่พบข้อมูลที่ต้องการแก้ไข");
+                return;
+            }
+
+            editingId = oldData.id;
+            loadedRecordData = oldData; // เก็บข้อมูลเดิมของรายการที่กำลังแก้ไขไว้ใช้อ้างอิง
+
+            // เพิ่มใหม่: โหลด id ของรายการในรายงานการเงิน (ถ้าเคยสร้างไว้แล้ว) เพื่อให้บันทึกซ้ำ
+            // ครั้งนี้ไปอัปเดตรายการเดิม ไม่สร้างรายการซ้อนใหม่ในรายงานการเงิน
+            installment1PaymentRecordId = oldData.installment1PaymentRecordId || null;
+
+            document.getElementById("company").value = oldData.company || "";
+            document.getElementById("requestName").value = oldData.requestName || "";
+            document.getElementById("name").value = oldData.customer || "";
+            document.getElementById("phone").value = oldData.phone || "";
+            document.getElementById("address").value = oldData.address || "";
+
+            document.getElementById("brand").value = oldData.brand || "";
+            document.getElementById("plate").value = oldData.plate || "";
+            document.getElementById("chassis").value = oldData.chassis || "";
+
+            const startVal = toDisplayDate(oldData.start);
+            const endVal = toDisplayDate(oldData.end);
+
+            // ใช้ setDate ของ flatpickr แทนการเซ็ต .value ตรงๆ เพื่อ sync ปฏิทินให้ตรงกับค่าจริงด้วย
+            if (startPicker) startPicker.setDate(startVal, true, "d/m/Y");
+            else document.getElementById("start").value = startVal;
+
+            if (endPicker) endPicker.setDate(endVal, true, "d/m/Y");
+            else document.getElementById("end").value = endVal;
+
+            document.getElementById("sumInsured").value = oldData.sumInsured || "";
+            document.getElementById("total").value = oldData.total || "";
+            setGroupValue(oldData.group || "");
+
+            if (oldData.installmentCount) {
+                const radio = document.getElementById("installmentCount" + oldData.installmentCount);
+                if (radio) radio.checked = true;
+            }
+
+            // แก้ไข: งวดที่ 1 ตอนนี้มาจากส่วน "3️⃣ บันทึกการชำระเงิน" แทนช่องกรอกตัวเลขแบบเดิม
+            // ถ้ารายการเดิมเคยบันทึกงวดที่ 1 ไว้แล้ว (มีวิธีชำระเงินที่รู้จัก) ให้เติมข้อมูลกลับเข้าฟอร์มให้อัตโนมัติ
+            if (oldData.installment1Method) {
+                selectPayMethod(oldData.installment1Method);
+                setTimeout(() => {
+                    const amountEl = document.getElementById("pay_amount");
+                    if (amountEl) amountEl.value = oldData.installment1 || "";
+
+                    if (payDatePicker && oldData.installment1Date) {
+                        payDatePicker.setDate(oldData.installment1Date, true, "d/m/Y");
+                    }
+
+                    // เพิ่มใหม่: เติมชั่วโมง/นาทีที่เคยบันทึกไว้กลับเข้าฟอร์ม (เดิมช่องนี้ไม่เคยถูกเติมตอนโหลดแก้ไข)
+                    if (oldData.installment1Time) {
+                        const [savedHour, savedMinute] = String(oldData.installment1Time).split(":");
+                        const hourInputEl = document.getElementById("pay_hour_input");
+                        const minuteInputEl = document.getElementById("pay_minute_input");
+                        if (hourInputEl && savedHour) hourInputEl.value = savedHour.padStart(2, "0");
+                        if (minuteInputEl && savedMinute) minuteInputEl.value = savedMinute.padStart(2, "0");
+                    }
+
+                    if (oldData.installment1Account) {
+                        const radio = document.querySelector(`input[name="pay_tf_account"][value="${oldData.installment1Account}"]`);
+                        if (radio) {
+                            radio.checked = true;
+                        } else {
+                            const otherRadio = document.querySelector('input[name="pay_tf_account"][value="อื่นๆ"]');
+                            if (otherRadio) {
+                                otherRadio.checked = true;
+                                onPayTransferAccountChange();
+                                const otherInput = document.getElementById("pay_tf_account_other");
+                                if (otherInput) otherInput.value = oldData.installment1Account;
+                            }
+                        }
+                    }
+
+                    const bankEl = document.getElementById("pay_bank");
+                    if (bankEl) bankEl.value = oldData.installment1Bank || "";
+
+                    const checkNoEl = document.getElementById("pay_checkNo");
+                    if (checkNoEl) checkNoEl.value = oldData.installment1CheckNo || "";
+
+                    const payeeEl = document.getElementById("pay_payee");
+                    if (payeeEl) payeeEl.value = oldData.installment1Payee || "";
+
+                    const noteEl = document.getElementById("pay_note");
+                    if (noteEl) noteEl.value = oldData.installment1Note || "";
+                }, 50);
+            }
+
+            // ใช้กฎล็อกกลุ่มสินค้าตามบริษัทของข้อมูลเดิมที่โหลดมา
+            // preserveValue: true เพื่อไม่ให้ทับค่ากลุ่มสินค้าจริงของลูกค้าที่โหลดมา (setGroupValue ด้านบน)
+            applyGroupLockForCompany({ preserveValue: true });
+        }
+ 
+        window.addEventListener("DOMContentLoaded", function(){
+ 
+    const currentUser = localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser');
+    if (currentUser) {
+        document.getElementById("requestName").value = currentUser;
+    }
+ 
+    // แก้ไข: เดิมมีโค้ดเติมข้อมูลซ้ำอยู่ตรงนี้ทั้งก้อน รวมเป็นฟังก์ชันเดียวคือ
+    // loadEditDataIntoForm() แล้วเรียกใช้ที่นี่แทน (เฉพาะกรณีมีข้อมูลที่ต้องแก้ไขจริง)
+    if (localStorage.getItem("editData")) {
+        loadEditDataIntoForm();
+    } else {
+        // ไม่ได้มาจากหน้าแก้ไข: ยังคงต้องเช็คกฎล็อกกลุ่มสินค้าตามบริษัทที่เลือกอยู่ (ถ้ามี)
+        applyGroupLockForCompany();
+    }
+ 
+},500);
+    </script>
+    
+    
+ 
+</body>
+ 
+</html>

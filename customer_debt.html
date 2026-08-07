@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+
+<title>ลูกหนี้</title>
+
+
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css">
+
+<!-- บังคับให้ต้อง login ก่อนเข้าใช้งานหน้านี้ -->
+<script src="auth.js"></script>
+<script>
+    requireLogin();
+</script>
+
+
+<style>
+
+:root{
+    --navy:#152A54;
+    --blue:#2F6FED;
+    --blue-dark:#1E4FC4;
+    --blue-light:#EAF1FF;
+    --bg:#F3F6FC;
+    --surface:#FFFFFF;
+    --border:#E4EAF5;
+    --text-soft:#6B7A99;
+
+    --coral:#FF8A65;
+    --mint:#2FBF9B;
+    --sky:#3E7BFA;
+
+    --red:#d22812;
+    --red-soft:#FFEBEA;
+    --green:#1A9C4B;
+    --green-soft:#EAFBF1;
+    --orange:#F08A1E;
+    --orange-soft:#FFF3E2;
+
+    /* เพิ่มใหม่: สีแถวตารางที่ผู้ใช้ปรับเองได้ผ่านแผงเลือกสี (ดูปุ่ม 🎨 เลือกสี)
+       ปรับสีเองได้ 3 สถานะ: เกิน 4 งวด / ระหว่างชำระ / จ่ายครบ
+       ส่วน "เกินกำหนด" เป็นสีแดงกระพริบตายตัวเท่านั้น (ดู .row-overdue ด้านล่าง) */
+    --row-carryover-bg:#EA580C;
+    --row-normal-bg:#15A876;
+    --row-paid-bg:#2F6FED;
+}
+
+*{
+    box-sizing:border-box;
+}
+
+html, body{
+    max-width:100%;
+    overflow-x:hidden;
+}
+
+body{
+    font-family:"Kanit",sans-serif;
+    background:var(--bg);
+    padding:18px 12px 40px;
+}
+
+.debt-wrap{
+    max-width:1300px;
+    width:100%;
+    margin:0 auto;
+    overflow-x:hidden;
+}
+
+.debt-card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:24px;
+    box-shadow:0 14px 34px rgba(21,42,84,.10);
+    padding:20px 18px 26px;
+    max-width:100%;
+    overflow-x:hidden;
+}
+
+h1{
+    text-align:center;
+    color:var(--navy);
+    font-size:clamp(19px, 4.5vw, 25px);
+    font-weight:700;
+    margin-bottom:14px;
+}
+
+.debt-subtitle{
+    text-align:center;
+    color:var(--text-soft);
+    font-size:12.5px;
+    line-height:1.6;
+    margin:2px 0 4px;
+}
+
+/* =========================
+   แถวบน: ปุ่มกลับ (ซ้าย) + ยอดลูกหนี้รวม (ขวา)
+========================= */
+.debt-top-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-bottom:14px;
+}
+
+.debt-total{
+    font-size:15px;
+    font-weight:700;
+    color:var(--navy);
+    background:var(--blue-light);
+    padding:11px 18px;
+    border-radius:999px;
+    box-shadow:0 6px 16px rgba(21,42,84,.08);
+    white-space:nowrap;
+}
+
+@media(max-width:480px){
+    .debt-top-row{
+        justify-content:center;
+    }
+    .nav-back-btn, .debt-total{
+        flex:1 1 100%;
+        text-align:center;
+        justify-content:center;
+    }
+    .debt-total{ order:2; }
+}
+
+/* =========================
+   แถบตัวกรอง
+========================= */
+.debt-filter-row{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:10px;
+
+    margin-bottom:16px;
+
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:14px;
+}
+
+.debt-filter-row span{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    min-width:0;
+}
+
+.debt-filter-row label{
+    font-size:11px;
+    font-weight:600;
+    color:var(--navy);
+    white-space:nowrap;
+}
+
+.debt-filter-row select{
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    box-sizing:border-box;
+    padding:9px 8px;
+    border-radius:10px;
+    border:1.5px solid var(--border);
+    background:var(--surface);
+    font-family:"Kanit",sans-serif;
+    font-size:12.5px;
+    color:var(--navy);
+    min-height:38px;
+}
+
+.debt-filter-row select:focus{
+    outline:none;
+    border-color:var(--blue);
+}
+
+.debt-filter-hint{
+    grid-column:1 / -1;
+    text-align:center;
+    font-size:11px;
+    color:var(--text-soft);
+    margin-top:2px;
+}
+
+@media(max-width:600px){
+    .debt-filter-row{
+        grid-template-columns:repeat(2, 1fr);
+        gap:8px;
+        padding:12px;
+    }
+}
+
+@media(max-width:380px){
+    .debt-filter-row{
+        grid-template-columns:1fr;
+    }
+}
+
+/* =========================
+   ตารางลูกหนี้ (เลื่อนได้ทั้งแนวตั้ง-แนวนอน ยกเว้นคอลัมน์ "จัดการ" ที่ fix ไว้ขวา)
+========================= */
+.debt-empty{
+    text-align:center;
+    color:var(--text-soft);
+    padding:40px 10px;
+    font-size:14px;
+}
+
+.debt-table-outer{
+    width:100%;
+    max-width:100%;
+    max-height:74vh;
+    overflow:auto;
+    border:1.5px solid var(--border);
+    border-radius:18px;
+    background:var(--surface);
+    -webkit-overflow-scrolling:touch;
+}
+
+.debt-table{
+    border-collapse:separate;
+    border-spacing:0;
+    width:max-content;
+    font-size:12.5px;
+}
+
+.debt-table th,
+.debt-table td{
+    padding:8px 10px;
+    white-space:nowrap;
+    text-align:center;
+    border-bottom:1px solid var(--border);
+    vertical-align:middle;
+}
+
+.debt-table thead th{
+    position:sticky;
+    top:0;
+    background:var(--navy);
+    color:#fff;
+    font-size:11.5px;
+    font-weight:700;
+    z-index:3;
+    white-space:nowrap;
+}
+
+/* เกินกำหนด: พื้นหลังแดงกระพริบ ตัวอักษรขาว (ด่วนที่สุด) */
+.debt-table tbody tr.row-overdue{
+    animation:debtRowBlinkRed 1s ease-in-out infinite;
+    color:#fff;
+}
+
+/* เพิ่มใหม่: เกิน 4 งวด "และ" เกินกำหนดพร้อมกัน — ส้มกระพริบ ตัวอักษรขาว
+   (แยกจากเกินกำหนดธรรมดาที่เป็นแดงกระพริบ และแยกจากเกิน 4 งวดธรรมดาที่เป็นส้มทึบไม่กระพริบ) */
+.debt-table tbody tr.row-carryover-overdue{
+    animation:debtRowBlinkOrange 1s ease-in-out infinite;
+    color:#fff;
+}
+
+/* เกิน 4 งวด (แต่ยังไม่เกินกำหนด): ส้มเข้มทึบ ไม่กระพริบ ตัวอักษรขาว (เตือนไว้ก่อน เบากว่าเกินกำหนด) */
+.debt-table tbody tr.row-carryover{
+    background:var(--row-carryover-bg);
+    color:#fff;
+}
+
+.debt-table tbody tr.row-overdue td,
+.debt-table tbody tr.row-carryover-overdue td,
+.debt-table tbody tr.row-carryover td{
+    color:#fff !important;
+}
+
+.debt-table tbody tr.row-overdue td .table-input,
+.debt-table tbody tr.row-carryover-overdue td .table-input,
+.debt-table tbody tr.row-carryover td .table-input,
+.debt-table tbody tr.row-overdue td.col-overdue,
+.debt-table tbody tr.row-carryover-overdue td.col-overdue,
+.debt-table tbody tr.row-carryover td.col-overdue,
+.debt-table tbody tr.row-overdue td.col-debt,
+.debt-table tbody tr.row-carryover-overdue td.col-debt,
+.debt-table tbody tr.row-carryover td.col-debt{
+    color:#fff !important;
+}
+
+@keyframes debtRowBlinkRed{
+    0%,100%{ background:#DC2626; }
+    50%{ background:#8A1414; }
+}
+
+/* เพิ่มใหม่: กระพริบส้ม ใช้สีส้มที่ตั้งไว้ (ปรับได้ผ่านปุ่ม 🎨) สลับกับส้มเข้มจัดสำหรับจังหวะกระพริบ */
+@keyframes debtRowBlinkOrange{
+    0%,100%{ background:var(--row-carryover-bg); }
+    50%{ background:#7C2D12; }
+}
+
+/* ระหว่างชำระ: เขียวสด / จ่ายครบ: ฟ้าสด — ตัวอักษรสีขาวเหมือนกับแถวแดงกระพริบ */
+.debt-table tbody tr.row-normal,
+.debt-table tbody tr.row-paid{
+    color:#fff;
+}
+
+.debt-table tbody tr.row-normal td,
+.debt-table tbody tr.row-paid td{
+    color:#fff !important;
+}
+
+.debt-table tbody tr.row-normal td .table-input,
+.debt-table tbody tr.row-paid td .table-input,
+.debt-table tbody tr.row-normal td.col-overdue,
+.debt-table tbody tr.row-paid td.col-overdue,
+.debt-table tbody tr.row-normal td.col-debt,
+.debt-table tbody tr.row-paid td.col-debt{
+    color:#fff !important;
+}
+
+.debt-table tbody tr.row-normal{ background:var(--row-normal-bg); }
+.debt-table tbody tr.row-paid{ background:var(--row-paid-bg); }
+
+.debt-table td.col-rank{
+    font-weight:700;
+    color:var(--navy);
+}
+
+.debt-table td.col-name{
+    text-align:left;
+}
+
+/* เพิ่มใหม่: ลดความกว้าง/ระยะห่างเฉพาะคอลัมน์ "ทะเบียน" ให้แคบลง ชิดกับคอลัมน์ข้างๆ มากขึ้น
+   (ไม่กระทบคอลัมน์อื่น) */
+.debt-table th.col-plate,
+.debt-table td.col-plate{
+    padding-left:4px;
+    padding-right:4px;
+}
+
+.col-plate .table-input{
+    min-width:44px;
+}
+
+.debt-table td.col-overdue,
+.debt-table td.col-debt{
+    color:var(--red);
+    font-weight:700;
+}
+
+.carryover-tag{
+    display:inline-block;
+    margin-left:6px;
+    padding:2px 8px;
+    border-radius:999px;
+    background:var(--orange);
+    color:#fff;
+    font-size:10px;
+    font-weight:700;
+    white-space:nowrap;
+    vertical-align:middle;
+}
+
+.table-input{
+    border:1.5px solid transparent;
+    border-radius:8px;
+    background:transparent;
+    font-family:"Kanit",sans-serif;
+    color:var(--navy);
+    padding:4px 5px;
+    font-size:12.5px;
+    text-align:center;
+    width:100%;
+    min-width:60px;
+}
+
+.col-name .table-input{
+    text-align:left;
+    font-weight:700;
+    min-width:92px;
+}
+
+.table-input:disabled{ color:var(--navy); }
+
+.table-input:not(:disabled){
+    background:#fffef0;
+    border-color:#ffb648;
+}
+
+.table-input:not(:disabled):focus{
+    outline:none;
+    border-color:var(--blue);
+    box-shadow:0 0 0 3px var(--blue-light);
+}
+
+/* คอลัมน์ "จัดการ" fix ไว้ไม่เลื่อนตาม */
+.col-actions{
+    position:sticky;
+    right:0;
+    z-index:2;
+    background:inherit;
+    box-shadow:-6px 0 10px rgba(21,42,84,.10);
+}
+
+thead th.col-actions{
+    z-index:4;
+    background:var(--navy);
+    box-shadow:-6px 0 10px rgba(0,0,0,.18);
+}
+
+.table-actions{
+    display:flex;
+    gap:4px;
+    justify-content:center;
+}
+
+.table-actions button{
+    border:none;
+    border-radius:8px;
+    width:26px;
+    height:26px;
+    font-size:12px;
+    cursor:pointer;
+    transition:.15s;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex:0 0 auto;
+}
+
+.table-actions button:active{ transform:scale(.9); }
+
+.tbl-pay-btn{ background:var(--mint); color:#fff; }
+.tbl-edit-btn{ background:#ffc000; color:#5b3d00; }
+.tbl-save-btn{ background:#198754; color:#fff; }
+.tbl-delete-btn{ background:#dc3545; color:#fff; }
+
+.debt-table td.col-extra-inst{ border-left:2px solid var(--orange); }
+
+/* จอมือถือ: บีบให้แน่นขึ้นอีก เพื่อให้เห็นคอลัมน์ "ชื่อ" โดยไม่ต้องเลื่อนมาก */
+@media(max-width:600px){
+    .debt-table{
+        font-size:11.5px;
+    }
+    .debt-table th,
+    .debt-table td{
+        padding:6px 7px;
+    }
+    .debt-table thead th{
+        font-size:10.5px;
+    }
+    .table-input{
+        min-width:46px;
+        padding:3px 4px;
+        font-size:11.5px;
+    }
+    .col-name .table-input{
+        min-width:72px;
+    }
+    .debt-table th.col-plate,
+    .debt-table td.col-plate{
+        padding-left:3px;
+        padding-right:3px;
+    }
+    .col-plate .table-input{
+        min-width:38px;
+    }
+    .table-actions{
+        gap:3px;
+    }
+    .table-actions button{
+        width:22px;
+        height:22px;
+        font-size:10.5px;
+        border-radius:6px;
+    }
+}
+
+/* =========================
+   แผงเลือกสี (เพิ่มใหม่)
+========================= */
+.color-picker-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+
+    background:var(--surface);
+    color:var(--navy);
+
+    border:1.5px solid var(--border);
+    padding:10px 18px;
+    border-radius:999px;
+
+    font-family:"Kanit",sans-serif;
+    font-weight:600;
+    font-size:14px;
+    white-space:nowrap;
+
+    cursor:pointer;
+    transition:.2s;
+}
+
+.color-picker-btn:hover{
+    background:var(--blue-light);
+}
+
+.color-picker-panel{
+    display:none;
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:14px;
+    margin-bottom:16px;
+}
+
+.color-picker-panel.show{
+    display:block;
+}
+
+.color-picker-grid{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:12px;
+}
+
+@media(max-width:600px){
+    .color-picker-grid{
+        grid-template-columns:repeat(2, 1fr);
+    }
+}
+
+.color-picker-item{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:10px;
+}
+
+.color-picker-item input[type="color"]{
+    width:38px;
+    height:38px;
+    border:none;
+    border-radius:8px;
+    padding:0;
+    cursor:pointer;
+    background:none;
+    flex:0 0 auto;
+}
+
+.color-picker-item label{
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--navy);
+    line-height:1.3;
+}
+
+.color-picker-actions{
+    display:flex;
+    justify-content:flex-end;
+    margin-top:12px;
+}
+
+.color-picker-reset{
+    background:none;
+    border:none;
+    color:var(--blue-dark);
+    font-family:"Kanit",sans-serif;
+    font-size:12.5px;
+    font-weight:600;
+    text-decoration:underline;
+    cursor:pointer;
+}
+
+/* toast */
+.debt-toast{
+    position:fixed;
+    left:50%;
+    top:50%;
+    transform:translate(-50%, -50%) scale(.95);
+    background:#152A54;
+    color:#fff;
+    padding:16px 28px;
+    border-radius:16px;
+    font-family:"Kanit",sans-serif;
+    font-size:15px;
+    font-weight:600;
+    box-shadow:0 16px 40px rgba(21,42,84,.32);
+    opacity:0;
+    z-index:99999;
+    pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease;
+    text-align:center;
+    max-width:80vw;
+}
+
+.debt-toast.show{
+    opacity:1;
+    transform:translate(-50%, -50%) scale(1);
+}
+
+</style>
+
+
+</head>
+
+
+
+<body>
+
+
+<div class="debt-wrap">
+<div class="debt-card">
+
+
+<h1>
+💰 รายงานลูกหนี้
+</h1>
+
+<div class="debt-subtitle">
+    🟥 เกินกำหนด 🟧 ไม่เกินกำหนดแต่ เกิน 4 งวด 🟩 ระหว่างชำระ 🟦 จ่ายครบ <br> 💵 จ่ายงวด ✏️แก้ไข 💾บันทึก 🗑️ลบ
+    <br>⏳ กำลังโหลดข้อมูล... กรุณาอย่ากดรีเฟรชซ้ำ
+</div>
+
+
+<div class="debt-top-row">
+    <button class="nav-back-btn" onclick="location.href='account_menu.html'">
+        ← กลับเมนูบัญชี
+    </button>
+
+
+
+    <div class="debt-total" id="debtTotal"></div>
+</div>
+
+<!-- แผงเลือกสีแถวตาราง (เพิ่มใหม่)
+     หมายเหตุ: "เกินกำหนด" เป็นสีแดงกระพริบตายตัวเสมอ (เพื่อเน้นความเร่งด่วนที่สุด) จึงปรับสีเองไม่ได้
+     ส่วน "เกิน 4 งวด" / "ระหว่างชำระ" / "จ่ายครบ" ปรับสีเองได้ -->
+<div class="color-picker-panel" id="colorPickerPanel">
+    <div class="color-picker-grid">
+
+        <div class="color-picker-item">
+            <input type="color" id="colorPickCarryover">
+            <label>🟧 เกิน 4 งวด</label>
+        </div>
+
+        <div class="color-picker-item">
+            <input type="color" id="colorPickNormal">
+            <label>🟩 ระหว่างชำระ</label>
+        </div>
+
+        <div class="color-picker-item">
+            <input type="color" id="colorPickPaid">
+            <label>🟦 จ่ายครบ</label>
+        </div>
+
+    </div>
+
+    <div class="color-picker-actions">
+        <button type="button" class="color-picker-reset" id="colorPickerResetBtn">
+            ↺ คืนค่าสีเริ่มต้น
+        </button>
+    </div>
+</div>
+
+<!-- แถบตัวกรอง วัน/เดือน/ปี/พนักงาน -->
+<div class="debt-filter-row">
+
+    <span>
+        <label for="debtFilterDay">📆 เลือกวัน</label>
+        <select id="debtFilterDay"></select>
+    </span>
+
+    <span>
+        <label for="debtFilterMonth">📅 เลือกเดือน</label>
+        <select id="debtFilterMonth"></select>
+    </span>
+
+    <span>
+        <label for="debtFilterYear">🗓️ เลือกปี</label>
+        <select id="debtFilterYear"></select>
+    </span>
+
+    <span>
+        <label for="debtFilterEmployee">👤 เลือกพนักงาน</label>
+        <select id="debtFilterEmployee"></select>
+    </span>
+
+</div>
+
+<!-- ตารางลูกหนี้: เลื่อนได้ทั้งแนวตั้ง-แนวนอน ยกเว้นคอลัมน์ "จัดการ" ที่ fix ไว้ -->
+<div class="debt-table-outer">
+    <table class="debt-table">
+        <thead>
+            <tr id="debtTableHead"></tr>
+        </thead>
+        <tbody id="debtTableBody"></tbody>
+    </table>
+</div>
+
+</div>
+</div>
+
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+import {
+    getFirestore,
+    collection,
+    onSnapshot,
+    doc,
+    setDoc,
+    deleteDoc
+} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+/* ตั้งค่าเดียวกับ script.js / report.html เพื่ออ่าน/เขียน collection "insuranceData" เดียวกัน */
+const firebaseConfig = {
+  apiKey: "AIzaSyCNpaYlwrkJhBA-8tAax022PWWFYMRz7Kw",
+  authDomain: "insurance-system-f26b0.firebaseapp.com",
+  projectId: "insurance-system-f26b0",
+  storageBucket: "insurance-system-f26b0.firebasestorage.app",
+  messagingSenderId: "438698153100",
+  appId: "1:438698153100:web:a553b97b59701883f057a9",
+  measurementId: "G-XXWCQEMT0B"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+
+/* =========================================================
+   แผงเลือกสีแถวตาราง (เพิ่มใหม่)
+   บันทึกสีที่ผู้ใช้เลือกไว้ใน localStorage ของเครื่องนี้ (เฉพาะเบราว์เซอร์นี้)
+   ค่าเริ่มต้นคือสีเดิมของระบบทุกประการ กด "คืนค่าสีเริ่มต้น" เพื่อล้างกลับไปใช้ค่าเดิมได้ทุกเมื่อ
+========================================================= */
+const DEBT_COLOR_KEY = "debtRowColors_v1";
+
+const DEBT_COLOR_FIELDS = {
+    carryover: { varName: "--row-carryover-bg", inputId: "colorPickCarryover", fallback: "#EA580C" },
+    normal:    { varName: "--row-normal-bg",    inputId: "colorPickNormal",   fallback: "#15A876" },
+    paid:      { varName: "--row-paid-bg",      inputId: "colorPickPaid",    fallback: "#2F6FED" }
+};
+
+function loadDebtColors(){
+    try{
+        const raw = localStorage.getItem(DEBT_COLOR_KEY);
+        return raw ? JSON.parse(raw) : {};
+    }catch(e){
+        return {};
+    }
+}
+
+function saveDebtColors(colors){
+    try{
+        localStorage.setItem(DEBT_COLOR_KEY, JSON.stringify(colors));
+    }catch(e){
+        /* localStorage ใช้งานไม่ได้ ข้ามไป ไม่กระทบการแสดงผลหลัก */
+    }
+}
+
+/* อ่านค่าสีปัจจุบันที่ประกาศไว้จริงบนหน้าเว็บ (รองรับ fallback ถ้าไม่เคยตั้งค่าไว้เลย) */
+function getComputedColorHex(varName, fallback){
+    const value = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+    return value || fallback;
+}
+
+function applyDebtColors(colors){
+    Object.entries(DEBT_COLOR_FIELDS).forEach(([key, field]) => {
+        const hex = colors[key];
+        if(hex){
+            document.documentElement.style.setProperty(field.varName, hex);
+        }
+        const input = document.getElementById(field.inputId);
+        if(input){
+            input.value = hex || getComputedColorHex(field.varName, field.fallback);
+        }
+    });
+}
+
+function initColorPicker(){
+
+    const toggleBtn = document.getElementById("colorPickerToggleBtn");
+    const panel = document.getElementById("colorPickerPanel");
+    const resetBtn = document.getElementById("colorPickerResetBtn");
+
+    if(!toggleBtn || !panel) return;
+
+    // แสดงสีปัจจุบัน (ที่เคยบันทึกไว้ หรือค่าเริ่มต้น) ลงในช่องเลือกสีทันทีที่หน้าโหลด
+    applyDebtColors(loadDebtColors());
+
+    toggleBtn.addEventListener("click", () => {
+        panel.classList.toggle("show");
+    });
+
+    Object.entries(DEBT_COLOR_FIELDS).forEach(([key, field]) => {
+        const input = document.getElementById(field.inputId);
+        if(!input) return;
+
+        input.addEventListener("input", () => {
+            document.documentElement.style.setProperty(field.varName, input.value);
+
+            const colors = loadDebtColors();
+            colors[key] = input.value;
+            saveDebtColors(colors);
+        });
+    });
+
+    if(resetBtn){
+        resetBtn.addEventListener("click", () => {
+            Object.values(DEBT_COLOR_FIELDS).forEach(field => {
+                document.documentElement.style.removeProperty(field.varName);
+            });
+            saveDebtColors({});
+            applyDebtColors({});
+        });
+    }
+}
+
+initColorPicker();
+
+/* =========================================================
+   ตัวกรอง วัน / เดือน / ปี / พนักงาน
+========================================================= */
+const THAI_MONTHS = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน",
+    "กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+
+let debtFiltersInitialized = false;
+
+function parseDebtDate(dateStr){
+
+    if(!dateStr) return { day:null, month:null, year:null };
+
+    const s = String(dateStr).trim();
+    let day, month, year;
+
+    let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{3,4})$/);
+    if(m){
+        day = parseInt(m[1],10);
+        month = parseInt(m[2],10);
+        year = parseInt(m[3],10);
+    } else {
+        m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+        if(m){
+            year = parseInt(m[1],10);
+            month = parseInt(m[2],10);
+            day = parseInt(m[3],10);
+        } else {
+            return { day:null, month:null, year:null };
+        }
+    }
+
+    if(isNaN(month) || month < 1 || month > 12) return { day:null, month:null, year:null };
+    if(isNaN(year)) return { day:null, month:null, year:null };
+
+    if(year < 2400) year += 543;
+
+    if(isNaN(day) || day < 1 || day > 31){
+        return { day:null, month:String(month).padStart(2,"0"), year:String(year) };
+    }
+
+    return { day:String(day).padStart(2,"0"), month:String(month).padStart(2,"0"), year:String(year) };
+}
+
+function populateDebtFilters(data){
+
+    const daySel = document.getElementById("debtFilterDay");
+    const monthSel = document.getElementById("debtFilterMonth");
+    const yearSel = document.getElementById("debtFilterYear");
+    const empSel = document.getElementById("debtFilterEmployee");
+
+    if(!daySel || !monthSel || !yearSel || !empSel) return;
+
+    const prevDay = daySel.value || "all";
+    const prevMonth = monthSel.value || "all";
+    const prevYear = yearSel.value || "all";
+    const prevEmployee = empSel.value || "all";
+
+    let dayOpts = `<option value="all">ทั้งหมด</option>`;
+    for(let d = 1; d <= 31; d++){
+        const key = String(d).padStart(2,"0");
+        dayOpts += `<option value="${key}">${d}</option>`;
+    }
+    daySel.innerHTML = dayOpts;
+
+    let monthOpts = `<option value="all">ทั้งหมด</option>`;
+    THAI_MONTHS.forEach((name,i)=>{
+        const key = String(i+1).padStart(2,"0");
+        monthOpts += `<option value="${key}">${name}</option>`;
+    });
+    monthSel.innerHTML = monthOpts;
+
+    const yearsSet = new Set();
+    data.forEach(item=>{
+        const parsed = parseDebtDate(item.start);
+        if(parsed.year) yearsSet.add(parsed.year);
+    });
+    const nowBEYear = String(new Date().getFullYear() + 543);
+    yearsSet.add(nowBEYear);
+    const years = [...yearsSet].sort();
+    yearSel.innerHTML = `<option value="all">ทั้งหมด</option>` +
+        years.map(y=>`<option value="${y}">${y}</option>`).join("");
+
+    const employeesSet = new Set();
+    data.forEach(item=>{
+        const name = item.employeeName || item.requestName;
+        if(name) employeesSet.add(name);
+    });
+    const employees = [...employeesSet].sort();
+    empSel.innerHTML = `<option value="all">ทั้งหมด</option>` +
+        employees.map(e=>`<option value="${e}">${e}</option>`).join("");
+
+    daySel.value = [...daySel.options].some(o=>o.value===prevDay) ? prevDay : "all";
+    monthSel.value = [...monthSel.options].some(o=>o.value===prevMonth) ? prevMonth : "all";
+    yearSel.value = years.includes(prevYear) ? prevYear : "all";
+    empSel.value = employees.includes(prevEmployee) ? prevEmployee : "all";
+
+    if(!debtFiltersInitialized){
+
+        debtFiltersInitialized = true;
+
+        const now = new Date();
+        const curDay = String(now.getDate()).padStart(2,"0");
+        const curMonth = String(now.getMonth()+1).padStart(2,"0");
+        const curYear = String(now.getFullYear() + 543);
+
+        if([...daySel.options].some(o=>o.value===curDay)) daySel.value = curDay;
+        if([...monthSel.options].some(o=>o.value===curMonth)) monthSel.value = curMonth;
+        if(years.includes(curYear)) yearSel.value = curYear;
+
+        /* เพิ่มใหม่: ค่าเริ่มต้นของตัวกรอง "พนักงาน" ให้เป็นชื่อผู้ที่ล็อกอินอยู่ก่อนเสมอ
+           (แสดงเฉพาะลูกหนี้ของตัวเองก่อน) พนักงานสามารถเปลี่ยนกลับเป็น "ทั้งหมด" เองได้ทีหลัง
+           ถ้าต้องการเห็นลูกหนี้ของทุกคน ไม่กระทบลูกค้าที่ "เกินกำหนด" เพราะแถวเกินกำหนดจะแสดง
+           เสมอไม่ว่าจะเลือกตัวกรองพนักงานเป็นใครก็ตาม (ดู renderDebt ด้านล่าง) */
+        const loggedInName = (typeof getEmployeeName === "function") ? getEmployeeName() : "";
+        if(loggedInName && employees.includes(loggedInName)){
+            empSel.value = loggedInName;
+        }
+    }
+}
+
+function calculateOverdue(date){
+
+    if(!date) return 0;
+
+    let parts = date.split("/");
+    let due;
+
+    if(parts.length === 3){
+        due = new Date(Number(parts[2]), Number(parts[1])-1, Number(parts[0]));
+    } else {
+        due = new Date(date);
+    }
+
+    let today = new Date();
+    today.setHours(0,0,0,0);
+    due.setHours(0,0,0,0);
+
+    let diff = today - due;
+    let days = Math.floor(diff / (1000*60*60*24));
+
+    return days > 0 ? days : 0;
+}
+
+function getMaxInstallmentCount(data){
+
+    let max = 4;
+
+    data.forEach(item=>{
+        Object.keys(item).forEach(key=>{
+            const m = key.match(/^installment(\d+)$/);
+            if(m){
+                const n = parseInt(m[1], 10);
+                if(n > max) max = n;
+            }
+        });
+    });
+
+    let needMore = true;
+
+    while(needMore){
+
+        needMore = false;
+
+        data.forEach(item=>{
+
+            const total = Number(item.total || 0);
+
+            let paid = 0;
+            for(let i = 1; i <= max; i++){
+                paid += Number(item["installment" + i] || 0);
+            }
+
+            const debtAmount = total - paid;
+
+            const lastVal = item["installment" + max];
+            const lastFilled = lastVal !== undefined && lastVal !== null && String(lastVal).trim() !== "";
+
+            if(debtAmount > 0 && lastFilled){
+                needMore = true;
+            }
+
+        });
+
+        if(needMore) max++;
+
+    }
+
+    return max;
+}
+
+function fmtMoney(n){
+    return Number(n||0).toLocaleString();
+}
+
+function safeVal(v){
+    return (v === undefined || v === null) ? "" : v;
+}
+
+/* เพิ่มใหม่: แปลงวันที่ให้แสดงเป็น พ.ศ. ไทยเสมอ (DD/MM/YYYY+543)
+   รองรับทั้งรูปแบบ ISO "YYYY-MM-DD" (ที่มาจาก <input type="date"> ตอนกรอกฟอร์ม)
+   และรูปแบบ "DD/MM/YYYY" ที่อาจเป็น ค.ศ. หรือ พ.ศ. อยู่แล้ว (ถ้าเป็น พ.ศ. อยู่แล้วจะไม่บวกซ้ำ) */
+function formatThaiDate(v){
+
+    if(!v) return "";
+
+    const s = String(v).trim();
+
+    let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if(m){
+        const yyyy = Number(m[1]) + 543;
+        const mm = m[2].padStart(2,"0");
+        const dd = m[3].padStart(2,"0");
+        return `${dd}/${mm}/${yyyy}`;
+    }
+
+    m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{3,4})$/);
+    if(m){
+        const dd = m[1].padStart(2,"0");
+        const mm = m[2].padStart(2,"0");
+        let yyyy = Number(m[3]);
+        if(yyyy < 2400) yyyy += 543;
+        return `${dd}/${mm}/${yyyy}`;
+    }
+
+    return s;
+}
+
+/* =========================================================
+   RENDER: การ์ดลูกหนี้ (แนวตั้ง อ่านง่ายในมือถือ ไม่มีเลื่อนซ้าย-ขวา)
+========================================================= */
+function renderDebt(data, maxInstallments){
+
+    let debt = data;
+
+    debt.forEach(item=>{
+
+        let total = Number(item.total || 0);
+
+        let paid = 0;
+        for(let i = 1; i <= maxInstallments; i++){
+            paid += Number(item["installment" + i] || 0);
+        }
+
+        item.debtAmount = total - paid;
+        item.overdue = calculateOverdue(item.end);
+    });
+
+    const selDay = document.getElementById("debtFilterDay")?.value || "all";
+    const selMonth = document.getElementById("debtFilterMonth")?.value || "all";
+    const selYear = document.getElementById("debtFilterYear")?.value || "all";
+    const selEmployee = document.getElementById("debtFilterEmployee")?.value || "all";
+
+    debt = debt.filter(item=>{
+
+        const parsed = parseDebtDate(item.start);
+
+        const dayOK = selDay === "all" || parsed.day === selDay;
+        const monthOK = selMonth === "all" || parsed.month === selMonth;
+        const yearOK = selYear === "all" || parsed.year === selYear;
+
+        const dateOK = dayOK && monthOK && yearOK;
+
+        const empName = item.employeeName || item.requestName || "";
+        const employeeOK = selEmployee === "all" || empName === selEmployee;
+
+        /* แก้ไข: เดิมลูกค้า "เกินกำหนด" ข้ามได้แค่ตัวกรองวันที่ (dateOK) เท่านั้น แต่ยังโดน
+           ตัวกรองพนักงาน (employeeOK) กรองออกอยู่ดี ทำให้ถ้าเลือกดูของพนักงานคนใดคนหนึ่ง
+           ลูกค้าเกินกำหนดของพนักงานคนอื่นจะหายไปจากตาราง ทั้งที่ควรเห็นเสมอไม่ว่าจะเลือกอะไรอยู่
+           แก้ให้ลูกค้าเกินกำหนด (overdue > 0) ข้ามทุกตัวกรองไปเลย แสดงทุกครั้งเสมอ */
+        return item.overdue > 0 || (dateOK && employeeOK);
+    });
+
+    debt.sort((a,b)=> b.overdue - a.overdue);
+
+    /* ---- หัวตาราง (สร้างใหม่ทุกครั้งเพราะจำนวนคอลัมน์งวดปรับตาม maxInstallments) ---- */
+    const headEl = document.getElementById("debtTableHead");
+    if(headEl){
+        let instHeadHtml = "";
+        for(let i = 1; i <= maxInstallments; i++){
+            instHeadHtml += `<th>งวดที่ ${i}</th>`;
+            /* เพิ่มใหม่: คอลัมน์ "ผู้แจ้ง" แทรกไว้ต่อจากงวดที่ 4 เสมอ (ไม่ว่าจะมีงวดเกิน 4 หรือไม่ก็ตาม
+               getMaxInstallmentCount() รับประกันว่า maxInstallments >= 4 เสมอ จึงวิ่งถึง i===4 แน่นอน) */
+            if(i === 4){
+                instHeadHtml += `<th class="col-requester">ผู้แจ้ง</th>`;
+            }
+        }
+        headEl.innerHTML = `
+            <th class="col-rank">ลำดับ</th>
+            <th>เกินกำหนด(วัน)</th>
+            <th>เงินที่ค้าง</th>
+            <th>ชื่อ</th>
+            <th class="col-plate">ทะเบียน</th>
+            <th>เบอร์โทร</th>
+            <th>วันที่เริ่ม</th>
+            <th>รวม(เบี้ยประกัน)</th>
+            ${instHeadHtml}
+            <th class="col-actions">จัดการ</th>
+        `;
+    }
+
+    const body = document.getElementById("debtTableBody");
+
+    if(debt.length === 0){
+        /* เพิ่มใหม่: +1 เพราะเพิ่มคอลัมน์ "ผู้แจ้ง" เข้ามาอีก 1 คอลัมน์ */
+        const colCount = 10 + maxInstallments;
+        body.innerHTML = `<tr><td colspan="${colCount}"><div class="debt-empty">ไม่มีลูกค้าตรงกับเงื่อนไขที่เลือก</div></td></tr>`;
+    } else {
+
+        body.innerHTML = debt.map((item, index)=>{
+
+            let rowClass = "row-paid";
+
+            if(item.debtAmount > 0 && item.overdue > 0){
+                rowClass = "row-overdue";
+            } else if(item.debtAmount > 0){
+                rowClass = "row-normal";
+            }
+
+            let paidThrough4 = true;
+            for(let i = 1; i <= 4; i++){
+                const v = item["installment" + i];
+                if(v === undefined || v === null || String(v).trim() === ""){
+                    paidThrough4 = false;
+                    break;
+                }
+            }
+            const isCarryover = paidThrough4 && item.debtAmount > 0;
+            if(isCarryover){
+                // เพิ่มใหม่: ถ้าเกิน 4 งวด "พร้อมกับ" เกินกำหนดด้วย ให้ใช้สถานะแยกต่างหาก
+                // (ส้มกระพริบ) เพื่อไม่ให้ปนกับ "เกินกำหนดธรรมดา" (แดงกระพริบ)
+                // และไม่ให้ปนกับ "เกิน 4 งวดธรรมดา ไม่เกินกำหนด" (ส้มทึบ ไม่กระพริบ)
+                rowClass = (item.overdue > 0) ? "row-carryover-overdue" : "row-carryover";
+            }
+
+            let installmentCellsHtml = "";
+            for(let i = 1; i <= maxInstallments; i++){
+                const extraClass = i > 4 ? " col-extra-inst" : "";
+                installmentCellsHtml += `
+                    <td class="${extraClass.trim()}">
+                        <input type="number"
+                            class="debt-input table-input"
+                            data-row="${item.id}"
+                            data-field="installment${i}"
+                            value="${safeVal(item["installment" + i])}"
+                            disabled>
+                    </td>`;
+
+                /* เพิ่มใหม่: คอลัมน์ "ผู้แจ้ง" แทรกไว้ต่อจากงวดที่ 4 เสมอ ให้ตรงกับหัวตาราง
+                   ใช้ field "employeeName" เดียวกับที่หน้าอื่นในระบบใช้อ่าน/เขียนชื่อผู้แจ้งงาน
+                   แก้ไข/บันทึกได้ผ่านปุ่ม ✏️/💾 เดียวกับคอลัมน์อื่นในแถว (data-row ตรงกัน) */
+                if(i === 4){
+                    const requesterName = item.employeeName || item.requestName || "";
+                    installmentCellsHtml += `
+                        <td class="col-requester">
+                            <input type="text"
+                                class="debt-input table-input"
+                                data-row="${item.id}"
+                                data-field="employeeName"
+                                value="${safeVal(requesterName)}"
+                                disabled>
+                        </td>`;
+                }
+            }
+
+            return `
+            <tr class="${rowClass}" data-row="${item.id}">
+
+                <td class="col-rank">${index+1}</td>
+
+                <td class="col-overdue">${item.overdue}</td>
+
+                <td class="col-debt">${fmtMoney(item.debtAmount)}</td>
+
+                <td class="col-name">
+                    <input type="text"
+                        class="debt-input table-input"
+                        data-row="${item.id}"
+                        data-field="customer"
+                        value="${safeVal(item.customer)}"
+                        disabled>
+                    ${isCarryover ? `<span class="carryover-tag">เกิน 4 งวด</span>` : ""}
+                </td>
+
+                <td class="col-plate">
+                    <input type="text"
+                        class="debt-input table-input"
+                        data-row="${item.id}"
+                        data-field="plate"
+                        value="${safeVal(item.plate)}"
+                        disabled>
+                </td>
+
+                <td>
+                    <input type="text"
+                        class="debt-input table-input"
+                        data-row="${item.id}"
+                        data-field="phone"
+                        value="${safeVal(item.phone)}"
+                        disabled>
+                </td>
+
+                <td>
+                    <input type="text"
+                        class="debt-input table-input"
+                        data-row="${item.id}"
+                        data-field="start"
+                        value="${formatThaiDate(item.start)}"
+                        disabled>
+                </td>
+
+                <td>
+                    <input type="number"
+                        class="debt-input table-input"
+                        data-row="${item.id}"
+                        data-field="total"
+                        value="${safeVal(item.total)}"
+                        disabled>
+                </td>
+
+                ${installmentCellsHtml}
+
+                <td class="col-actions">
+                    <div class="table-actions">
+                        <button class="tbl-pay-btn" title="จ่ายงวด" onclick="window.debtPayInstallment('${item.id}')">💵</button>
+                        <button class="tbl-edit-btn" title="แก้ไข" onclick="window.debtToggleEdit('${item.id}')">✏️</button>
+                        <button class="tbl-save-btn" title="บันทึก" onclick="window.debtSaveRow('${item.id}')">💾</button>
+                        <button class="tbl-delete-btn" title="ลบ" onclick="window.debtDeleteRow('${item.id}')">🗑️</button>
+                    </div>
+                </td>
+
+            </tr>
+            `;
+        }).join("");
+    }
+
+    let totalDebt = debt.reduce((sum,item)=> sum + item.debtAmount, 0);
+
+    document.getElementById("debtTotal").innerText =
+        "ยอดลูกหนี้รวม : " + totalDebt.toLocaleString() + " บาท";
+}
+
+/* =========================================================
+   แก้ไข / บันทึก / ลบ ข้อมูลแต่ละการ์ด
+========================================================= */
+
+function showDebtToast(message){
+    let toast = document.createElement("div");
+    toast.className = "debt-toast";
+    toast.innerText = message;
+    document.body.appendChild(toast);
+
+    requestAnimationFrame(() => toast.classList.add("show"));
+
+    setTimeout(() => {
+        toast.classList.remove("show");
+        setTimeout(() => toast.remove(), 300);
+    }, 2200);
+}
+
+window.debtToggleEdit = function(id){
+    const inputs = document.querySelectorAll(`input[data-row="${id}"]`);
+    inputs.forEach(inp => { inp.disabled = false; });
+    if(inputs.length) inputs[0].focus();
+};
+
+window.debtSaveRow = async function(id){
+
+    const inputs = document.querySelectorAll(`input[data-row="${id}"]`);
+
+    if(!inputs.length) return;
+
+    const fields = {};
+
+    inputs.forEach(inp=>{
+        const field = inp.dataset.field;
+        fields[field] = inp.value;
+    });
+
+    try{
+
+        await setDoc(
+            doc(db, "insuranceData", id),
+            fields,
+            { merge:true }
+        );
+
+        inputs.forEach(inp => { inp.disabled = true; });
+
+        showDebtToast("✅ บันทึกข้อมูลเรียบร้อย");
+
+    }catch(err){
+
+        console.error("บันทึกข้อมูลไม่สำเร็จ:", err);
+        alert("บันทึกข้อมูลไม่สำเร็จ: " + (err.message || "กรุณาลองใหม่อีกครั้ง"));
+
+    }
+
+};
+
+window.debtDeleteRow = async function(id){
+
+    if(!confirm("ต้องการลบข้อมูลนี้หรือไม่ ?")) return;
+
+    try{
+
+        await deleteDoc(doc(db, "insuranceData", id));
+        showDebtToast("🗑️ ลบข้อมูลเรียบร้อย");
+
+    }catch(err){
+
+        console.error("ลบข้อมูลไม่สำเร็จ:", err);
+        alert("ลบข้อมูลไม่สำเร็จ: " + (err.message || "กรุณาลองใหม่อีกครั้ง"));
+
+    }
+
+};
+
+let currentDebtData = [];
+let currentMaxInstallments = 4;
+
+["debtFilterDay","debtFilterMonth","debtFilterYear","debtFilterEmployee"].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el){
+        el.addEventListener("change", ()=>{
+            renderDebt(currentDebtData, currentMaxInstallments);
+        });
+    }
+});
+
+onSnapshot(collection(db, "insuranceData"), (snapshot) => {
+
+    const data = snapshot.docs.map(d => ({
+        id: d.id,
+        ...d.data()
+    }));
+
+    currentDebtData = data;
+
+    const maxInstallments = getMaxInstallmentCount(data);
+    currentMaxInstallments = maxInstallments;
+
+    populateDebtFilters(data);
+    renderDebt(data, maxInstallments);
+
+});
+
+/* =========================================================
+   ปุ่ม "ชำระงวด": ส่งข้อมูลลูกค้ารายนี้ไปบันทึกการชำระเงินที่หน้า finance.html
+   ระบบจะคำนวณ "งวดที่ยังไม่ได้ชำระ" ให้อัตโนมัติและส่งไปพร้อมกันผ่าน localStorage
+========================================================= */
+window.debtPayInstallment = function(id){
+
+    const item = currentDebtData.find(x => x.id === id);
+    if(!item){
+        alert("ไม่พบข้อมูลลูกค้ารายนี้ อาจมีการอัปเดตข้อมูลไปแล้ว กรุณาลองใหม่อีกครั้ง");
+        return;
+    }
+
+    const total = Number(item.total || 0);
+
+    let paid = 0;
+    for(let i = 1; i <= currentMaxInstallments; i++){
+        paid += Number(item["installment" + i] || 0);
+    }
+
+    const debtAmount = total - paid;
+
+    if(debtAmount <= 0){
+        showDebtToast("✅ ลูกค้ารายนี้ไม่มียอดค้างชำระแล้ว");
+        return;
+    }
+
+    let nextSlot = null;
+    for(let i = 1; i <= currentMaxInstallments; i++){
+        const v = item["installment" + i];
+        const isEmpty = v === undefined || v === null || String(v).trim() === "" || Number(v) === 0;
+        if(isEmpty){
+            nextSlot = i;
+            break;
+        }
+    }
+
+    if(nextSlot === null){
+        nextSlot = currentMaxInstallments + 1;
+    }
+
+    const planCount = parseInt(item.installmentCount, 10) || 0;
+    const perInstallment = planCount > 0 ? (total / planCount) : debtAmount;
+    const dueAmount = Math.max(0, Math.min(debtAmount, perInstallment > 0 ? perInstallment : debtAmount));
+
+    localStorage.setItem("financePayTarget", JSON.stringify({
+        id: item.id,
+        customer: item.customer || "",
+        company: item.company || "",
+        plate: item.plate || "",
+        start: item.start || "",
+        phone: item.phone || "",
+        total: total,
+        debtAmount: debtAmount,
+        installmentNumber: nextSlot,
+        dueAmount: dueAmount,
+        recordedBy: (typeof getEmployeeName === "function") ? getEmployeeName() : ""
+    }));
+
+    window.location.href = "finance.html";
+};
+
+</script>
+
+
+</body>
+
+</html>
