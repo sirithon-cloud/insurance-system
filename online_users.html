@@ -69,13 +69,24 @@
                 </button>
                 <div>
                     <h1 class="text-lg font-bold text-slate-800">🟢 ผู้ใช้งานออนไลน์</h1>
-                    <p class="text-xs text-gray-500">อัปเดตสถานะแบบเรียลไทม์ ทุก ๆ ประมาณ 25 วินาที</p>
+                    <p class="text-xs text-gray-500"></p>
                 </div>
             </div>
         </div>
     </header>
 
-    <main class="max-w-md mx-auto p-4 space-y-4">
+    <!-- [เพิ่มใหม่] หน้าจอ "ระบบกำลังอยู่ในขั้นตอนพัฒนา" แสดงแทนเนื้อหาจริงเมื่อ PAGE_LOCKED = true
+         (ดูค่านี้ได้ใน <script type="module"> ด้านล่าง) ยังกดเข้าหน้านี้ได้ปกติ
+         แค่ไม่โหลด/แสดงข้อมูลจริง และไม่เปิดการเชื่อมต่อ Firestore เลย (ประหยัด read ไปในตัว) -->
+    <div id="lockedScreen" class="hidden max-w-md mx-auto p-4">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center mt-6">
+            <div class="text-4xl mb-3">🚧</div>
+            <h2 class="font-bold text-slate-800 mb-2">ระบบกำลังอยู่ในขั้นตอนพัฒนา</h2>
+            <p class="text-sm text-gray-400">หน้านี้ปิดปรับปรุงชั่วคราว กรุณากลับมาใหม่ภายหลัง</p>
+        </div>
+    </div>
+
+    <main class="max-w-md mx-auto p-4 space-y-4" id="mainContent">
 
         <!-- สรุปจำนวนคนออนไลน์ -->
         <div class="bg-emerald-600 text-white p-4 rounded-2xl shadow-sm flex items-center justify-between">
@@ -128,7 +139,10 @@ const db = getFirestore(app);
    [แก้ไข] เกณฑ์ออนไลน์/ออฟไลน์เปลี่ยนเป็น 30 วินาทีตามที่กำหนด และคำนวณฝั่งหน้าเว็บล้วนๆ
    (ดู setInterval(render, 1000) ด้านล่าง) ไม่มีการอ่าน Firestore เพิ่มเพื่อคำนวณค่านี้เลย
    ยังคงแสดงพนักงานทุกคนในระบบตลอด แค่สลับข้อความเป็น "ออฟไลน์ • ใช้งานล่าสุด ... ที่แล้ว" แทนเหมือนเดิม */
-const ONLINE_THRESHOLD_MS = 30 * 1000;
+/* [แก้ไขด่วน] ปรับให้สัมพันธ์กับ heartbeat ใหม่ใน auth.js (60 วินาที)
+   ตั้งเกณฑ์ไว้ 2 เท่าของ heartbeat (120 วินาที) กัน "กระพริบ" เป็นออฟไลน์ผิดพลาด
+   ถ้า network หน่วงหรือ heartbeat รอบล่าสุดมาช้ากว่าปกตินิดหน่อย */
+const ONLINE_THRESHOLD_MS = 120 * 1000;
 
 /* รายชื่อพนักงานทั้งหมดในระบบ (ให้ตรงกับตาราง EMAIL_TO_NAME ใน auth.js) เพื่อให้หน้านี้
    แสดงพนักงานทุกคนเสมอ แม้บางคนจะยังไม่เคยล็อกอิน/ไม่มี heartbeat เข้ามาเลยก็ตาม */
@@ -164,6 +178,18 @@ const EMPLOYEE_PHOTOS = {
 
 function getEmployeePhoto(name){
     return EMPLOYEE_PHOTOS[name] || "";
+}
+
+/* [เพิ่มใหม่] สวิตช์ล็อกหน้านี้ไว้ชั่วคราว
+   true  = โชว์ข้อความ "ระบบกำลังอยู่ในขั้นตอนพัฒนา" แทนเนื้อหาจริงทั้งหมด
+           (ไม่เชื่อมต่อ Firestore เลย ไม่มีการอ่าน/เขียนใดๆ จากหน้านี้)
+   false = กลับมาใช้งานหน้านี้ตามปกติ
+   วิธีปลดล็อก: เปลี่ยนค่านี้กลับเป็น false */
+const PAGE_LOCKED = true;
+
+if (PAGE_LOCKED) {
+    document.getElementById("mainContent").classList.add("hidden");
+    document.getElementById("lockedScreen").classList.remove("hidden");
 }
 
 let presenceData = [];
@@ -315,22 +341,59 @@ function render(){
     }).join("");
 }
 
-/* [แก้ไข] อ่านข้อมูลจาก Firestore ครั้งเดียวตอนเปิดหน้า (initial snapshot) แล้วหลังจากนั้น
-   onSnapshot() จะส่งเฉพาะ "การเปลี่ยนแปลง" (เอกสารที่ถูกเพิ่ม/แก้ไข/ลบ) เข้ามาเท่านั้น
-   ไม่มีการ query/getDocs() ซ้ำเป็นรอบๆ อีกเลย (ไม่ใช่ทุก 25 วินาทีเหมือนเดิม) ตัว listener นี้
-   จะเปิดค้างไว้ตลอดที่หน้านี้ยังเปิดอยู่ และ Firestore จะคิด read cost เฉพาะตอนมีการเปลี่ยนแปลงจริงเท่านั้น */
-onSnapshot(collection(db, "activeUsers"), (snapshot) => {
-    presenceData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-    render();
-});
+/* [แก้ไข] เพิ่มการ "หยุดฟัง" (unsubscribe) ชั่วคราวเมื่อผู้ใช้สลับไปแท็บ/แอปอื่นเป็นเวลานาน
+   เพราะตราบใดที่ onSnapshot() ยังเปิดค้างอยู่ Firestore จะยังคิด read ทุกครั้งที่มีคนอื่น heartbeat
+   เข้ามา (ทุก ๆ ~25 วินาทีต่อคนที่ออนไลน์อยู่) แม้จะไม่มีใครมองหน้าจอนี้อยู่เลยก็ตาม
+   หน่วงไว้ 5 นาทีก่อนตัดจริง (ไม่ตัดทันทีที่ซ่อนแท็บ) เพื่อกันกรณีสลับแท็บถี่ๆ ไปๆ มาๆ
+   ซึ่งถ้าตัด-ต่อใหม่ทุกครั้งจะยิ่งเปลืองกว่าเดิม (ตอนต่อใหม่ต้องอ่านทั้ง collection 1 รอบเสมอ) */
+let unsubscribePresence = null;
+let hiddenUnsubTimer = null;
+const HIDDEN_UNSUB_DELAY_MS = 5 * 60 * 1000;
 
-/* [แก้ไข] re-render ทุก 1 วินาทีเพื่อคำนวณสถานะออนไลน์/ออฟไลน์ (จาก lastActive ที่มีอยู่ในมือแล้ว)
-   และข้อความ "X วินาที/นาทีที่แล้ว" ให้ขยับตามเวลาจริงแบบวินาทีต่อวินาที
-   เป็นการคำนวณฝั่งหน้าเว็บล้วนๆ (ใช้ Date.now() เทียบกับ lastActive ที่เก็บไว้ใน presenceData
-   จาก onSnapshot ด้านบน) ไม่มีการอ่าน Firestore เพิ่มจากตัวจับเวลานี้เลยแม้แต่ครั้งเดียว */
-setInterval(render, 1000);
+function subscribePresence(){
+    if (unsubscribePresence) return; // ฟังอยู่แล้ว ไม่ต้องต่อซ้ำ
+    unsubscribePresence = onSnapshot(collection(db, "activeUsers"), (snapshot) => {
+        presenceData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        render();
+    });
+}
 
-document.getElementById("userSearch").addEventListener("input", render);
+function unsubscribePresenceNow(){
+    if (unsubscribePresence) {
+        unsubscribePresence();
+        unsubscribePresence = null;
+    }
+}
+
+/* อ่านข้อมูลจาก Firestore ครั้งแรกตอนเปิดหน้า (initial snapshot) แล้วหลังจากนั้น onSnapshot()
+   จะส่งเฉพาะ "การเปลี่ยนแปลง" (เอกสารที่ถูกเพิ่ม/แก้ไข/ลบ) เข้ามาเท่านั้น ไม่มีการ query/getDocs()
+   ซ้ำเป็นรอบๆ อีกเลย (ไม่ใช่ทุก 25 วินาทีเหมือนเดิม) */
+/* [เพิ่มใหม่] ถ้าหน้านี้ถูกล็อกไว้ (PAGE_LOCKED = true) จะไม่เริ่มการเชื่อมต่อ Firestore
+   ไม่เปิด onSnapshot ไม่ตั้ง setInterval ใดๆ เลย เพื่อไม่ให้เสีย read/write โดยเปล่าประโยชน์
+   ระหว่างที่หน้านี้ปิดปรับปรุงอยู่ */
+if (!PAGE_LOCKED) {
+
+    subscribePresence();
+
+    document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+            // ซ่อนแท็บ: ตั้งเวลาไว้ก่อน 5 นาที ยังไม่ตัดทันที
+            hiddenUnsubTimer = setTimeout(unsubscribePresenceNow, HIDDEN_UNSUB_DELAY_MS);
+        } else {
+            // กลับมาดูหน้านี้: ยกเลิกตัวจับเวลาตัดสาย (ถ้ายังไม่ทันตัด) แล้วฟังต่อ/ฟังใหม่ให้อัตโนมัติ
+            if (hiddenUnsubTimer) { clearTimeout(hiddenUnsubTimer); hiddenUnsubTimer = null; }
+            subscribePresence();
+        }
+    });
+
+    /* [แก้ไข] re-render ทุก 1 วินาทีเพื่อคำนวณสถานะออนไลน์/ออฟไลน์ (จาก lastActive ที่มีอยู่ในมือแล้ว)
+       และข้อความ "X วินาที/นาทีที่แล้ว" ให้ขยับตามเวลาจริงแบบวินาทีต่อวินาที
+       เป็นการคำนวณฝั่งหน้าเว็บล้วนๆ (ใช้ Date.now() เทียบกับ lastActive ที่เก็บไว้ใน presenceData
+       จาก onSnapshot ด้านบน) ไม่มีการอ่าน Firestore เพิ่มจากตัวจับเวลานี้เลยแม้แต่ครั้งเดียว */
+    setInterval(render, 1000);
+
+    document.getElementById("userSearch").addEventListener("input", render);
+}
 
 </script>
 

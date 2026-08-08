@@ -195,7 +195,12 @@ async function firebaseSignOut() {
    เมื่อกด "ออกจากระบบ" จะลบเอกสารสถานะของตัวเองออกทันที (removePresence) */
 
 const PRESENCE_COLLECTION = "activeUsers";
-const PRESENCE_HEARTBEAT_MS = 25000; /* ส่งสถานะทุก 25 วินาที */
+/* [แก้ไขด่วน] เดิม 25 วินาที ทำให้ทุกหน้าที่ล็อกอินอยู่ยิง write เข้า Firestore ถี่มาก
+   และทุก write 1 ครั้งจะถูกนับเป็น 1 read ให้กับทุกหน้าที่เปิด onSnapshot ฟัง collection นี้อยู่
+   (เช่นหน้า online_users.html) ทำให้ read โตเร็วกว่า write หลายเท่าตัวถ้ามีหลาย listener เปิดค้าง
+   ยืดเป็น 60 วินาทีเพื่อลด write/read ลงเหลือ ~40% ของเดิมทันที โดยยังคงความ realtime
+   เพียงพอสำหรับใช้งานจริง (ปรับ ONLINE_THRESHOLD_MS ในหน้า online_users.html ให้สัมพันธ์กันด้วย) */
+const PRESENCE_HEARTBEAT_MS = 60000; /* ส่งสถานะทุก 60 วินาที */
 
 /* ชื่อหน้าภาษาไทย ใช้แสดงในหน้า "ผู้ใช้งานออนไลน์" ว่าใครอยู่หน้าไหน
    (ถ้าไม่มีชื่ออยู่ในตารางนี้ จะ fallback ไปใช้ชื่อไฟล์ตรงๆ แทน) */
@@ -267,6 +272,7 @@ async function updatePresence() {
                 name: name || email,
                 email: normalizeEmail(email),
                 page: getPresencePageLabel(),
+                online: true,
                 lastActive: serverTimestamp()
             },
             { merge: true }
@@ -304,13 +310,22 @@ async function removePresence() {
     if (!email) return;
 
     try {
-        const { doc, deleteDoc } =
+        const { doc, setDoc, serverTimestamp } =
             await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js");
         const db = await getPresenceDb();
 
-        await deleteDoc(doc(db, PRESENCE_COLLECTION, normalizeEmail(email)));
+        /* merge:true -> ไม่ลบเอกสารทิ้ง แค่ปิดสถานะออนไลน์ + ปั๊มเวลาล็อกเอาท์ไว้เป็น lastActive
+           ล่าสุด (ไว้ให้หน้า online_users.html เอาไปโชว์เป็น "ออฟไลน์ • ล่าสุด X ที่แล้ว" ได้) */
+        await setDoc(
+            doc(db, PRESENCE_COLLECTION, normalizeEmail(email)),
+            {
+                online: false,
+                lastActive: serverTimestamp()
+            },
+            { merge: true }
+        );
     } catch (err) {
-        console.error("ลบสถานะออนไลน์ไม่สำเร็จ:", err);
+        console.error("อัปเดตสถานะออฟไลน์ไม่สำเร็จ:", err);
     }
 }
 
