@@ -403,7 +403,7 @@
      3) ตรวจสอบข้อมูลซ้ำ (ชื่อ + ทะเบียนตรงกับรายการเดิม) -->
 <script type="module">
 import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-import { getFirestore, collection, getDocs, doc, runTransaction } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import { getFirestore, collection, getDocs, doc, runTransaction, query, where } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCNpaYlwrkJhBA-8tAax022PWWFYMRz7Kw",
@@ -417,11 +417,40 @@ const firebaseConfig = {
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+/* [แก้ไขด่วน] ลด Firestore Reads ของฟอร์มนี้
+   เดิม computeNextInvoiceNo()/computeNextReceiptNo() ต่างก็ getDocs(collection(db,"insuranceData"))
+   แบบไม่กรองอะไรเลยแยกกันคนละครั้ง (อ่านทั้ง collection ทั้งประเภทรถยนต์+สินค้า) ทั้งที่ทั้งสอง
+   ฟังก์ชันนี้ต้องการแค่เอกสารประเภท "car" เท่านั้น (มีแค่ฟอร์มนี้ที่บันทึกฟิลด์ invoiceNo/receiptNo
+   ฟอร์มฝั่งสินค้า form_product.html ไม่มีฟิลด์นี้เลย ผลลัพธ์ค่าสูงสุดที่ได้จึงเหมือนเดิมทุกประการ
+   ไม่ว่าจะกรอง type หรือไม่ก็ตาม) และทั้งสองฟังก์ชันนี้ยังถูกเรียก "พร้อมกัน" เสมอตอนเปิดฟอร์มเพื่อ
+   สร้างรายการใหม่ (ดู DOMContentLoaded ด้านล่างสุดของไฟล์)
+
+   แก้โดย:
+   1) กรอง where("type","==","car") ที่ระดับ Firestore query เลย ลดจำนวนเอกสารที่ต้องอ่านลง
+   2) ให้ทั้งสองฟังก์ชัน "ใช้ผลลัพธ์ snapshot เดียวกัน" เมื่อถูกเรียกในช่วงเวลาใกล้กัน (แคชแบบ
+      promise เดียวต่อการเปิดฟอร์ม 1 ครั้ง) แทนที่จะยิง getDocs() แยกกันคนละรอบ ลด read ซ้ำซ้อน
+      ตอนเปิดฟอร์มลงอีกครึ่งหนึ่ง โดยผลลัพธ์การคำนวณเลขที่แจ้งหนี้/เลขที่รับแจ้งยังคงเหมือนเดิม
+      ทุกประการ เพราะข้อมูลที่ใช้คำนวณ (เอกสารประเภท car ทั้งหมด ณ ขณะนั้น) เหมือนกันไม่ว่าจะอ่าน
+      แยกกันหรืออ่านรวมกัน
+
+   หมายเหตุสำคัญ: ฟังก์ชันนี้ใช้แสดง "ตัวอย่าง" เลขที่บนฟอร์มเท่านั้น ส่วนเลขที่ตัวจริงที่บันทึกจริง
+   ตอนกดบันทึกมาจาก computeNextInvoiceNoAtomic()/computeNextReceiptNoAtomic() ผ่าน Firestore
+   Transaction (ไม่เกี่ยวข้องกับแคชนี้เลย อ่านสดใหม่ทุกครั้งเหมือนเดิม) จึงไม่กระทบการกันเลขซ้ำ
+   หรือความถูกต้องของเลขที่ออกจริงแต่อย่างใด */
+let carTypeSnapshotPromise = null;
+function getCarTypeSnapshot(){
+    if (!carTypeSnapshotPromise) {
+        const carQuery = query(collection(db, "insuranceData"), where("type", "==", "car"));
+        carTypeSnapshotPromise = getDocs(carQuery);
+    }
+    return carTypeSnapshotPromise;
+}
+
 async function computeNextInvoiceNo(){
     const now = new Date();
     const mm = String(now.getMonth() + 1).padStart(2, "0");
 
-    const snap = await getDocs(collection(db, "insuranceData"));
+    const snap = await getCarTypeSnapshot();
 
     let maxSeq = 0;
     snap.forEach(docSnap => {
@@ -440,7 +469,7 @@ async function computeNextReceiptNo(){
     const now = new Date();
     const yyyy = String(now.getFullYear() + 543);
 
-    const snap = await getDocs(collection(db, "insuranceData"));
+    const snap = await getCarTypeSnapshot();
 
     let maxSeq = 0;
     snap.forEach(docSnap => {
@@ -455,6 +484,11 @@ async function computeNextReceiptNo(){
     return String(maxSeq + 1).padStart(3, "0") + "/" + yyyy;
 }
 
+/* คงพฤติกรรมเดิมทุกประการ: ตรวจสอบข้อมูลซ้ำข้ามทุกประเภทประกัน (รถยนต์ + สินค้า) เหมือนเดิม
+   จึง "ไม่กรอง" type ในฟังก์ชันนี้ (ต่างจาก computeNextInvoiceNo/computeNextReceiptNo ด้านบนที่
+   กรองได้อย่างปลอดภัยเพราะมีแค่ฟอร์มรถยนต์ที่ใช้ฟิลด์ invoiceNo/receiptNo) การกรอง type ตรงนี้
+   จะเปลี่ยนขอบเขตการตรวจซ้ำที่พนักงานคุ้นเคยอยู่ จึงคงการอ่านทั้ง collection ไว้เหมือนเดิมทุกประการ
+   เพื่อไม่ให้ผลการแจ้งเตือนข้อมูลซ้ำเปลี่ยนไปจากเดิมแม้แต่กรณีเดียว */
 async function checkDuplicateCustomer(customerName, plate, excludeId){
     const name = String(customerName || "").trim().toLowerCase();
     const plt = String(plate || "").trim().toLowerCase();
@@ -484,9 +518,16 @@ async function checkDuplicateCustomer(customerName, plate, excludeId){
    "counters" (เอกสาร invoice_MM และ receipt_YYYY) เรียกตอนกดบันทึกจริงเท่านั้น
    Firestore จะ retry ธุรกรรมให้อัตโนมัติถ้ามีการชนกัน จึงรับประกันว่าแต่ละคนได้เลขไม่ซ้ำ
    แม้กดพร้อมกันเป๊ะ ครั้งแรกที่ยังไม่มีเอกสาร counter จะ seed ค่าเริ่มต้นจากค่าสูงสุด
-   ที่สแกนเจอจากข้อมูลเดิม เพื่อให้ต่อเนื่องกับเลขที่เคยออกไปแล้วก่อนหน้านี้ */
+   ที่สแกนเจอจากข้อมูลเดิม เพื่อให้ต่อเนื่องกับเลขที่เคยออกไปแล้วก่อนหน้านี้
+
+   [แก้ไขด่วน] seed ทั้งสองฟังก์ชันนี้เพิ่มการกรอง where("type","==","car") ด้วย ลดจำนวนเอกสาร
+   ที่ต้องอ่านตอน seed ครั้งแรกของแต่ละเดือน/ปี (เอกสารประเภท "product" ไม่เคยมีฟิลด์
+   invoiceNo/receiptNo อยู่แล้ว ผลลัพธ์ค่าสูงสุดที่ได้จึงเหมือนเดิมทุกประการ ไม่กระทบการกันเลขซ้ำ
+   หรือความต่อเนื่องของเลขที่ออกไปแล้วแต่อย่างใด อ่านสดใหม่ทุกครั้งที่ seed เหมือนเดิม ไม่ใช้ร่วมกับ
+   แคชของ computeNextInvoiceNo/computeNextReceiptNo ด้านบน เพื่อกันความคลาดเคลื่อนจากข้อมูลเก่าค้าง) */
 async function computeMaxInvoiceSeqForMonth(mm){
-    const snap = await getDocs(collection(db, "insuranceData"));
+    const carQuery = query(collection(db, "insuranceData"), where("type", "==", "car"));
+    const snap = await getDocs(carQuery);
     let maxSeq = 0;
     snap.forEach(docSnap => {
         const v = docSnap.data().invoiceNo || "";
@@ -500,7 +541,8 @@ async function computeMaxInvoiceSeqForMonth(mm){
 }
 
 async function computeMaxReceiptSeqForYear(yyyy){
-    const snap = await getDocs(collection(db, "insuranceData"));
+    const carQuery = query(collection(db, "insuranceData"), where("type", "==", "car"));
+    const snap = await getDocs(carQuery);
     let maxSeq = 0;
     snap.forEach(docSnap => {
         const v = docSnap.data().receiptNo || "";
