@@ -470,7 +470,7 @@
          ไม่สร้าง connection ซ้ำซ้อน) -->
     <script type="module">
     import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCNpaYlwrkJhBA-8tAax022PWWFYMRz7Kw",
@@ -484,21 +484,35 @@
     const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    /* แก้ไข (สำคัญ - แก้ปัญหา Firestore read เกินโควต้า):
+       เดิมฟังก์ชันนี้ดึงข้อมูลทั้ง collection "insuranceData" มาทั้งหมด (getDocs(collection(...)))
+       ทุกครั้งที่เรียก แล้ววนเช็คใน client เอง ถ้า collection มีหลายพันเอกสาร
+       แค่บันทึก 1 รายการ (ซึ่งเรียกฟังก์ชันนี้ถึง 3 จุด: บันทึกข้อมูล/ไฟล์เอกสาร/ใบรับเงิน)
+       จะกิน read เป็นหลักพัน-หมื่นครั้งทันที เพิ่มลูกค้าแค่ 5 คนก็อาจกิน read หลายหมื่นครั้ง
+
+       แก้โดยเปลี่ยนมา query แบบมี where("plateLower", "==", ...) แทน ซึ่งใช้ index กรองที่
+       ฝั่ง Firestore เลย ไม่ต้องดึงทั้ง collection มาเช็คเอง — ปกติจะได้ผลลัพธ์กลับมาแค่ 0-1
+       รายการต่อการเช็ค 1 ครั้ง (ยกเว้นทะเบียนซ้ำกันจริงๆ หลายเจ้าของ)
+
+       field "plateLower"/"customerLower" เป็น field ใหม่ที่ collectFormData() เพิ่มเข้าไปตอน
+       บันทึกทุกครั้งนับจากนี้ (ดูจุดสร้าง record ในไฟล์นี้) เอกสารเก่าที่ยังไม่มี field นี้
+       จะต้อง backfill ก่อนครั้งเดียว (สคริปต์แยกต่างหาก ไม่กระทบการทำงานของพนักงาน)
+       มิเช่นนั้นจะเช็คซ้ำกับข้อมูลเก่าที่ยังไม่ backfill ไม่เจอ */
     async function checkDuplicateCustomer(customerName, plate, excludeId){
         const name = String(customerName || "").trim().toLowerCase();
         const plt = String(plate || "").trim().toLowerCase();
 
         if (!name || !plt) return false;
 
-        const snap = await getDocs(collection(db, "insuranceData"));
+        const q = query(collection(db, "insuranceData"), where("plateLower", "==", plt));
+        const snap = await getDocs(q);
 
         let found = false;
         snap.forEach(docSnap => {
             if (excludeId && docSnap.id === excludeId) return;
             const d = docSnap.data();
-            const dName = String(d.customer || "").trim().toLowerCase();
-            const dPlate = String(d.plate || "").trim().toLowerCase();
-            if (dName === name && dPlate === plt) found = true;
+            const dName = String(d.customerLower || d.customer || "").trim().toLowerCase();
+            if (dName === name) found = true;
         });
 
         return found;
@@ -964,6 +978,11 @@
             address: document.getElementById("address")?.value,
             brand: document.getElementById("brand")?.value,
             plate: document.getElementById("plate")?.value,
+            /* เพิ่มใหม่: เก็บชื่อ/ทะเบียนแบบ lowercase คู่กันไว้เสมอ เพื่อให้ checkDuplicateCustomer()
+               query ด้วย where("plateLower", "==", ...) ได้ตรงๆ แทนการดึงทั้ง collection มาเช็ค
+               (ลด Firestore read ลงมหาศาล) ไม่กระทบ field เดิม เป็นแค่ field เสริม */
+            customerLower: String(document.getElementById("name")?.value || "").trim().toLowerCase(),
+            plateLower: String(document.getElementById("plate")?.value || "").trim().toLowerCase(),
             chassis: document.getElementById("chassis")?.value,
             start: document.getElementById("start")?.value,
             end: document.getElementById("end")?.value,

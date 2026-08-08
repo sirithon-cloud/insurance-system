@@ -484,26 +484,34 @@ async function computeNextReceiptNo(){
     return String(maxSeq + 1).padStart(3, "0") + "/" + yyyy;
 }
 
-/* คงพฤติกรรมเดิมทุกประการ: ตรวจสอบข้อมูลซ้ำข้ามทุกประเภทประกัน (รถยนต์ + สินค้า) เหมือนเดิม
-   จึง "ไม่กรอง" type ในฟังก์ชันนี้ (ต่างจาก computeNextInvoiceNo/computeNextReceiptNo ด้านบนที่
-   กรองได้อย่างปลอดภัยเพราะมีแค่ฟอร์มรถยนต์ที่ใช้ฟิลด์ invoiceNo/receiptNo) การกรอง type ตรงนี้
-   จะเปลี่ยนขอบเขตการตรวจซ้ำที่พนักงานคุ้นเคยอยู่ จึงคงการอ่านทั้ง collection ไว้เหมือนเดิมทุกประการ
-   เพื่อไม่ให้ผลการแจ้งเตือนข้อมูลซ้ำเปลี่ยนไปจากเดิมแม้แต่กรณีเดียว */
+/* แก้ไข (สำคัญ - แก้ปัญหา Firestore read เกินโควต้า):
+   เดิมฟังก์ชันนี้ดึงข้อมูลทั้ง collection "insuranceData" มาทั้งหมด (getDocs(collection(...)))
+   ทุกครั้งที่เรียก แล้ววนเช็คใน client เอง (ครอบคลุมทุก type รถยนต์+สินค้า เหมือนเดิม)
+   ถ้า collection มีหลายพันเอกสาร แค่บันทึก 1 รายการก็กิน read เป็นหลักพัน-หมื่นครั้งทันที
+
+   แก้โดยเปลี่ยนมา query แบบมี where("plateLower", "==", ...) แทน ยังคง "ไม่กรอง type"
+   เหมือนเดิมทุกประการ (เช็คซ้ำข้ามรถยนต์+สินค้าเหมือนเดิม) เพราะ field plateLower อยู่ใน
+   เอกสารเดียวกันไม่ว่า type ไหน แค่กรองด้วย plate ก่อนแล้วเทียบชื่อในผลลัพธ์ที่เหลือ (ปกติ
+   จะเหลือแค่ 0-1 รายการต่อการเช็ค 1 ครั้ง) ผลการแจ้งเตือนข้อมูลซ้ำจึงไม่เปลี่ยนไปจากเดิม
+
+   field "plateLower"/"customerLower" ถูกเพิ่มเข้าไปตอนบันทึกทุกครั้งนับจากนี้ (ดูจุดสร้าง
+   record ในไฟล์นี้) เอกสารเก่าที่ยังไม่มี field นี้ต้อง backfill ก่อนครั้งเดียว
+   (ใช้ backfill_lower_fields.html แยกต่างหาก ไม่กระทบการทำงานของพนักงาน) */
 async function checkDuplicateCustomer(customerName, plate, excludeId){
     const name = String(customerName || "").trim().toLowerCase();
     const plt = String(plate || "").trim().toLowerCase();
 
     if (!name || !plt) return false;
 
-    const snap = await getDocs(collection(db, "insuranceData"));
+    const q = query(collection(db, "insuranceData"), where("plateLower", "==", plt));
+    const snap = await getDocs(q);
 
     let found = false;
     snap.forEach(docSnap => {
         if (excludeId && docSnap.id === excludeId) return;
         const d = docSnap.data();
-        const dName = String(d.customer || "").trim().toLowerCase();
-        const dPlate = String(d.plate || "").trim().toLowerCase();
-        if (dName === name && dPlate === plt) found = true;
+        const dName = String(d.customerLower || d.customer || "").trim().toLowerCase();
+        if (dName === name) found = true;
     });
 
     return found;
@@ -928,6 +936,11 @@ window.checkDuplicateCustomer = checkDuplicateCustomer;
             modelCode: document.getElementById("modelCode")?.value,
             brand: document.getElementById("brand")?.value,
             plate: document.getElementById("plate")?.value,
+            /* เพิ่มใหม่: เก็บชื่อ/ทะเบียนแบบ lowercase คู่กันไว้เสมอ เพื่อให้ checkDuplicateCustomer()
+               query ด้วย where("plateLower", "==", ...) ได้ตรงๆ แทนการดึงทั้ง collection มาเช็ค
+               (ลด Firestore read ลงมหาศาล) ไม่กระทบ field เดิม เป็นแค่ field เสริม */
+            customerLower: String(document.getElementById("name")?.value || "").trim().toLowerCase(),
+            plateLower: String(document.getElementById("plate")?.value || "").trim().toLowerCase(),
             chassis: document.getElementById("chassis")?.value,
             carYear: document.getElementById("carYear")?.value,
             engineNo: document.getElementById("engineNo")?.value,
