@@ -297,6 +297,9 @@
                 <option value="KWI">KWI</option>
                 <option value="กรุงเทพ">กรุงเทพ</option>
             </select>
+
+            <label>วันที่แจ้งงาน</label>
+            <input type="text" id="createDateField" placeholder="วว/ดด/ปปปป" autocomplete="off">
  
             <div class="section-title">👤 ข้อมูลผู้เอาประกัน</div>
  
@@ -558,6 +561,16 @@
             if (parts.length !== 3) return dmy;
             const [d, m, y] = parts;
             return `${d}/${m}/${Number(y) + 543}`;
+        }
+
+        /* เพิ่มใหม่: แปลงกลับจากวันที่แบบไทย (ปี พ.ศ. เช่น "8/8/2569") ที่เก็บไว้ใน createDate
+           ให้เป็น d/m/Y ปี ค.ศ. เพื่อใช้กับ flatpickr ของช่อง "วันที่แจ้งงาน" ตอนโหลดข้อมูลมาแก้ไข */
+        function toGregorianDMYFromThaiDisplay(thaiDmy) {
+            if (!thaiDmy) return "";
+            const parts = String(thaiDmy).split("/");
+            if (parts.length !== 3) return "";
+            const [d, m, y] = parts;
+            return `${d}/${m}/${Number(y) - 543}`;
         }
 
         /* เพิ่มใหม่: สร้าง/อัปเดตรายการ "การชำระเงินงวดที่ 1" ในระบบ "รายงานการเงิน" (finance.html)
@@ -983,10 +996,22 @@
         // แก้โดยใส่ 2 ฟิลด์นี้เฉพาะตอน "บันทึกข้อมูลใหม่" เท่านั้น (ไม่มี editingId)
         // ส่วนตอนแก้ไขข้อมูลเดิม จะไม่ส่ง 2 ฟิลด์นี้ไปเลย -> saveRecord() ใช้ merge:true
         // จึงไม่แตะค่าที่บันทึกไว้เดิมใน Firestore ทั้งสองฟิลด์นี้จะยังเป็นของเดิมเสมอ
+        // เพิ่มใหม่: "วันที่แจ้งงาน" อ่านจากช่อง #createDateField ที่ผู้ใช้แก้ไขได้เอง
+        // (ค่าเริ่มต้นจะถูกล็อกไว้เป็นวันนี้ตอนบันทึกใหม่ หรือวันเดิมที่เคยบันทึกไว้ตอนแก้ไข
+        // แต่พนักงานสามารถกดเปลี่ยนวันที่ในช่องนี้เองได้เสมอ)
+        const createDateFieldVal = document.getElementById("createDateField")?.value || "";
+
         if (editingId) {
             record.id = editingId;
+            // ส่ง createDate ไปด้วยเฉพาะตอนที่ช่องนี้มีค่า (ผู้ใช้แก้ไขวันที่หรือค่าเดิมถูกเติมไว้แล้ว)
+            // ถ้าว่างเปล่าจริงๆ จะไม่ส่งไป -> saveRecord() ใช้ merge:true จึงไม่ไปทับค่าที่มีอยู่เดิมใน Firestore
+            if (createDateFieldVal) {
+                record.createDate = toThaiDateDisplayFromDMY(createDateFieldVal);
+            }
         } else {
-            record.createDate = new Date().toLocaleDateString("th-TH");
+            record.createDate = createDateFieldVal
+                ? toThaiDateDisplayFromDMY(createDateFieldVal)
+                : new Date().toLocaleDateString("th-TH");
             record.employeeName = (typeof getEmployeeName === "function") ? getEmployeeName() : "";
         }
  
@@ -1208,6 +1233,7 @@
 
         let startPicker = null;
         let endPicker = null;
+        let createDatePicker = null;
 
         if (typeof flatpickr === "function") {
 
@@ -1232,6 +1258,7 @@
 
             startPicker = flatpickr("#start", datePickerOptions);
             endPicker = flatpickr("#end", datePickerOptions);
+            createDatePicker = flatpickr("#createDateField", datePickerOptions);
         }
 
         const menuBtn = document.getElementById("menuBtn");
@@ -1278,6 +1305,11 @@
             // เพิ่มใหม่: โหลด id ของรายการในรายงานการเงิน (ถ้าเคยสร้างไว้แล้ว) เพื่อให้บันทึกซ้ำ
             // ครั้งนี้ไปอัปเดตรายการเดิม ไม่สร้างรายการซ้อนใหม่ในรายงานการเงิน
             installment1PaymentRecordId = oldData.installment1PaymentRecordId || null;
+
+            // เพิ่มใหม่: เติมค่า "วันที่แจ้งงาน" เดิมกลับเข้าฟอร์ม (แก้ไขต่อได้ตามปกติ)
+            const createDateGregorian = toGregorianDMYFromThaiDisplay(oldData.createDate);
+            if (createDatePicker) createDatePicker.setDate(createDateGregorian, true, "d/m/Y");
+            else document.getElementById("createDateField").value = createDateGregorian;
 
             document.getElementById("company").value = oldData.company || "";
             document.getElementById("requestName").value = oldData.requestName || "";
@@ -1377,6 +1409,9 @@
     } else {
         // ไม่ได้มาจากหน้าแก้ไข: ยังคงต้องเช็คกฎล็อกกลุ่มสินค้าตามบริษัทที่เลือกอยู่ (ถ้ามี)
         applyGroupLockForCompany();
+        // เพิ่มใหม่: รายการใหม่ -> ตั้งค่าเริ่มต้นของ "วันที่แจ้งงาน" เป็นวันนี้ให้อัตโนมัติ
+        // (ยังแก้ไขเปลี่ยนวันที่เองได้ตามปกติ)
+        if (createDatePicker) createDatePicker.setDate(new Date(), true, "d/m/Y");
     }
  
 },500);

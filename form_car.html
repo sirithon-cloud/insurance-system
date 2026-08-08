@@ -161,6 +161,9 @@
         <label>ชื่อผู้แจ้ง (ล็อกตามอีเมลที่เข้าสู่ระบบ)</label>
         <input type="text" id="reporterName" placeholder="ชื่อผู้แจ้ง" readonly>
 
+        <label>วันที่แจ้งงาน</label>
+        <input type="text" id="createDateField" placeholder="เลือกวันที่" readonly>
+
         <label>เลขกรมธรรม์</label>
         <input type="text" id="policyNumber">
 
@@ -224,8 +227,16 @@
             </div>
         </div>
 
-        <label>ปีรถ</label>
-        <input type="text" id="carYear" name="vehicle_year_field" placeholder="เช่น 2565" autocomplete="new-password">
+        <div class="row" style="margin-top:15px;">
+            <div>
+                <label>ปีรถ</label>
+                <input type="text" id="carYear" name="vehicle_year_field" placeholder="เช่น 2565" autocomplete="new-password">
+            </div>
+            <div>
+                <label>เลขเครื่อง</label>
+                <input type="text" id="engineNo" name="vehicle_engine_field" autocomplete="new-password">
+            </div>
+        </div>
 
         <div class="section-title">📅 ระยะเวลาคุ้มครอง</div>
 
@@ -249,7 +260,7 @@
             </div>
             <div>
                 <label>เบี้ยประกันสุทธิ</label>
-                <input type="number" id="net" step="0.01" oninput="updatePremiumChain()">
+                <input type="number" id="net" step="0.01">
             </div>
         </div>
 
@@ -285,33 +296,33 @@
         <div class="row" style="margin-top:15px;">
             <div>
                 <label>พรบ</label>
-                <input type="number" id="actFee" step="0.01" oninput="updatePremiumChain()">
+                <input type="number" id="actFee" step="0.01">
             </div>
             <div>
                 <label>ภาษี</label>
-                <input type="number" id="taxFee" step="0.01" oninput="updatePremiumChain()">
+                <input type="number" id="taxFee" step="0.01">
             </div>
         </div>
 
         <div class="row" style="margin-top:15px;">
             <div>
                 <label>อื่นๆ</label>
-                <input type="number" id="otherFee" step="0.01" oninput="updatePremiumChain()">
+                <input type="number" id="otherFee" step="0.01">
             </div>
             <div>
                 <label>รวมเป็นเงินทั้งสิ้น</label>
-                <input type="text" id="grandTotal" readonly>
+                <input type="text" id="grandTotal" oninput="updatePremiumChain()">
             </div>
         </div>
 
         <div class="row" style="margin-top:15px;">
             <div>
                 <label>ส่วนลด</label>
-                <input type="number" id="discount" step="0.01" oninput="updatePremiumChain()">
+                <input type="number" id="discount" step="0.01" oninput="updateFinalTotal()">
             </div>
             <div>
                 <label>ยอดเรียกเก็บสุทธิ</label>
-                <input type="text" id="total" readonly>
+                <input type="text" id="total" oninput="onTotalInput()">
             </div>
         </div>
 
@@ -578,11 +589,49 @@ window.checkDuplicateCustomer = checkDuplicateCustomer;
         const n = Number(String(raw).replace(/,/g, ""));
         return isNaN(n) ? 0 : n;
     }
-    function updatePremiumChain() {
-        const net = parseMoney("net");
+    /* ===== ผู้กรอกแก้ไข "ยอดเรียกเก็บสุทธิ" (total) เองได้เช่นกัน ===== */
+    function onTotalInput() {
+        const sumTotalVal = parseMoney("sumTotal");
+        const discount = parseMoney("discount");
+        const netTotal = parseMoney("total"); // ใช้ค่าที่ผู้กรอกพิมพ์เอง ไม่คำนวณทับ
 
-        const stamp = net > 0 ? Math.ceil((net / 250) - 1e-9) : 0;
-        const combined = net + stamp;
+        document.getElementById("discountSummaryBox").innerHTML =
+            `จำนวนเงินรวม ${formatMoney2(sumTotalVal)} บาท − ส่วนลด ${formatMoney2(discount)} บาท = <b>ยอดเรียกเก็บสุทธิ ${formatMoney2(netTotal)} บาท</b>`;
+    }
+
+    /* ===== คำนวณ "ยอดเรียกเก็บสุทธิ" จาก "จำนวนเงินรวม" (sumTotal) ลบ "ส่วนลด" (discount)
+       สำคัญ: ห้ามหักส่วนลดออกจาก "รวมเป็นเงินทั้งสิ้น" (grandTotal) เพราะ grandTotal คือจำนวนเงิน
+       ค่าเบี้ยประกันตั้งต้นก่อนคำนวณอากรแสตมป์/VAT เท่านั้น ต้องหักส่วนลดจาก sumTotal (ยอดหลังรวม
+       อากรแสตมป์และ VAT แล้ว) เสมอ ฟังก์ชันนี้ถูกเรียกทั้งตอน discount เปลี่ยนโดยตรง และตอนท้ายของ
+       updatePremiumChain() ด้วย ===== */
+    function updateFinalTotal() {
+        const sumTotalVal = parseMoney("sumTotal");
+        const discount = parseMoney("discount");
+        const netTotal = Math.max(sumTotalVal - discount, 0);
+
+        document.getElementById("total").value = formatMoney2(netTotal);
+
+        document.getElementById("discountSummaryBox").innerHTML =
+            `จำนวนเงินรวม ${formatMoney2(sumTotalVal)} บาท − ส่วนลด ${formatMoney2(discount)} บาท = <b>ยอดเรียกเก็บสุทธิ ${formatMoney2(netTotal)} บาท</b>`;
+    }
+
+    /* ===== สายคำนวณเบี้ยประกัน (แก้ตามสเปกใหม่ ห้ามตีความสูตรใหม่) =====
+       ผู้ใช้กรอก "รวมเป็นเงินทั้งสิ้น" (grandTotal) เอง ค่านี้คือ "จำนวนเงินค่าเบี้ยประกัน" ตั้งต้น
+       ห้ามใช้ "เบี้ยประกันสุทธิ" (net) หรือ พรบ./ภาษี/อื่นๆ (actFee/taxFee/otherFee) เป็นฐานคำนวณอีกต่อไป
+       (net ไม่ต้องคำนวณใดๆ ทั้งสิ้น ปล่อยให้ผู้ใช้กรอกไว้เป็นข้อมูลอ้างอิงเฉยๆ)
+
+       stampDuty      = grandTotal ÷ 250 (ปัดขึ้น)
+       premiumCombined= grandTotal + stampDuty
+       vatAmount      = premiumCombined × 7%
+       sumTotal       = premiumCombined + vatAmount
+       total (ยอดเรียกเก็บสุทธิ) = sumTotal − discount   (คำนวณต่อใน updateFinalTotal())
+
+       ห้ามนำ sumTotal ไปบวกกับ stampDuty/premiumCombined ซ้ำอีก และห้ามหักส่วนลดก่อนคำนวณ VAT ===== */
+    function updatePremiumChain() {
+        const grandTotal = parseMoney("grandTotal"); // "รวมเป็นเงินทั้งสิ้น" = จำนวนเงินค่าเบี้ยประกัน
+
+        const stamp = grandTotal > 0 ? Math.ceil((grandTotal / 250) - 1e-9) : 0;
+        const combined = grandTotal + stamp;
         const vat = combined * 0.07;
         const sumTotalVal = combined + vat;
 
@@ -591,19 +640,7 @@ window.checkDuplicateCustomer = checkDuplicateCustomer;
         document.getElementById("vatAmount").value = formatMoney2(vat);
         document.getElementById("sumTotal").value = formatMoney2(sumTotalVal);
 
-        const actFee = parseMoney("actFee");
-        const taxFee = parseMoney("taxFee");
-        const otherFee = parseMoney("otherFee");
-        const discount = parseMoney("discount");
-
-        const grandTotal = sumTotalVal + actFee + taxFee + otherFee;
-        const netTotal = Math.max(grandTotal - discount, 0);
-
-        document.getElementById("grandTotal").value = formatMoney2(grandTotal);
-        document.getElementById("total").value = formatMoney2(netTotal);
-
-        document.getElementById("discountSummaryBox").innerHTML =
-            `รวมเป็นเงินทั้งสิ้น ${formatMoney2(grandTotal)} บาท − ส่วนลด ${formatMoney2(discount)} บาท = <b>ยอดเรียกเก็บสุทธิ ${formatMoney2(netTotal)} บาท</b>`;
+        updateFinalTotal();
     }
 
     /* ===== บันทึกการชำระเงิน (งวดที่ 1) — ยกมาจาก form_product.html ===== */
@@ -851,6 +888,7 @@ window.checkDuplicateCustomer = checkDuplicateCustomer;
             plate: document.getElementById("plate")?.value,
             chassis: document.getElementById("chassis")?.value,
             carYear: document.getElementById("carYear")?.value,
+            engineNo: document.getElementById("engineNo")?.value,
 
             start: document.getElementById("start")?.value,
             end: document.getElementById("end")?.value,
@@ -879,10 +917,22 @@ window.checkDuplicateCustomer = checkDuplicateCustomer;
             installment1Note: payment1.note
         };
 
+        // เพิ่มใหม่: "วันที่แจ้งงาน" อ่านจากช่อง #createDateField ที่ผู้ใช้แก้ไขได้เอง
+        // (ค่าเริ่มต้นจะถูกล็อกไว้เป็นวันนี้ตอนบันทึกใหม่ หรือวันเดิมที่เคยบันทึกไว้ตอนแก้ไข
+        // แต่พนักงานสามารถกดเปลี่ยนวันที่ในช่องนี้เองได้เสมอ)
+        const createDateFieldVal = document.getElementById("createDateField")?.value || "";
+
         if (editingId) {
             record.id = editingId;
+            // ส่ง createDate ไปด้วยเฉพาะตอนที่ช่องนี้มีค่า (ผู้ใช้แก้ไขวันที่หรือค่าเดิมถูกเติมไว้แล้ว)
+            // ถ้าว่างเปล่าจริงๆ จะไม่ส่งไป -> saveRecord() ใช้ merge:true จึงไม่ไปทับค่าที่มีอยู่เดิมใน Firestore
+            if (createDateFieldVal) {
+                record.createDate = toThaiDateDisplayFromDMY(createDateFieldVal);
+            }
         } else {
-            record.createDate = new Date().toLocaleDateString("th-TH");
+            record.createDate = createDateFieldVal
+                ? toThaiDateDisplayFromDMY(createDateFieldVal)
+                : new Date().toLocaleDateString("th-TH");
             record.employeeName = (typeof getEmployeeName === "function") ? getEmployeeName() : "";
         }
 
@@ -925,6 +975,16 @@ window.checkDuplicateCustomer = checkDuplicateCustomer;
         if (parts.length !== 3) return dmy;
         const [d, m, y] = parts;
         return `${d}/${m}/${Number(y) + 543}`;
+    }
+
+    /* เพิ่มใหม่: แปลงกลับจากวันที่แบบไทย (ปี พ.ศ. เช่น "8/8/2569") ที่เก็บไว้ใน createDate
+       ให้เป็น d/m/Y ปี ค.ศ. เพื่อใช้กับ flatpickr ของช่อง "วันที่แจ้งงาน" ตอนโหลดข้อมูลมาแก้ไข */
+    function toGregorianDMYFromThaiDisplay(thaiDmy) {
+        if (!thaiDmy) return "";
+        const parts = String(thaiDmy).split("/");
+        if (parts.length !== 3) return "";
+        const [d, m, y] = parts;
+        return `${d}/${m}/${Number(y) - 543}`;
     }
 
     async function syncInstallment1PaymentRecord(record, savedId) {
@@ -1114,6 +1174,11 @@ window.checkDuplicateCustomer = checkDuplicateCustomer;
         document.getElementById("invoiceNo").value = oldData.invoiceNo || "";
         document.getElementById("agentCode").value = oldData.agentCode || "";
         document.getElementById("reporterName").value = oldData.reporterName || "";
+
+        // เพิ่มใหม่: เติมค่า "วันที่แจ้งงาน" เดิมกลับเข้าฟอร์ม (แก้ไขต่อได้ตามปกติ)
+        const createDateGregorian = toGregorianDMYFromThaiDisplay(oldData.createDate);
+        if (createDatePicker) createDatePicker.setDate(createDateGregorian, true, "d/m/Y");
+        else document.getElementById("createDateField").value = createDateGregorian;
         document.getElementById("policyNumber").value = oldData.policyNumber || "";
         document.getElementById("name").value = oldData.customer || "";
         document.getElementById("phone").value = oldData.phone || "";
@@ -1125,6 +1190,7 @@ window.checkDuplicateCustomer = checkDuplicateCustomer;
         document.getElementById("plate").value = oldData.plate || "";
         document.getElementById("chassis").value = oldData.chassis || "";
         document.getElementById("carYear").value = oldData.carYear || "";
+        document.getElementById("engineNo").value = oldData.engineNo || "";
 
         const startVal = toDisplayDate(oldData.start);
         const endVal = toDisplayDate(oldData.end);
@@ -1138,6 +1204,7 @@ window.checkDuplicateCustomer = checkDuplicateCustomer;
         document.getElementById("taxFee").value = oldData.taxFee || "";
         document.getElementById("otherFee").value = oldData.otherFee || "";
 
+        document.getElementById("grandTotal").value = oldData.grandTotal || "";
         document.getElementById("discount").value = oldData.discount || "";
 
         updatePremiumChain();
@@ -1235,6 +1302,7 @@ window.checkDuplicateCustomer = checkDuplicateCustomer;
 
     let startPicker = null;
     let endPicker = null;
+    let createDatePicker = null;
 
     if (typeof flatpickr === "function") {
         const datePickerOptions = {
@@ -1259,6 +1327,7 @@ window.checkDuplicateCustomer = checkDuplicateCustomer;
 
         startPicker = flatpickr("#start", datePickerOptions);
         endPicker = flatpickr("#end", datePickerOptions);
+        createDatePicker = flatpickr("#createDateField", datePickerOptions);
     }
 
     /* ===== เมนู sidebar ===== */
@@ -1291,6 +1360,10 @@ window.checkDuplicateCustomer = checkDuplicateCustomer;
         if (localStorage.getItem("editData")) {
             loadEditDataIntoForm();
         } else {
+            // เพิ่มใหม่: รายการใหม่ -> ตั้งค่าเริ่มต้นของ "วันที่แจ้งงาน" เป็นวันนี้ให้อัตโนมัติ
+            // (ยังแก้ไขเปลี่ยนวันที่เองได้ตามปกติผ่าน flatpickr)
+            if (createDatePicker) createDatePicker.setDate(new Date(), true, "d/m/Y");
+
             /* เพิ่มใหม่: รายการใหม่ -> รันเลขที่แจ้งหนี้ (001/MM รีเซ็ตทุกเดือน)
                และเลขที่รับแจ้ง (001/พ.ศ. รีเซ็ตทุกปี) ให้อัตโนมัติ ไม่ต้องกรอกเอง */
             if (typeof window.computeNextInvoiceNo === "function") {

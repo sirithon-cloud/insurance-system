@@ -211,7 +211,7 @@ table.vf-staff td.hd{ font-weight:700; text-align:center; background:#f2f2f2; bo
 .inv b{ font-weight:400; }
 .inv-banner{
     background:#fff; height:82px; position:relative;margin-left:-10mm; margin-right:-10mm; width:calc(100% + 20mm);
-    display:flex; align-items:stretch;margin-top:14px;
+    display:flex; align-items:stretch;margin-top:25px;
 }
 .inv-banner .logo-area{
     display:flex; align-items:center; padding:0 26px  0 50px; background:#fff;
@@ -312,7 +312,7 @@ table.inv-notes-table .red{ color:#ff1900; display:block; }
 const AGENT = {
     officeTitle: "สำนักงานตัวแทนประกันวินาศภัย",
     companyLine: "บริษัท วิริยะประกันภัย จำกัด (มหาชน)",
-    address: "168 หมู่ที่ 5 ตำบลโนนสะอาด อำเภอชุมแพ จังหวัดขอนแก่น",
+    address: "168 หมู่ที่ 1 ตำบลหนองไผ่ อำเภอชุมแพ จังหวัดขอนแก่น 40130",
     branch: "ขอนแก่น",
     agentCodeDefault: "14904",
     bankName: "ธนาคารกรุงเทพ",
@@ -320,8 +320,7 @@ const AGENT = {
     bankAccountName: "นายณุพล วิทยาขาว",
     bankLogo: "logos/Logo-BBL.jpg",
     companyLogo: "logos/viriyah_logo.png.webp",
-    staffName: "นางสาวไอลัดดา ดวงกุลสา",
-    invoiceHelpPhone1: "087-7711080",
+    invoiceHelpPhone1: "",
     invoiceHelpPhone2: "085-2004250",
     fullName: "บริษัท วิริยะประกันภัย จำกัด (มหาชน)"
 };
@@ -708,7 +707,7 @@ function renderVoluntaryForm() {
                 </tr>
                 <tr>
                     <td>ลงชื่อ <span class="fillnum" style="min-width:300px;">${safe(data.reporterName)}</span> ผู้รับแจ้ง</td>
-                    <td>ลงชื่อ <span class="fillnum" style="min-width:250px;">${safe(data.employeeName) || AGENT.staffName}</span> ตัวแทนตรวจสภาพรถ</td>
+                    <td>ลงชื่อ <span class="fillnum" style="min-width:250px;">${safe(data.employeeName)}</span> ตัวแทนตรวจสภาพรถ</td>
                 </tr>
                 
                 <tr>
@@ -759,12 +758,19 @@ function renderInstallmentInvoice() {
             <div class="addr">${AGENT.address}</div>
         </div>
 
+        <div style="height:33px;"></div>
+
+        <div style="margin-left:90px;">
+
         <div class="inv-to">
             <div class="inv-to-row"><span>เรียน / กรุณานำส่ง :</span><span></span></div>
             <div class="inv-to-row"><span class="lft">${safe(data.customer)}</span><span>ใบแจ้งหนี้เลขที่ &nbsp; <b class="no">${safe(data.invoiceNo) || "-"}</b></span></div>
             <div class="inv-to-row"><span class="lft">${safe(data.address)}</span><span>วันที่ &nbsp; ${todayEnglishFull}</span></div>
             <div class="inv-to-row"><span class="lft">${safe(data.phone)}</span><span></span></div>
         </div>
+        </div>
+
+        <div style="height:30px;"></div>
 
         <table class="inv-table">
             <tr>
@@ -831,7 +837,7 @@ function renderInstallmentInvoice() {
             <b>หมายเหตุ :</b>
             . กรมธรรม์ของท่านจะได้รับความคุ้มครองต่อเมื่อได้ชำระเงินค่าเบี้ยประกันภัยครบถ้วนแล้วเท่านั้น<br>
             . กรณีรถเกิดเหตุในขณะยังชำระค่าเบี้ยไม่ครบ จะต้องชำระยอดคงค้างให้ครบถ้วนก่อน รถของท่านจึงจะสามารถจัดซ่อมได้<br>
-            . หากมีข้อสงสัยเกี่ยวกับใบแจ้งยอดชำระนี้ กรุณาโทร.${AGENT.invoiceHelpPhone1} ,${AGENT.invoiceHelpPhone2}
+            . หากมีข้อสงสัยเกี่ยวกับใบแจ้งยอดชำระนี้ กรุณาโทร. ${AGENT.invoiceHelpPhone2}
         </div>
     </div>`;
 }
@@ -854,12 +860,19 @@ function renderPaymentInvoiceBilingual() {
             <div class="addr">${AGENT.address}</div>
         </div>
 
+        <div style="height:33px;"></div>
+
+        <div style="margin-left:90px;">
+
         <div class="inv-to">
             <div class="inv-to-row"><span>เรียน / กรุณานำส่ง :</span><span></span></div>
             <div class="inv-to-row"><span class="lft">${safe(data.customer)}</span><span>ใบแจ้งหนี้เลขที่ : &nbsp; <b class="no">${safe(data.invoiceNo) || "-"}</b></span></div>
             <div class="inv-to-row"><span class="lft">${safe(data.address)}</span><span></span></div>
             <div class="inv-to-row"><span class="lft">${safe(data.phone)}</span><span>วันที่ : &nbsp; ${todayEnglishFull}</span></div>
         </div>
+        </div>
+
+        <div style="height:30px;"></div>
 
         <table class="inv-table inv-table-thai">
             <tr>
@@ -891,7 +904,7 @@ function renderPaymentInvoiceBilingual() {
             <b class="u" style="font-weight:700;">หมายเหตุ :</b>
             <span class="red">1. กรมธรรม์ของท่านจะได้รับความคุ้มครองต่อเมื่อได้ชำระเงินค่าเบี้ยประกันภัยครบถ้วนแล้วเท่านั้น</span>
             <span class="red">2. กรณีรถเกิดเหตุในขณะยังชำระค่าเบี้ยไม่ครบ จะต้องชำระยอดคงค้างให้ครบถ้วนก่อน รถของท่านจึงจะสามารถจัดซ่อมได้</span>
-            <span class="red">3. หากมีข้อสงสัยเกี่ยวกับใบแจ้งยอดชำระนี้ กรุณาโทร.${AGENT.invoiceHelpPhone1} ,${AGENT.invoiceHelpPhone2}</span>
+            <span class="red">3. หากมีข้อสงสัยเกี่ยวกับใบแจ้งยอดชำระนี้ กรุณาโทร. ${AGENT.invoiceHelpPhone2}</span>
         </td></tr></table>
 
         <div class="inv-bank-row" style="margin-top:18px;">
@@ -929,7 +942,7 @@ function renderPaymentInvoiceBilingual() {
             </div>
             <div style="margin-right:40px;">
                 <div style="height:36px;"></div>
-                <div class="kv"><span class="k">ผู้บันทึก/ผู้พิมพ์</span><span>: ${safe(data.employeeName) || AGENT.staffName}</span></div>
+                <div class="kv"><span class="k">ผู้บันทึก/ผู้พิมพ์</span><span>: ${safe(data.employeeName)}</span></div>
                 <div class="kv"><span class="k">วันที่พิมพ์</span><span>: ${todayShortSlash}</span></div>
             </div>
         </div>
